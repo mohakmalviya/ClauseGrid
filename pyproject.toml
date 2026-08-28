@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "formulawitness"
+version = "0.1.0"
+description = "Agentic policy assurance for operational Excel workbooks"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+formulawitness = "formulawitness.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/formulawitness"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["formulawitness"]

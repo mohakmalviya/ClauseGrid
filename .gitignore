@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Model and tool caches
+.cache/
+.model-cache/
+
+# Temporary workbook/runtime files
+*.tmp
+*.bak
+~$*.xlsx
+artifacts/tmp/
+artifacts/runs/
+workbooks/generated/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
