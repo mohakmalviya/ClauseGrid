@@ -16,7 +16,9 @@ def test_held_out_inputs_do_not_duplicate_visible_inputs() -> None:
 
 
 def test_advanced_improves_by_at_least_twenty_points_without_false_repairs(tmp_path: Path) -> None:
-    result = run_evaluation(ROOT, tmp_path / "results.json")
+    output = tmp_path / "results.json"
+    result = run_evaluation(ROOT, output)
     assert result["improvement_percentage_points"] >= 20
     assert result["advanced"]["clean_preservation_rate"] == 100
     assert all(result["acceptance"].values())
+    assert b"\r\n" not in output.read_bytes()
