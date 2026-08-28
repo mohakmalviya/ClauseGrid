@@ -3,7 +3,7 @@
   "frozen_on": "2026-08-29",
   "held_out_case_count": 48,
   "held_out_manifest_sha256": "f3508f7ee91868116fea2a85b614a86ea9dcf0d8515949a2645cde59e692a0df",
-  "held_out_payload_published": false,
+  "held_out_payload_in_manifest": false,
   "note": "Hashes were fixed before baseline/advanced optimization; scored repair workflows receive neither held-out payload nor oracle.",
   "policy_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
   "pristine_sha256": "2f6ef9bb9dccddc5adde7bd37d7390032efac74d76dd9e380ae8b8bdaf2fd23e",

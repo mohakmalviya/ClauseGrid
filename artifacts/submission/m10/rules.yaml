@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "policy_id": "SR-SLA-2026.1",
+  "currency": "USD",
+  "ambiguity_status": "resolved",
+  "rules": [
+    {
+      "id": "RB-101",
+      "title": "Eligible spend",
+      "target": "L6",
+      "status": "EXACT",
+      "boundaries": [],
+      "depends_on": [],
+      "source": {
+        "document_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
+        "page": 2,
+        "start_char": 170,
+        "end_char": 286,
+        "quote": "Eligible spend equals gross eligible invoices minus returns and credits minus pass-through charges, floored at zero.",
+        "quote_sha256": "e843c3f1df0447bf29e685f5d5b5b36dc707860e6d044523c6aaa807075b5314"
+      }
+    },
+    {
+      "id": "RB-102",
+      "title": "Tier boundaries",
+      "target": "N6",
+      "status": "EXACT",
+      "boundaries": [
+        "100000",
+        "250000",
+        "500000"
+      ],
+      "depends_on": [
+        "RB-101"
+      ],
+      "source": {
+        "document_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
+        "page": 2,
+        "start_char": 310,
+        "end_char": 491,
+        "quote": "The rebate rate is 0% when eligible spend is below $100,000; 2% from $100,000 inclusive to below $250,000; 3% from $250,000 inclusive to below $500,000; and 4% at $500,000 or above.",
+        "quote_sha256": "0851aa9456841bdad65d75e18e5bb3c8920102eb6e603b81f46a0214d8312575"
+      }
+    },
+    {
+      "id": "RB-103",
+      "title": "Gross rebate",
+      "target": "O6",
+      "status": "EXACT",
+      "boundaries": [],
+      "depends_on": [
+        "RB-101",
+        "RB-102"
+      ],
+      "source": {
+        "document_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
+        "page": 2,
+        "start_char": 512,
+        "end_char": 608,
+        "quote": "Gross rebate equals eligible spend multiplied by the rebate rate, with no intermediate rounding.",
+        "quote_sha256": "07696948047e1f112239ba5ec631134d2b2f1a604cfe972311aa15aa9c488c1a"
+      }
+    },
+    {
+      "id": "RB-201",
+      "title": "Critical incident precedence",
+      "target": "P6",
+      "status": "EXACT",
+      "boundaries": [
+        "critical_incidents>=1"
+      ],
+      "depends_on": [],
+      "source": {
+        "document_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
+        "page": 3,
+        "start_char": 184,
+        "end_char": 347,
+        "quote": "One or more critical incidents sets the SLA multiplier to zero unless the critical-incident waiver is Y; this exclusion is evaluated before ordinary SLA penalties.",
+        "quote_sha256": "aa42fd244942c04d4e4fc4bfff1dc959e33808b2fbb58caab259dbd013555bb4"
+      }
+    },
+    {
+      "id": "RB-202",
+      "title": "Ordinary SLA penalties",
+      "target": "P6",
+      "status": "EXACT",
+      "boundaries": [
+        "on_time_rate<0.95",
+        "defect_rate>0.02"
+      ],
+      "depends_on": [
+        "RB-201"
+      ],
+      "source": {
+        "document_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
+        "page": 3,
+        "start_char": 378,
+        "end_char": 575,
+        "quote": "When critical exclusion does not apply, the SLA multiplier is 0.60 if on-time delivery is below 95% and defect rate is above 2%, 0.75 if exactly one of those conditions is true, and 1.00 otherwise.",
+        "quote_sha256": "73e31243120810bdf44778810ffb4088061b25aa79c73a1febf5c6598e73bf4f"
+      }
+    },
+    {
+      "id": "RB-203",
+      "title": "Waiver scope",
+      "target": "P6",
+      "status": "EXACT",
+      "boundaries": [],
+      "depends_on": [
+        "RB-201",
+        "RB-202"
+      ],
+      "source": {
+        "document_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
+        "page": 3,
+        "start_char": 596,
+        "end_char": 717,
+        "quote": "A critical-incident waiver waives only the critical exclusion; it does not waive an ordinary delivery or quality penalty.",
+        "quote_sha256": "9bf2c10385b993b8bfcee852c2b5e5ba420b115cc8680acfeaab0ed9fbcfbc6d"
+      }
+    },
+    {
+      "id": "RB-204",
+      "title": "Active days",
+      "target": "M6",
+      "status": "EXACT",
+      "boundaries": [],
+      "depends_on": [],
+      "source": {
+        "document_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
+        "page": 3,
+        "start_char": 737,
+        "end_char": 871,
+        "quote": "Active days are inclusive calendar days from the later of the period start and contract start through the period end, floored at zero.",
+        "quote_sha256": "aea4ad085376df048ad33ac9e543d8e826f8d62b19d20842832d739d5f1f5c60"
+      }
+    },
+    {
+      "id": "RB-205",
+      "title": "Tenure multiplier",
+      "target": "Q6",
+      "status": "EXACT",
+      "boundaries": [
+        "active_days<90"
+      ],
+      "depends_on": [
+        "RB-204"
+      ],
+      "source": {
+        "document_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
+        "page": 3,
+        "start_char": 897,
+        "end_char": 998,
+        "quote": "The tenure multiplier is 0.50 when active days are below 90 and 1.00 when active days are 90 or more.",
+        "quote_sha256": "6719bf7d243bfdc009f6668a9524e85303b13c743efca989c86022da0b380035"
+      }
+    },
+    {
+      "id": "RB-301",
+      "title": "Adjustment order",
+      "target": "R6",
+      "status": "EXACT",
+      "boundaries": [],
+      "depends_on": [
+        "RB-103",
+        "RB-201",
+        "RB-202",
+        "RB-203",
+        "RB-205"
+      ],
+      "source": {
+        "document_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
+        "page": 4,
+        "start_char": 177,
+        "end_char": 280,
+        "quote": "Adjusted rebate equals gross rebate multiplied by the SLA multiplier and then by the tenure multiplier.",
+        "quote_sha256": "dc0b31f09cadabd69fe425923cf27e85ffb0b34e72978a8f04c0ababe53bc7c7"
+      }
+    },
+    {
+      "id": "RB-302",
+      "title": "Cap and rounding",
+      "target": "S6",
+      "status": "EXACT",
+      "boundaries": [
+        "cap=20000",
+        "round=2"
+      ],
+      "depends_on": [
+        "RB-301"
+      ],
+      "source": {
+        "document_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
+        "page": 4,
+        "start_char": 305,
+        "end_char": 449,
+        "quote": "The $20,000 cap is applied after all multipliers, and the resulting final rebate is rounded to two decimal places only after the cap is applied.",
+        "quote_sha256": "539470b757ba6d77c6816bb8db1ad70b115c76bba673a0eff700f01a308c2ad6"
+      }
+    },
+    {
+      "id": "RB-303",
+      "title": "Decision code",
+      "target": "T6",
+      "status": "EXACT",
+      "boundaries": [],
+      "depends_on": [
+        "RB-201",
+        "RB-302"
+      ],
+      "source": {
+        "document_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
+        "page": 4,
+        "start_char": 471,
+        "end_char": 621,
+        "quote": "Decision code is EXCLUDED_CRITICAL for an unwaived critical incident, NO_REBATE when final rebate is zero for any other reason, and PAYABLE otherwise.",
+        "quote_sha256": "83aedf8591a846ea317647112257834c51dede7590b9c5a7f79491fda62a3e3d"
+      }
+    }
+  ]
+}

@@ -1,0 +1,492 @@
+{
+  "acceptance": {
+    "advanced_at_least_20pp_better": true,
+    "advanced_clean_preservation_100": true,
+    "advanced_no_more_false_repairs": true
+  },
+  "advanced": {
+    "clean_preservation_rate": 100.0,
+    "determinism": "one run required; workflow and model policy are deterministic",
+    "e2e_semantic_repair_rate": 100.0,
+    "hard_multi_rule_rate": 100.0,
+    "method": "advanced",
+    "primary_metric": "End-to-End Semantic Repair Rate",
+    "records": [
+      {
+        "case_id": "M01",
+        "changed_cells": [
+          "L6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-09e21595b937",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M02",
+        "changed_cells": [
+          "L6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-e7d5b95ad664",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M03",
+        "changed_cells": [
+          "N6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-f867c08b7263",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M04",
+        "changed_cells": [
+          "N6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-67518ff7075f",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M05",
+        "changed_cells": [
+          "N6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-65dde1bce44b",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M06",
+        "changed_cells": [
+          "P6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-d1e1d676493a",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M07",
+        "changed_cells": [
+          "P6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-7dabdae53844",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M08",
+        "changed_cells": [
+          "P6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-fb4d75195a90",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M09",
+        "changed_cells": [
+          "P6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-bbad01b4ce66",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M10",
+        "changed_cells": [
+          "P6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-9e4a2e37c326",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M11",
+        "changed_cells": [
+          "Q6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-ebea0789ae2f",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M12",
+        "changed_cells": [
+          "S6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-84549dc2dd67",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "H01",
+        "changed_cells": [
+          "N6",
+          "P6",
+          "S6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-83c67593de7e",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "C01",
+        "changed_cells": [],
+        "decision": "NO_CHANGE",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-3f36aef7c680",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "C02",
+        "changed_cells": [],
+        "decision": "NO_CHANGE",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-40160c4b8776",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "C03",
+        "changed_cells": [],
+        "decision": "NO_CHANGE",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "advanced-1fe1d6ae84c2",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      }
+    ]
+  },
+  "baseline": {
+    "clean_preservation_rate": 100.0,
+    "determinism": "one run required; workflow and model policy are deterministic",
+    "e2e_semantic_repair_rate": 50.0,
+    "hard_multi_rule_rate": 0.0,
+    "method": "baseline",
+    "primary_metric": "End-to-End Semantic Repair Rate",
+    "records": [
+      {
+        "case_id": "M01",
+        "changed_cells": [],
+        "decision": "NO_CHANGE",
+        "first_failure": "H04",
+        "minimality_ok": true,
+        "run_id": "baseline-24a573c01f1f",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 3,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": false
+      },
+      {
+        "case_id": "M02",
+        "changed_cells": [],
+        "decision": "NO_CHANGE",
+        "first_failure": "H32",
+        "minimality_ok": true,
+        "run_id": "baseline-655b95f2f235",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 31,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": false
+      },
+      {
+        "case_id": "M03",
+        "changed_cells": [
+          "N6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-1d9d81bf63b1",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M04",
+        "changed_cells": [
+          "N6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-b5a281fae38b",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M05",
+        "changed_cells": [
+          "N6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-3e949ecfe6d5",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M06",
+        "changed_cells": [
+          "P6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": "H14",
+        "minimality_ok": true,
+        "run_id": "baseline-247088fd1877",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 13,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": false
+      },
+      {
+        "case_id": "M07",
+        "changed_cells": [
+          "P6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": "H17",
+        "minimality_ok": true,
+        "run_id": "baseline-c0117e690cf2",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 16,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": false
+      },
+      {
+        "case_id": "M08",
+        "changed_cells": [
+          "P6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-499af8ac1edf",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M09",
+        "changed_cells": [
+          "P6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-2ebb8fc74196",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M10",
+        "changed_cells": [],
+        "decision": "NO_CHANGE",
+        "first_failure": "H24",
+        "minimality_ok": true,
+        "run_id": "baseline-42247bdea23d",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 23,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": false
+      },
+      {
+        "case_id": "M11",
+        "changed_cells": [
+          "Q6"
+        ],
+        "decision": "REPAIR",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-0fb0020ecefd",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "M12",
+        "changed_cells": [],
+        "decision": "NO_CHANGE",
+        "first_failure": "H36",
+        "minimality_ok": true,
+        "run_id": "baseline-2605f91a1bac",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 35,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": false
+      },
+      {
+        "case_id": "H01",
+        "changed_cells": [],
+        "decision": "NO_CHANGE",
+        "first_failure": "H10",
+        "minimality_ok": true,
+        "run_id": "baseline-c436b861a8e3",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 9,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": false
+      },
+      {
+        "case_id": "C01",
+        "changed_cells": [],
+        "decision": "NO_CHANGE",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-0ac536f69971",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "C02",
+        "changed_cells": [],
+        "decision": "NO_CHANGE",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-f3ba8d8e236b",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      },
+      {
+        "case_id": "C03",
+        "changed_cells": [],
+        "decision": "NO_CHANGE",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-32ef6f7b857e",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true
+      }
+    ]
+  },
+  "benchmark": "SupplierRebate-SLA-16",
+  "hidden_case_count_per_workbook": 48,
+  "improvement_percentage_points": 50.0,
+  "oracle": "independent Python Decimal/date implementation",
+  "schema_version": 1
+}

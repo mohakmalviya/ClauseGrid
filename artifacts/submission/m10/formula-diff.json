@@ -1,0 +1,17 @@
+{
+  "changed_cell_count": 1,
+  "changes": [
+    {
+      "after": "=IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1)))",
+      "before": "=IF(K6=\"Y\",1,IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1))))",
+      "cell": "P6",
+      "rationale": "Policy-compiled formula eliminates 1 visible failures with one cell change.",
+      "rule_ids": [
+        "RB-201",
+        "RB-202",
+        "RB-203"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

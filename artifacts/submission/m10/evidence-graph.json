@@ -1,0 +1,373 @@
+{
+  "edges": [
+    {
+      "from": "rule:RB-101",
+      "to": "case:V01",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-102",
+      "to": "case:V01",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-103",
+      "to": "case:V01",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-101",
+      "to": "case:V02",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-101",
+      "to": "case:V03",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-102",
+      "to": "case:V04",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-102",
+      "to": "case:V05",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-102",
+      "to": "case:V06",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-102",
+      "to": "case:V07",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-102",
+      "to": "case:V08",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-102",
+      "to": "case:V09",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-102",
+      "to": "case:V10",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-102",
+      "to": "case:V11",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-102",
+      "to": "case:V12",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-202",
+      "to": "case:V13",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-202",
+      "to": "case:V14",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-201",
+      "to": "case:V15",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-202",
+      "to": "case:V16",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-203",
+      "to": "case:V17",
+      "type": "generates"
+    },
+    {
+      "from": "case:V17",
+      "to": "cell:P6",
+      "type": "fails_at"
+    },
+    {
+      "from": "case:V17",
+      "to": "cell:R6",
+      "type": "fails_at"
+    },
+    {
+      "from": "case:V17",
+      "to": "cell:S6",
+      "type": "fails_at"
+    },
+    {
+      "from": "rule:RB-204",
+      "to": "case:V18",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-205",
+      "to": "case:V18",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-204",
+      "to": "case:V19",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-205",
+      "to": "case:V19",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-301",
+      "to": "case:V20",
+      "type": "generates"
+    },
+    {
+      "from": "rule:RB-302",
+      "to": "case:V20",
+      "type": "generates"
+    },
+    {
+      "from": "cell:P6",
+      "to": "patch:P6",
+      "type": "repairs"
+    },
+    {
+      "from": "rule:RB-201",
+      "to": "patch:P6",
+      "type": "supports"
+    },
+    {
+      "from": "rule:RB-202",
+      "to": "patch:P6",
+      "type": "supports"
+    },
+    {
+      "from": "rule:RB-203",
+      "to": "patch:P6",
+      "type": "supports"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "rule:RB-101",
+      "label": "Eligible spend",
+      "page": 2,
+      "type": "rule"
+    },
+    {
+      "id": "rule:RB-102",
+      "label": "Tier boundaries",
+      "page": 2,
+      "type": "rule"
+    },
+    {
+      "id": "rule:RB-103",
+      "label": "Gross rebate",
+      "page": 2,
+      "type": "rule"
+    },
+    {
+      "id": "rule:RB-201",
+      "label": "Critical incident precedence",
+      "page": 3,
+      "type": "rule"
+    },
+    {
+      "id": "rule:RB-202",
+      "label": "Ordinary SLA penalties",
+      "page": 3,
+      "type": "rule"
+    },
+    {
+      "id": "rule:RB-203",
+      "label": "Waiver scope",
+      "page": 3,
+      "type": "rule"
+    },
+    {
+      "id": "rule:RB-204",
+      "label": "Active days",
+      "page": 3,
+      "type": "rule"
+    },
+    {
+      "id": "rule:RB-205",
+      "label": "Tenure multiplier",
+      "page": 3,
+      "type": "rule"
+    },
+    {
+      "id": "rule:RB-301",
+      "label": "Adjustment order",
+      "page": 4,
+      "type": "rule"
+    },
+    {
+      "id": "rule:RB-302",
+      "label": "Cap and rounding",
+      "page": 4,
+      "type": "rule"
+    },
+    {
+      "id": "rule:RB-303",
+      "label": "Decision code",
+      "page": 4,
+      "type": "rule"
+    },
+    {
+      "id": "case:V01",
+      "label": "ordinary",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V02",
+      "label": "deduction_returns",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V03",
+      "label": "deduction_passthrough",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V04",
+      "label": "tier_100000_below",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V05",
+      "label": "tier_100000_at",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V06",
+      "label": "tier_100000_above",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V07",
+      "label": "tier_250000_below",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V08",
+      "label": "tier_250000_at",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V09",
+      "label": "tier_250000_above",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V10",
+      "label": "tier_500000_below",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V11",
+      "label": "tier_500000_at",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V12",
+      "label": "tier_500000_above",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V13",
+      "label": "delivery_boundary",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V14",
+      "label": "quality_boundary",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V15",
+      "label": "critical_precedence",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V16",
+      "label": "both_sla_breaches",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V17",
+      "label": "waiver_scope",
+      "status": "FAIL",
+      "type": "counterexample"
+    },
+    {
+      "id": "cell:P6",
+      "label": "P6",
+      "type": "formula_cell"
+    },
+    {
+      "id": "cell:R6",
+      "label": "R6",
+      "type": "formula_cell"
+    },
+    {
+      "id": "cell:S6",
+      "label": "S6",
+      "type": "formula_cell"
+    },
+    {
+      "id": "case:V18",
+      "label": "tenure_90",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V19",
+      "label": "tenure_89",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "case:V20",
+      "label": "cap_after_penalty",
+      "status": "PASS",
+      "type": "counterexample"
+    },
+    {
+      "id": "patch:P6",
+      "label": "P6",
+      "type": "patch"
+    }
+  ],
+  "schema_version": 1
+}

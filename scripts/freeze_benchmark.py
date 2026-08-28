@@ -26,7 +26,7 @@ def main() -> None:
         "visible_manifest_sha256": object_hash([case.__dict__ for case in visible_cases()]),
         "held_out_case_count": len(held_out_cases()),
         "held_out_manifest_sha256": object_hash([case.__dict__ for case in held_out_cases()]),
-        "held_out_payload_published": False,
+        "held_out_payload_in_manifest": False,
         "note": "Hashes were fixed before baseline/advanced optimization; scored repair workflows receive neither held-out payload nor oracle.",
     }
     output = root / "fixtures/frozen-benchmark.json"

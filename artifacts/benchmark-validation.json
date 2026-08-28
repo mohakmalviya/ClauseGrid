@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "hidden_case_count": 48,
+  "mutants": [
+    {
+      "case": "M01",
+      "changed_cells": [
+        "L6"
+      ],
+      "hidden_vectors_killed": 14
+    },
+    {
+      "case": "M02",
+      "changed_cells": [
+        "L6"
+      ],
+      "hidden_vectors_killed": 11
+    },
+    {
+      "case": "M03",
+      "changed_cells": [
+        "N6"
+      ],
+      "hidden_vectors_killed": 2
+    },
+    {
+      "case": "M04",
+      "changed_cells": [
+        "N6"
+      ],
+      "hidden_vectors_killed": 20
+    },
+    {
+      "case": "M05",
+      "changed_cells": [
+        "N6"
+      ],
+      "hidden_vectors_killed": 2
+    },
+    {
+      "case": "M06",
+      "changed_cells": [
+        "P6"
+      ],
+      "hidden_vectors_killed": 2
+    },
+    {
+      "case": "M07",
+      "changed_cells": [
+        "P6"
+      ],
+      "hidden_vectors_killed": 2
+    },
+    {
+      "case": "M08",
+      "changed_cells": [
+        "P6"
+      ],
+      "hidden_vectors_killed": 2
+    },
+    {
+      "case": "M09",
+      "changed_cells": [
+        "P6"
+      ],
+      "hidden_vectors_killed": 5
+    },
+    {
+      "case": "M10",
+      "changed_cells": [
+        "P6"
+      ],
+      "hidden_vectors_killed": 2
+    },
+    {
+      "case": "M11",
+      "changed_cells": [
+        "Q6"
+      ],
+      "hidden_vectors_killed": 45
+    },
+    {
+      "case": "M12",
+      "changed_cells": [
+        "S6"
+      ],
+      "hidden_vectors_killed": 6
+    }
+  ],
+  "status": "PASS",
+  "failures": []
+}
