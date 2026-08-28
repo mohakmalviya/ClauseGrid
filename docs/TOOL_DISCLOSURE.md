@@ -3,7 +3,7 @@
 ## Build tools
 
 - OpenAI Codex (GPT-5) was used as the coding agent to design, implement, test, and document this repository.
-- `@oai/artifact-tool` authored and rendered the `.xlsx` fixtures.
+- `@oai/artifact-tool` 2.8.52 from the Codex bundled runtime authored and strictly re-imported the synthetic `.xlsx` fixtures. It is not a runtime dependency and is not published on the public npm registry.
 - ReportLab generated the synthetic policy PDF; Poppler rendered it for visual QA.
 - `pypdf` provides page-addressable policy text extraction.
 - Desktop Microsoft Excel was used once for independent open/recalculate/save validation of the final repaired workbook; it is not a runtime dependency.

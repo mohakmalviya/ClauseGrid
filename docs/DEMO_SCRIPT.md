@@ -32,6 +32,7 @@ Show `P6` ranked with dependency and spectrum evidence. Compare the before/after
 Enter a reviewer identity and approve. Download:
 
 - `repaired.xlsx`;
+- `proposal.json`;
 - `rules.yaml`;
 - `formula-diff.json`;
 - `evidence-graph.json`;
@@ -48,4 +49,4 @@ Run `scripts\eval.ps1`. Explain that hidden cases and the independent oracle are
 
 ## 4:35–5:00 — Result and limitation
 
-Show 50% baseline versus 100% FormulaWitness, +50 pp, with 100% clean preservation and a three-fault hard-case pass. End with the limitation: ambiguous real policies must trigger abstention and clarification, not confident repair.
+Show 33.3% baseline versus 100% FormulaWitness, +66.7 pp, with 100% clean preservation and a three-fault hard-case pass. Note that M03–M05 execute a real ordered `LOOKUP`, M11 tests the proportional-proration denominator, and all 48 sealed inputs are disjoint from visible inputs. End with the limitation: ambiguous real policies must trigger abstention and clarification, not confident repair.

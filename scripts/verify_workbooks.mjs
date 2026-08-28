@@ -59,11 +59,11 @@ const pristinePath = path.join(root, "workbooks", "reference", "supplier_rebate_
 const pristine = await importWorkbook(pristinePath);
 const summary = await pristine.inspect({ kind: "workbook,sheet,formula", sheetId: "RebateCalc", range: "A1:T10", maxChars: 5000 });
 await fs.writeFile(path.join(previewDir, "pristine-inspect.ndjson"), summary.ndjson ?? String(summary));
-await renderSheets(pristine, ["Cover", "RebateCalc", "Checks"], "pristine");
+await renderSheets(pristine, ["Cover", "RebateCalc", "TierSchedule", "Checks"], "pristine");
 
 if (repairedPath) {
   const repaired = await importWorkbook(repairedPath);
-  await renderSheets(repaired, ["Cover", "RebateCalc", "Checks", "Counterexamples", "FormulaWitness_Report"], "repaired");
+  await renderSheets(repaired, ["Cover", "RebateCalc", "TierSchedule", "Checks", "Counterexamples", "FormulaWitness_Report"], "repaired");
 }
 
 const report = { schemaVersion: 1, workbookCount: results.length, status: "PASS", files: results };

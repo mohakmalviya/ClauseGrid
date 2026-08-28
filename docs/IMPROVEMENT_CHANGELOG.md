@@ -12,7 +12,7 @@
 | Review | diff only | evidence, counterexample, hashes, approval |
 | Final verification | none | one-shot 48-vector sealed replay |
 
-Measured change: E2E-SRR increased from 50% to 100% (+50 percentage points) while both systems preserved 100% of clean controls.
+Measured change on frozen benchmark revision 2 after replacing the mutation-specific baseline table, removing gold-formula comparison from localization, and compiling candidates from cited rule IR: E2E-SRR increased from 33.3% to 100% (+66.7 percentage points) while both systems preserved 100% of clean controls.
 
 ## Removed experiment: whole-formula normalization
 
@@ -20,4 +20,4 @@ An early design normalized every core formula to the policy compiler output. It 
 
 ## Why the direct baseline remains meaningful
 
-The baseline is not a strawman that always fails. It repairs six defect families, including tier boundaries, incident count, wrong multiplier literal, and the 90-day comparison. It fails omissions, coupled boundary edits, waiver scope, and cap order—the cases that require counterexamples and multi-rule reasoning.
+The baseline is not a strawman that always fails. It repairs four simple SLA defects: delivery and quality boundary operators, incident count, and a wrong combined-penalty literal. It fails omitted deductions, narrow lookup shifts, waiver scope, a proration-denominator defect, and cap order—the cases that require structured counterexamples, rule IR, or multi-rule reasoning.

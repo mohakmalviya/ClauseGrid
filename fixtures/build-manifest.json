@@ -20,96 +20,96 @@
     },
     {
       "id": "M01",
-      "kind": "mutant",
-      "file": "mutant/M01_supplier_rebate.xlsx",
+      "kind": "mutants",
+      "file": "mutants/M01_supplier_rebate.xlsx",
       "changedCells": [
         "L6"
       ]
     },
     {
       "id": "M02",
-      "kind": "mutant",
-      "file": "mutant/M02_supplier_rebate.xlsx",
+      "kind": "mutants",
+      "file": "mutants/M02_supplier_rebate.xlsx",
       "changedCells": [
         "L6"
       ]
     },
     {
       "id": "M03",
-      "kind": "mutant",
-      "file": "mutant/M03_supplier_rebate.xlsx",
+      "kind": "mutants",
+      "file": "mutants/M03_supplier_rebate.xlsx",
       "changedCells": [
         "N6"
       ]
     },
     {
       "id": "M04",
-      "kind": "mutant",
-      "file": "mutant/M04_supplier_rebate.xlsx",
+      "kind": "mutants",
+      "file": "mutants/M04_supplier_rebate.xlsx",
       "changedCells": [
         "N6"
       ]
     },
     {
       "id": "M05",
-      "kind": "mutant",
-      "file": "mutant/M05_supplier_rebate.xlsx",
+      "kind": "mutants",
+      "file": "mutants/M05_supplier_rebate.xlsx",
       "changedCells": [
         "N6"
       ]
     },
     {
       "id": "M06",
-      "kind": "mutant",
-      "file": "mutant/M06_supplier_rebate.xlsx",
+      "kind": "mutants",
+      "file": "mutants/M06_supplier_rebate.xlsx",
       "changedCells": [
         "P6"
       ]
     },
     {
       "id": "M07",
-      "kind": "mutant",
-      "file": "mutant/M07_supplier_rebate.xlsx",
+      "kind": "mutants",
+      "file": "mutants/M07_supplier_rebate.xlsx",
       "changedCells": [
         "P6"
       ]
     },
     {
       "id": "M08",
-      "kind": "mutant",
-      "file": "mutant/M08_supplier_rebate.xlsx",
+      "kind": "mutants",
+      "file": "mutants/M08_supplier_rebate.xlsx",
       "changedCells": [
         "P6"
       ]
     },
     {
       "id": "M09",
-      "kind": "mutant",
-      "file": "mutant/M09_supplier_rebate.xlsx",
+      "kind": "mutants",
+      "file": "mutants/M09_supplier_rebate.xlsx",
       "changedCells": [
         "P6"
       ]
     },
     {
       "id": "M10",
-      "kind": "mutant",
-      "file": "mutant/M10_supplier_rebate.xlsx",
+      "kind": "mutants",
+      "file": "mutants/M10_supplier_rebate.xlsx",
       "changedCells": [
         "P6"
       ]
     },
     {
       "id": "M11",
-      "kind": "mutant",
-      "file": "mutant/M11_supplier_rebate.xlsx",
+      "kind": "mutants",
+      "file": "mutants/M11_supplier_rebate.xlsx",
       "changedCells": [
         "Q6"
       ]
     },
     {
       "id": "M12",
-      "kind": "mutant",
-      "file": "mutant/M12_supplier_rebate.xlsx",
+      "kind": "mutants",
+      "file": "mutants/M12_supplier_rebate.xlsx",
       "changedCells": [
         "S6"
       ]
@@ -126,20 +126,20 @@
     },
     {
       "id": "C01",
-      "kind": "control",
-      "file": "control/C01_supplier_rebate.xlsx",
+      "kind": "controls",
+      "file": "controls/C01_supplier_rebate.xlsx",
       "changedCells": []
     },
     {
       "id": "C02",
-      "kind": "control",
-      "file": "control/C02_supplier_rebate.xlsx",
+      "kind": "controls",
+      "file": "controls/C02_supplier_rebate.xlsx",
       "changedCells": []
     },
     {
       "id": "C03",
-      "kind": "control",
-      "file": "control/C03_supplier_rebate.xlsx",
+      "kind": "controls",
+      "file": "controls/C03_supplier_rebate.xlsx",
       "changedCells": []
     }
   ]

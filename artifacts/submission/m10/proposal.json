@@ -1,0 +1,1071 @@
+{
+  "case_manifest_hash": "505691f3778aaefe771f0ae96cff0c91e7da986bf549883144f23e01551ff581",
+  "patch_hash": "08dd38274a0b072660701978dcb64ec96e41102c95559753ff6bb4a9b4ae75b2",
+  "result": {
+    "approval_hash": null,
+    "artifact_dir": ".",
+    "budget": {
+      "model_id": "deterministic-offline-v1",
+      "token_limit": 0,
+      "tokens_used": 0,
+      "workbook_case_execution_limit": 160,
+      "workbook_case_executions_used": 40
+    },
+    "decision": "REPAIR",
+    "method": "formulawitness-advanced",
+    "output_workbook": null,
+    "patches": [
+      {
+        "cell": "P6",
+        "new_formula": "=IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1)))",
+        "old_formula": "=IF(K6=\"Y\",1,IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1))))",
+        "rationale": "Policy-compiled formula eliminates 1 visible failures with one cell change.",
+        "rule_ids": [
+          "RB-201",
+          "RB-202",
+          "RB-203"
+        ]
+      }
+    ],
+    "rules_sha256": "72f8b8dfbf2104d453678f0c258031f1b7cadf0890e19af4727e163324f79b84",
+    "run_id": "advanced-f569ca78b557",
+    "source_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762",
+    "source_workbook": "M10_supplier_rebate.xlsx",
+    "suspicious_cells": [
+      {
+        "affected_outputs": [
+          "P6",
+          "R6",
+          "S6",
+          "T6"
+        ],
+        "cell": "P6",
+        "direct_mismatch_count": 1,
+        "failed_covered": 1,
+        "failing_cases": 1,
+        "ochiai": 0.223607,
+        "passed_covered": 19,
+        "rule_ids": [
+          "RB-201",
+          "RB-202",
+          "RB-203"
+        ]
+      },
+      {
+        "affected_outputs": [
+          "R6",
+          "S6",
+          "T6"
+        ],
+        "cell": "R6",
+        "direct_mismatch_count": 1,
+        "failed_covered": 1,
+        "failing_cases": 1,
+        "ochiai": 0.223607,
+        "passed_covered": 19,
+        "rule_ids": [
+          "RB-301"
+        ]
+      },
+      {
+        "affected_outputs": [
+          "S6",
+          "T6"
+        ],
+        "cell": "S6",
+        "direct_mismatch_count": 1,
+        "failed_covered": 1,
+        "failing_cases": 1,
+        "ochiai": 0.223607,
+        "passed_covered": 19,
+        "rule_ids": [
+          "RB-302"
+        ]
+      },
+      {
+        "affected_outputs": [
+          "L6",
+          "N6",
+          "O6",
+          "R6",
+          "S6",
+          "T6"
+        ],
+        "cell": "L6",
+        "direct_mismatch_count": 0,
+        "failed_covered": 1,
+        "failing_cases": 0,
+        "ochiai": 0.223607,
+        "passed_covered": 19,
+        "rule_ids": [
+          "RB-101"
+        ]
+      },
+      {
+        "affected_outputs": [
+          "M6",
+          "Q6",
+          "R6",
+          "S6",
+          "T6"
+        ],
+        "cell": "M6",
+        "direct_mismatch_count": 0,
+        "failed_covered": 1,
+        "failing_cases": 0,
+        "ochiai": 0.223607,
+        "passed_covered": 19,
+        "rule_ids": [
+          "RB-204"
+        ]
+      },
+      {
+        "affected_outputs": [
+          "N6",
+          "O6",
+          "R6",
+          "S6",
+          "T6"
+        ],
+        "cell": "N6",
+        "direct_mismatch_count": 0,
+        "failed_covered": 1,
+        "failing_cases": 0,
+        "ochiai": 0.223607,
+        "passed_covered": 19,
+        "rule_ids": [
+          "RB-102"
+        ]
+      },
+      {
+        "affected_outputs": [
+          "O6",
+          "R6",
+          "S6",
+          "T6"
+        ],
+        "cell": "O6",
+        "direct_mismatch_count": 0,
+        "failed_covered": 1,
+        "failing_cases": 0,
+        "ochiai": 0.223607,
+        "passed_covered": 19,
+        "rule_ids": [
+          "RB-103"
+        ]
+      },
+      {
+        "affected_outputs": [
+          "Q6",
+          "R6",
+          "S6",
+          "T6"
+        ],
+        "cell": "Q6",
+        "direct_mismatch_count": 0,
+        "failed_covered": 1,
+        "failing_cases": 0,
+        "ochiai": 0.223607,
+        "passed_covered": 19,
+        "rule_ids": [
+          "RB-205"
+        ]
+      }
+    ],
+    "tests": [
+      {
+        "actual": {
+          "L6": 180000,
+          "M6": 90,
+          "N6": 0.02,
+          "O6": 3600,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 3600,
+          "S6": 3600,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V01",
+        "category": "ordinary",
+        "expected": {
+          "L6": 180000,
+          "M6": 90,
+          "N6": 0.02,
+          "O6": 3600,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 3600,
+          "S6": 3600,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 180000,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-101",
+          "RB-102",
+          "RB-103"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 245000,
+          "M6": 90,
+          "N6": 0.02,
+          "O6": 4900,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 4900,
+          "S6": 4900,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V02",
+        "category": "deduction_returns",
+        "expected": {
+          "L6": 245000,
+          "M6": 90,
+          "N6": 0.02,
+          "O6": 4900,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 4900,
+          "S6": 4900,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 260000,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 15000,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-101"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 245000,
+          "M6": 90,
+          "N6": 0.02,
+          "O6": 4900,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 4900,
+          "S6": 4900,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V03",
+        "category": "deduction_passthrough",
+        "expected": {
+          "L6": 245000,
+          "M6": 90,
+          "N6": 0.02,
+          "O6": 4900,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 4900,
+          "S6": 4900,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 260000,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 15000,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-101"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 99999.99,
+          "M6": 90,
+          "N6": 0,
+          "O6": 0,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 0,
+          "S6": 0,
+          "T6": "NO_REBATE"
+        },
+        "case_id": "V04",
+        "category": "tier_100000_below",
+        "expected": {
+          "L6": 99999.99,
+          "M6": 90,
+          "N6": 0,
+          "O6": 0,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 0,
+          "S6": 0,
+          "T6": "NO_REBATE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 99999.99,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-102"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 100000,
+          "M6": 90,
+          "N6": 0.02,
+          "O6": 2000,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 2000,
+          "S6": 2000,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V05",
+        "category": "tier_100000_at",
+        "expected": {
+          "L6": 100000,
+          "M6": 90,
+          "N6": 0.02,
+          "O6": 2000,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 2000,
+          "S6": 2000,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 100000,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-102"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 100000.01,
+          "M6": 90,
+          "N6": 0.02,
+          "O6": 2000.0002,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 2000.0002,
+          "S6": 2000,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V06",
+        "category": "tier_100000_above",
+        "expected": {
+          "L6": 100000.01,
+          "M6": 90,
+          "N6": 0.02,
+          "O6": 2000.0002,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 2000.0002,
+          "S6": 2000,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 100000.01,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-102"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 249999.99,
+          "M6": 90,
+          "N6": 0.02,
+          "O6": 4999.9998,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 4999.9998,
+          "S6": 5000,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V07",
+        "category": "tier_250000_below",
+        "expected": {
+          "L6": 249999.99,
+          "M6": 90,
+          "N6": 0.02,
+          "O6": 4999.9998,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 4999.9998,
+          "S6": 5000,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 249999.99,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-102"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 7500,
+          "S6": 7500,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V08",
+        "category": "tier_250000_at",
+        "expected": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 7500,
+          "S6": 7500,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 250000,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-102"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 250000.01,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500.0003,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 7500.0003,
+          "S6": 7500,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V09",
+        "category": "tier_250000_above",
+        "expected": {
+          "L6": 250000.01,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500.0003,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 7500.0003,
+          "S6": 7500,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 250000.01,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-102"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 499999.99,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 14999.9997,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 14999.9997,
+          "S6": 15000,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V10",
+        "category": "tier_500000_below",
+        "expected": {
+          "L6": 499999.99,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 14999.9997,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 14999.9997,
+          "S6": 15000,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 499999.99,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-102"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 500000,
+          "M6": 90,
+          "N6": 0.04,
+          "O6": 20000,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 20000,
+          "S6": 20000,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V11",
+        "category": "tier_500000_at",
+        "expected": {
+          "L6": 500000,
+          "M6": 90,
+          "N6": 0.04,
+          "O6": 20000,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 20000,
+          "S6": 20000,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 500000,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-102"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 500000.01,
+          "M6": 90,
+          "N6": 0.04,
+          "O6": 20000.0004,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 20000.0004,
+          "S6": 20000,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V12",
+        "category": "tier_500000_above",
+        "expected": {
+          "L6": 500000.01,
+          "M6": 90,
+          "N6": 0.04,
+          "O6": 20000.0004,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 20000.0004,
+          "S6": 20000,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 500000.01,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-102"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 7500,
+          "S6": 7500,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V13",
+        "category": "delivery_boundary",
+        "expected": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 7500,
+          "S6": 7500,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 250000,
+          "on_time_rate": 0.95,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-202"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 7500,
+          "S6": 7500,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V14",
+        "category": "quality_boundary",
+        "expected": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 7500,
+          "S6": 7500,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.02,
+          "gross_eligible_invoices": 250000,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-202"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 0,
+          "Q6": 1,
+          "R6": 0,
+          "S6": 0,
+          "T6": "EXCLUDED_CRITICAL"
+        },
+        "case_id": "V15",
+        "category": "critical_precedence",
+        "expected": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 0,
+          "Q6": 1,
+          "R6": 0,
+          "S6": 0,
+          "T6": "EXCLUDED_CRITICAL"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 1,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 250000,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-201"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 0.6,
+          "Q6": 1,
+          "R6": 4500,
+          "S6": 4500,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V16",
+        "category": "both_sla_breaches",
+        "expected": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 0.6,
+          "Q6": 1,
+          "R6": 4500,
+          "S6": 4500,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.03,
+          "gross_eligible_invoices": 250000,
+          "on_time_rate": 0.94,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-202"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 7500,
+          "S6": 7500,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V17",
+        "category": "waiver_scope",
+        "expected": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 0.75,
+          "Q6": 1,
+          "R6": 5625,
+          "S6": 5625,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 1,
+          "critical_waiver": "Y",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 250000,
+          "on_time_rate": 0.94,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [
+          "P6",
+          "R6",
+          "S6"
+        ],
+        "rule_ids": [
+          "RB-203"
+        ],
+        "status": "FAIL"
+      },
+      {
+        "actual": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 7500,
+          "S6": 7500,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V18",
+        "category": "proration_full_period",
+        "expected": {
+          "L6": 250000,
+          "M6": 90,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 1,
+          "Q6": 1,
+          "R6": 7500,
+          "S6": 7500,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2026-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 250000,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-204",
+          "RB-205"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 250000,
+          "M6": 89,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 1,
+          "Q6": 0.9888888888888889,
+          "R6": 7416.666666666667,
+          "S6": 7416.67,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V19",
+        "category": "proration_89_of_90_days",
+        "expected": {
+          "L6": 250000,
+          "M6": 89,
+          "N6": 0.03,
+          "O6": 7500,
+          "P6": 1,
+          "Q6": 0.9888888888888889,
+          "R6": 7416.666666666667,
+          "S6": 7416.67,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2026-01-02",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 250000,
+          "on_time_rate": 0.98,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-204",
+          "RB-205"
+        ],
+        "status": "PASS"
+      },
+      {
+        "actual": {
+          "L6": 600000,
+          "M6": 90,
+          "N6": 0.04,
+          "O6": 24000,
+          "P6": 0.75,
+          "Q6": 1,
+          "R6": 18000,
+          "S6": 18000,
+          "T6": "PAYABLE"
+        },
+        "case_id": "V20",
+        "category": "cap_after_penalty",
+        "expected": {
+          "L6": 600000,
+          "M6": 90,
+          "N6": 0.04,
+          "O6": 24000,
+          "P6": 0.75,
+          "Q6": 1,
+          "R6": 18000,
+          "S6": 18000,
+          "T6": "PAYABLE"
+        },
+        "inputs": {
+          "contract_start": "2025-01-01",
+          "critical_incidents": 0,
+          "critical_waiver": "N",
+          "defect_rate": 0.01,
+          "gross_eligible_invoices": 600000,
+          "on_time_rate": 0.94,
+          "pass_through_charges": 0,
+          "period_end": "2026-03-31",
+          "period_start": "2026-01-01",
+          "returns_credits": 0,
+          "supplier_id": "SUP-1042"
+        },
+        "mismatched_cells": [],
+        "rule_ids": [
+          "RB-301",
+          "RB-302"
+        ],
+        "status": "PASS"
+      }
+    ]
+  },
+  "rules_sha256": "72f8b8dfbf2104d453678f0c258031f1b7cadf0890e19af4727e163324f79b84",
+  "run_id": "advanced-f569ca78b557",
+  "schema_version": 1,
+  "source_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762"
+}

@@ -11,7 +11,10 @@ $sourcePython = if ($env:FORMULAWITNESS_PYTHON) {
 
 if (-not (Test-Path -LiteralPath $venvPython)) {
     & $sourcePython -m venv (Join-Path $repoRoot '.venv')
+    if ($LASTEXITCODE -ne 0) { throw 'Virtual environment creation failed.' }
 }
-& $venvPython -m pip install --upgrade pip
-& $venvPython -m pip install -e "$repoRoot[dev]"
+& $venvPython -m pip install --no-deps -r (Join-Path $repoRoot 'requirements-lock.txt')
+if ($LASTEXITCODE -ne 0) { throw 'Locked dependency installation failed.' }
+& $venvPython -m pip install -e $repoRoot --no-deps --no-build-isolation
+if ($LASTEXITCODE -ne 0) { throw 'FormulaWitness editable installation failed.' }
 Write-Output "FormulaWitness environment ready: $venvPython"

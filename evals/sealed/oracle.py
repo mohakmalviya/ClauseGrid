@@ -1,4 +1,4 @@
-"""Independent hidden semantic oracle; it does not read workbook formulas or public rules."""
+"""Independent semantic oracle; it reads neither workbook formulas nor public rule code."""
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ def evaluate_policy(inputs: dict[str, Any]) -> dict[str, Any]:
 
     eligible = max(Decimal(0), gross - returns - passthrough)
     active_days = max(0, (period_end - max(period_start, contract_start)).days + 1)
+    period_days = max(1, (period_end - period_start).days + 1)
     if eligible < Decimal(100000):
         tier = Decimal(0)
     elif eligible < Decimal(250000):
@@ -45,8 +46,8 @@ def evaluate_policy(inputs: dict[str, Any]) -> dict[str, Any]:
         sla = Decimal("0.75")
     else:
         sla = Decimal(1)
-    tenure = Decimal("0.50") if active_days < 90 else Decimal(1)
-    adjusted = gross_rebate * sla * tenure
+    proration = min(Decimal(1), Decimal(active_days) / Decimal(period_days))
+    adjusted = gross_rebate * sla * proration
     final = min(adjusted, Decimal(20000)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     decision = (
         "EXCLUDED_CRITICAL" if critical_excluded else ("NO_REBATE" if final == 0 else "PAYABLE")
@@ -57,7 +58,7 @@ def evaluate_policy(inputs: dict[str, Any]) -> dict[str, Any]:
         "N6": float(tier),
         "O6": float(gross_rebate),
         "P6": float(sla),
-        "Q6": float(tenure),
+        "Q6": float(proration),
         "R6": float(adjusted),
         "S6": float(final),
         "T6": decision,

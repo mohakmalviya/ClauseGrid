@@ -170,7 +170,7 @@
     },
     {
       "id": "rule:RB-102",
-      "label": "Tier boundaries",
+      "label": "Ordered tier lookup boundaries",
       "page": 2,
       "type": "rule"
     },
@@ -200,13 +200,13 @@
     },
     {
       "id": "rule:RB-204",
-      "label": "Active days",
+      "label": "Contract-effective active days",
       "page": 3,
       "type": "rule"
     },
     {
       "id": "rule:RB-205",
-      "label": "Tenure multiplier",
+      "label": "Effective-date proration multiplier",
       "page": 3,
       "type": "rule"
     },
@@ -347,13 +347,13 @@
     },
     {
       "id": "case:V18",
-      "label": "tenure_90",
+      "label": "proration_full_period",
       "status": "PASS",
       "type": "counterexample"
     },
     {
       "id": "case:V19",
-      "label": "tenure_89",
+      "label": "proration_89_of_90_days",
       "status": "PASS",
       "type": "counterexample"
     },

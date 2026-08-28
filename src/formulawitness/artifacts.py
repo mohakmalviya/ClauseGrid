@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .models import Patch, Rule, TestCase
+from .models import AuditResult, Patch, Rule, TestCase
 
 
 def write_json(path: Path, payload: Any) -> None:
@@ -14,6 +14,16 @@ def write_json(path: Path, payload: Any) -> None:
     path.write_text(
         json.dumps(payload, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8"
     )
+
+
+def portable_audit_payload(result: AuditResult) -> dict[str, Any]:
+    """Serialize an audit without host-specific absolute paths."""
+
+    payload = result.to_dict()
+    payload["source_workbook"] = Path(result.source_workbook).name
+    payload["artifact_dir"] = "."
+    payload["output_workbook"] = "repaired.xlsx" if result.output_workbook else None
+    return payload
 
 
 def formula_diff(patches: list[Patch]) -> dict[str, Any]:
@@ -110,7 +120,7 @@ def counterexample_rows(tests: list[dict[str, Any]]) -> list[list[Any]]:
 
 
 def report_rows(report: dict[str, Any]) -> list[list[Any]]:
-    rows = [["FormulaWitness review report", "Value"]]
+    rows: list[list[Any]] = [["FormulaWitness review report", "Value"]]
     for key in ("run_id", "method", "decision", "source_sha256", "rules_sha256", "approval_hash"):
         rows.append([key, report.get(key, "")])
     rows.append(["changed_cell_count", len(report.get("patches", []))])

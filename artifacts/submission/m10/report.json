@@ -1,9 +1,16 @@
 {
-  "approval_hash": "32f946f03cc9595533a9d4e9d0292a9b2a174b76a5cc7efcb55850487cec751e",
-  "artifact_dir": "C:\\Users\\mohak\\OneDrive\\Documents\\ChatGPT\\New project\\formulawitness\\artifacts\\demo\\advanced-9e4a2e37c326",
+  "approval_hash": "6839789a39a423690fc06dbd39017f4c931d29a0cf34a3d08f649da1d11e2b56",
+  "artifact_dir": ".",
+  "budget": {
+    "model_id": "deterministic-offline-v1",
+    "token_limit": 0,
+    "tokens_used": 0,
+    "workbook_case_execution_limit": 160,
+    "workbook_case_executions_used": 40
+  },
   "decision": "REPAIR",
   "method": "formulawitness-advanced",
-  "output_workbook": "C:\\Users\\mohak\\OneDrive\\Documents\\ChatGPT\\New project\\formulawitness\\artifacts\\demo\\advanced-9e4a2e37c326\\repaired.xlsx",
+  "output_workbook": "repaired.xlsx",
   "patches": [
     {
       "cell": "P6",
@@ -17,10 +24,10 @@
       ]
     }
   ],
-  "rules_sha256": "945ee0c6b6147843dcc20818b1a2a2d5a677b270d75a9c1d605bab92d4b45819",
-  "run_id": "advanced-9e4a2e37c326",
-  "source_sha256": "5beb61724aad4368960ad215205b1043f0afccb7b0931115cb2ca1a9c47f51af",
-  "source_workbook": "C:\\Users\\mohak\\OneDrive\\Documents\\ChatGPT\\New project\\formulawitness\\workbooks\\mutants\\M10_supplier_rebate.xlsx",
+  "rules_sha256": "72f8b8dfbf2104d453678f0c258031f1b7cadf0890e19af4727e163324f79b84",
+  "run_id": "advanced-f569ca78b557",
+  "source_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762",
+  "source_workbook": "M10_supplier_rebate.xlsx",
   "suspicious_cells": [
     {
       "affected_outputs": [
@@ -30,7 +37,6 @@
         "T6"
       ],
       "cell": "P6",
-      "compiled_formula_differs": true,
       "direct_mismatch_count": 1,
       "failed_covered": 1,
       "failing_cases": 1,
@@ -40,6 +46,126 @@
         "RB-201",
         "RB-202",
         "RB-203"
+      ]
+    },
+    {
+      "affected_outputs": [
+        "R6",
+        "S6",
+        "T6"
+      ],
+      "cell": "R6",
+      "direct_mismatch_count": 1,
+      "failed_covered": 1,
+      "failing_cases": 1,
+      "ochiai": 0.223607,
+      "passed_covered": 19,
+      "rule_ids": [
+        "RB-301"
+      ]
+    },
+    {
+      "affected_outputs": [
+        "S6",
+        "T6"
+      ],
+      "cell": "S6",
+      "direct_mismatch_count": 1,
+      "failed_covered": 1,
+      "failing_cases": 1,
+      "ochiai": 0.223607,
+      "passed_covered": 19,
+      "rule_ids": [
+        "RB-302"
+      ]
+    },
+    {
+      "affected_outputs": [
+        "L6",
+        "N6",
+        "O6",
+        "R6",
+        "S6",
+        "T6"
+      ],
+      "cell": "L6",
+      "direct_mismatch_count": 0,
+      "failed_covered": 1,
+      "failing_cases": 0,
+      "ochiai": 0.223607,
+      "passed_covered": 19,
+      "rule_ids": [
+        "RB-101"
+      ]
+    },
+    {
+      "affected_outputs": [
+        "M6",
+        "Q6",
+        "R6",
+        "S6",
+        "T6"
+      ],
+      "cell": "M6",
+      "direct_mismatch_count": 0,
+      "failed_covered": 1,
+      "failing_cases": 0,
+      "ochiai": 0.223607,
+      "passed_covered": 19,
+      "rule_ids": [
+        "RB-204"
+      ]
+    },
+    {
+      "affected_outputs": [
+        "N6",
+        "O6",
+        "R6",
+        "S6",
+        "T6"
+      ],
+      "cell": "N6",
+      "direct_mismatch_count": 0,
+      "failed_covered": 1,
+      "failing_cases": 0,
+      "ochiai": 0.223607,
+      "passed_covered": 19,
+      "rule_ids": [
+        "RB-102"
+      ]
+    },
+    {
+      "affected_outputs": [
+        "O6",
+        "R6",
+        "S6",
+        "T6"
+      ],
+      "cell": "O6",
+      "direct_mismatch_count": 0,
+      "failed_covered": 1,
+      "failing_cases": 0,
+      "ochiai": 0.223607,
+      "passed_covered": 19,
+      "rule_ids": [
+        "RB-103"
+      ]
+    },
+    {
+      "affected_outputs": [
+        "Q6",
+        "R6",
+        "S6",
+        "T6"
+      ],
+      "cell": "Q6",
+      "direct_mismatch_count": 0,
+      "failed_covered": 1,
+      "failing_cases": 0,
+      "ochiai": 0.223607,
+      "passed_covered": 19,
+      "rule_ids": [
+        "RB-205"
       ]
     }
   ],
@@ -811,7 +937,7 @@
         "T6": "PAYABLE"
       },
       "case_id": "V18",
-      "category": "tenure_90",
+      "category": "proration_full_period",
       "expected": {
         "L6": 250000,
         "M6": 90,
@@ -850,22 +976,22 @@
         "N6": 0.03,
         "O6": 7500,
         "P6": 1,
-        "Q6": 0.5,
-        "R6": 3750,
-        "S6": 3750,
+        "Q6": 0.9888888888888889,
+        "R6": 7416.666666666667,
+        "S6": 7416.67,
         "T6": "PAYABLE"
       },
       "case_id": "V19",
-      "category": "tenure_89",
+      "category": "proration_89_of_90_days",
       "expected": {
         "L6": 250000,
         "M6": 89,
         "N6": 0.03,
         "O6": 7500,
         "P6": 1,
-        "Q6": 0.5,
-        "R6": 3750,
-        "S6": 3750,
+        "Q6": 0.9888888888888889,
+        "R6": 7416.666666666667,
+        "S6": 7416.67,
         "T6": "PAYABLE"
       },
       "inputs": {

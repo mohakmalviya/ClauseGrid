@@ -5,10 +5,10 @@ from __future__ import annotations
 import hashlib
 import re
 import zipfile
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from xml.etree import ElementTree as ET
 
 MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -59,13 +59,23 @@ def inspect_safety(path: Path, max_uncompressed: int = 25_000_000) -> dict[str, 
                 for relationship in root:
                     if relationship.attrib.get("TargetMode", "").lower() == "external":
                         raise WorkbookRejected("External relationships are not accepted")
-        formulas = formula_map(path, "RebateCalc")
-        volatile = re.compile(
-            r"\b(?:INDIRECT|OFFSET|NOW|TODAY|RAND|RANDBETWEEN)\s*\(", re.IGNORECASE
+        formulas = workbook_formula_map(path)
+        unsafe_function = re.compile(
+            r"\b(?:INDIRECT|OFFSET|NOW|TODAY|RAND|RANDBETWEEN|WEBSERVICE|RTD|HYPERLINK|FILTERXML|STOCKHISTORY)\s*\(",
+            re.IGNORECASE,
         )
-        unsafe = [cell for cell, formula in formulas.items() if volatile.search(formula)]
+        external_formula = re.compile(
+            r"(?:https?://|ftp://|\\\\|\[[^\]]+\][^!]*!|\|)", re.IGNORECASE
+        )
+        unsafe = [
+            cell
+            for cell, formula in formulas.items()
+            if unsafe_function.search(formula) or external_formula.search(formula)
+        ]
         if unsafe:
-            raise WorkbookRejected(f"Volatile formulas are unsupported: {', '.join(unsafe)}")
+            raise WorkbookRejected(
+                f"Volatile, DDE, or network-capable formulas are unsupported: {', '.join(unsafe)}"
+            )
     return {"sha256": sha256_file(path), "entries": len(infos), "formula_count": len(formulas)}
 
 
@@ -121,8 +131,39 @@ def sheet_cells(path: Path, sheet_name: str) -> tuple[dict[str, Any], dict[str, 
         return values, formulas
 
 
+def calculation_cells(
+    path: Path, sheet_name: str = "RebateCalc"
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Return calculation-sheet formulas plus qualified values from every sheet."""
+
+    values, formulas = sheet_cells(path, sheet_name)
+    with zipfile.ZipFile(path) as archive:
+        sheet_names = tuple(_sheet_paths(archive))
+    for source_sheet in sheet_names:
+        source_values, _ = sheet_cells(path, source_sheet)
+        values.update(
+            {f"{source_sheet.upper()}!{address}": value for address, value in source_values.items()}
+        )
+    return values, formulas
+
+
 def formula_map(path: Path, sheet_name: str = "RebateCalc") -> dict[str, str]:
     return sheet_cells(path, sheet_name)[1]
+
+
+def workbook_formula_map(path: Path) -> dict[str, str]:
+    """Return every formula in every original workbook sheet."""
+
+    result: dict[str, str] = {}
+    with zipfile.ZipFile(path) as archive:
+        for sheet_name, target in _sheet_paths(archive).items():
+            root = ET.fromstring(archive.read(target))
+            for cell in root.findall(".//x:c", NS):
+                formula = cell.find("x:f", NS)
+                if formula is not None and formula.text is not None:
+                    address = cell.attrib.get("r", "").upper()
+                    result[f"{sheet_name}!{address}"] = "=" + formula.text
+    return result
 
 
 def _inline_cell(address: str, value: Any, style: int | None = None) -> ET.Element:
@@ -145,7 +186,7 @@ def _column_name(index: int) -> str:
     return result
 
 
-def _make_sheet(rows: Iterable[Iterable[Any]], widths: list[float]) -> bytes:
+def _make_sheet(rows: Iterable[Iterable[Any]], widths: Sequence[float]) -> bytes:
     root = ET.Element(f"{{{MAIN}}}worksheet")
     views = ET.SubElement(root, f"{{{MAIN}}}sheetViews")
     view = ET.SubElement(views, f"{{{MAIN}}}sheetView", {"workbookViewId": "0"})
@@ -175,7 +216,7 @@ def _make_sheet(rows: Iterable[Iterable[Any]], widths: list[float]) -> bytes:
                     33 if row_index == 1 else None,
                 )
             )
-    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+    return cast(bytes, ET.tostring(root, encoding="utf-8", xml_declaration=True))
 
 
 def _serialize_package_manifest(root: ET.Element, namespace: str) -> bytes:
@@ -183,7 +224,7 @@ def _serialize_package_manifest(root: ET.Element, namespace: str) -> bytes:
     text = ET.tostring(root, encoding="unicode", xml_declaration=False)
     match = re.match(r"<(?P<prefix>ns\d+):", text)
     if match is None:
-        return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+        return cast(bytes, ET.tostring(root, encoding="utf-8", xml_declaration=True))
     prefix = match.group("prefix")
     text = text.replace(f"<{prefix}:", "<").replace(f"</{prefix}:", "</")
     text = text.replace(f' xmlns:{prefix}="{namespace}"', f' xmlns="{namespace}"')
@@ -302,5 +343,15 @@ def changed_core_formulas(
     return {
         cell: (old.get(cell, ""), new.get(cell, ""))
         for cell in cells
+        if old.get(cell) != new.get(cell)
+    }
+
+
+def changed_workbook_formulas(before: Path, after: Path) -> dict[str, tuple[str, str]]:
+    old = workbook_formula_map(before)
+    new = workbook_formula_map(after)
+    return {
+        cell: (old.get(cell, ""), new.get(cell, ""))
+        for cell in sorted(old.keys() | new.keys())
         if old.get(cell) != new.get(cell)
     }

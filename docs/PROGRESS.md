@@ -17,15 +17,16 @@
 
 ## Checkpoint 2 - baseline and advanced system
 
-- Implemented fail-closed OOXML inspection, formula parser, separate execution worker, source-cited rules, counterexamples, dependency/Ochiai localization, minimal repair, approval binding, and one-shot sealed replay.
+- Implemented fail-closed OOXML inspection, formula parser, separate execution worker, source-cited rules, counterexamples, dependency/Ochiai localization, minimal repair, approval binding, and sealed trajectory verification.
 - Implemented a direct-agent baseline under the same input and patch contract.
-- Measured 50% baseline versus 100% advanced E2E-SRR, with 100% clean preservation and a successful three-fault hard case.
+- Replaced the mutation-specific baseline and gold-formula localization check, isolated evaluator modules, and re-froze the benchmark.
+- Measured 33.3% baseline versus 100% advanced E2E-SRR (+66.7 pp), with 100% clean preservation and a successful three-fault hard case on benchmark revision 2.
 - Added the local review interface and verified audit, approval, downloads, responsive layout, and console state in a browser.
 
 ## Checkpoint 3 - verification and submission pack
 
-- Twelve automated tests, lint, formatting, mutation validation, and benchmark acceptance all pass.
-- The repaired M10 workbook imports through the strict artifact reader and opens/recalculates in desktop Excel with all five sheets intact.
+- Thirty-two automated tests, lint, formatting, strict typing, mutation validation, and benchmark acceptance all pass.
+- The repaired M10 workbook imports through the strict artifact reader and opens/recalculates with the four source sheets plus Counterexamples and FormulaWitness_Report intact.
 - Added one-command setup, demo, evaluation, server, and verification scripts plus the complete documentation and tool disclosure.
 - Created a local submission evidence pack and JSONL trajectories.
-- Local work is complete; private GitHub creation and first push still require the user confirmation mandated by the project goal.
+- Final local commit and clean-clone verification are in progress. Private GitHub creation and first push remain gated on explicit user confirmation.

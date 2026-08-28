@@ -20,13 +20,14 @@ No repair component imports the hidden oracle. Visible expected results come fro
 
 ## Components
 
-- `policy.py`: extracts 11 exact source spans from the PDF, verifies offsets/hashes, records ambiguity state, and compiles the narrow public rule model.
+- `policy.py`: extracts 11 exact source spans from the PDF, verifies offsets/hashes, records ambiguity state, parses a typed executable rule IR, and compiles candidate formulas from that IR without reading a pristine workbook.
 - `ooxml.py`: rejects active/external content, reads cells/formulas without Excel, enforces old-formula guards, and applies copy-on-write patches.
 - `formula.py`: recursive-descent parser and evaluator for a documented nonvolatile subset. Unknown syntax raises `FormulaError`.
-- `worker.py` / `runner.py`: evaluates all visible cases in a fresh subprocess and temporary working directory with a minimal environment. The workbook cannot invoke Python, shell, filesystem, or networking APIs because only parsed allowlisted AST nodes execute.
+- `worker.py` / `runner.py`: evaluates all visible cases in a fresh subprocess and temporary working directory with a minimal environment. A process-local file-capability guard permits only staged public inputs and the run output directory. The workbook cannot invoke Python, shell, filesystem, or networking APIs because only parsed allowlisted AST nodes execute.
 - `advanced.py`: counterexample-guided typed workflow, dependency/spectrum localization, greedy minimal patch search, and approval binding.
 - `baseline.py`: direct one-pass policy/formula audit used as the fair comparison.
-- `evaluation.py` and `oracle.py`: sealed replay, integrity/minimality checks, clean-control scoring, and the independent oracle.
+- `evaluation.py`: copies only the workbook and policy into a fresh evaluation directory, launches each repair workflow under the file-capability guard, destroys that directory after scoring, then performs one-shot sealed replay in the parent evaluator.
+- `evals/sealed/cases.py` and `evals/sealed/oracle.py`: evaluator-side held-out vectors and independently authored `Decimal`/date semantics; neither is included in the installed repair package.
 - `ui.py`: local review application with cited rules, witnesses, formula diff, approval, and downloads.
 
 ## Dependency/spectrum localization
@@ -37,7 +38,7 @@ For each output mismatch, FormulaWitness calculates the backward formula depende
 failed_covered / sqrt(total_failed × (failed_covered + passed_covered))
 ```
 
-The score is evidence, not certainty. Candidate generation remains restricted to formulas compiled from cited, unambiguous policy rules. The repair stage then accepts only a candidate that increases visible-case passes and stays within the patch-cell budget.
+The score is evidence, not certainty. Candidate generation remains restricted to formulas compiled from cited, unambiguous policy IR. The compiler receives extracted rules and parses lookup bounds/rates, SLA thresholds/multipliers, proration, cap, rounding, and decision precedence; it never reads the pristine workbook. The repair stage accepts only a candidate that increases visible-case passes and stays within the patch-cell budget.
 
 ## Approval binding
 

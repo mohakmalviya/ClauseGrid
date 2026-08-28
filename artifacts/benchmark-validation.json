@@ -7,7 +7,7 @@
       "changed_cells": [
         "L6"
       ],
-      "hidden_vectors_killed": 14
+      "hidden_vectors_killed": 23
     },
     {
       "case": "M02",
@@ -21,21 +21,21 @@
       "changed_cells": [
         "N6"
       ],
-      "hidden_vectors_killed": 2
+      "hidden_vectors_killed": 3
     },
     {
       "case": "M04",
       "changed_cells": [
         "N6"
       ],
-      "hidden_vectors_killed": 20
+      "hidden_vectors_killed": 9
     },
     {
       "case": "M05",
       "changed_cells": [
         "N6"
       ],
-      "hidden_vectors_killed": 2
+      "hidden_vectors_killed": 3
     },
     {
       "case": "M06",
@@ -77,7 +77,7 @@
       "changed_cells": [
         "Q6"
       ],
-      "hidden_vectors_killed": 45
+      "hidden_vectors_killed": 3
     },
     {
       "case": "M12",

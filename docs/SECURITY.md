@@ -3,8 +3,8 @@
 ## Accepted
 
 - ordinary `.xlsx` packages below the configured size/entry limits;
-- direct same-sheet references in the benchmark calculator;
-- arithmetic, comparisons, and `IF`, `AND`, `OR`, `MAX`, `MIN`, `ROUND`.
+- direct or qualified references and ascending ranges in the benchmark calculator;
+- arithmetic, comparisons, and `IF`, `AND`, `OR`, `MAX`, `MIN`, `ROUND`, `LOOKUP`.
 
 ## Rejected
 
@@ -16,7 +16,7 @@
 
 ## Data handling
 
-All bundled workbooks and identifiers are synthetic. The local UI binds only to `127.0.0.1` by default. It accepts a benchmark case ID and reviewer label, not arbitrary uploads. Download paths use an allowlist and normalized filenames.
+All bundled workbooks and identifiers are synthetic. The local UI binds only to `127.0.0.1` by default. It accepts a benchmark case ID and reviewer label, not arbitrary uploads. Download paths use an allowlist and normalized filenames. Sealed evaluation stages only public inputs for each repair process and installs a file-capability guard that denies ordinary reads outside those inputs and the run directory.
 
 ## Original-workbook protection
 
@@ -24,4 +24,4 @@ Safety inspection precedes every read. Repair output is a separate OOXML package
 
 ## Known limitation
 
-The worker is an allowlisted interpreter boundary, not a universal Excel sandbox. On platforms that require kernel-level isolation, run it as a non-root container with a read-only filesystem, resource caps, a fresh temporary directory, and `--network none`.
+The worker is an allowlisted interpreter plus process-local file-capability boundary, not a hostile-code kernel sandbox. The repair workers execute fixed FormulaWitness code, not workbook-supplied Python. On platforms that require protection from a malicious repair implementation itself, run it as a non-root container with only staged public inputs mounted, a read-only filesystem, resource caps, and `--network none`.

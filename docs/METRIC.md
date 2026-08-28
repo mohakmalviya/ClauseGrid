@@ -23,6 +23,6 @@ The three-fault H01 workbook permits three changed core cells and is reported se
 
 ## Fairness
 
-Baseline and advanced systems receive the same policy, workbook, formula visibility, patch scope, allowed operations, and execution budget. Neither receives sealed inputs, the independent oracle, mutation descriptions, or pristine formulas. The direct baseline deliberately has no staged rule IR, generated boundary suite, dependency/spectrum localizer, or candidate-verifier loop—those are the intervention being measured.
+Baseline and advanced systems receive the same policy, workbook, 20 public cases, formula visibility, patch scope, allowed operations, `deterministic-offline-v1` policy model, zero-token model budget, and 160-case execution limit. Neither receives sealed inputs, the independent oracle, mutation descriptions, or pristine formulas. The direct baseline makes one generic policy-derived edit and visible replay; it deliberately has no staged rule IR, ambiguity gate, generated boundary suite, dependency/spectrum localizer, or multi-candidate verifier loop—those are the intervention being measured.
 
 Both systems are deterministic and their first frozen candidate is scored. There is no hidden-result retry.

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Isolated the sealed evaluator from both repair workers and enforced all-formula minimality.
+- Replaced the mutation-specific baseline with a generic policy-derived direct repair.
+- Added ambiguity abstention, immutable approval reruns, shared execution budgets, and tamper-evident trajectory verification.
+- Added real ordered-range lookup and proportional effective-date proration, a disjoint 48-case sealed split, strict typing, a pinned build environment, and refreshed submission evidence.
+
 ## 0.1.0 — 2026-08-29
 
 - Added synthetic supplier rebate/SLA policy PDF and professional reference workbook.

@@ -7,10 +7,10 @@ const OUTPUT_DIR = path.resolve(process.argv[2] ?? "outputs/formulawitness-bench
 const formulas = {
   L6: "=MAX(0,E6-F6-G6)",
   M6: "=MAX(0,C6-MAX(B6,D6)+1)",
-  N6: "=IF(L6<100000,0,IF(L6<250000,0.02,IF(L6<500000,0.03,0.04)))",
+  N6: "=LOOKUP(L6,TierSchedule!A5:A8,TierSchedule!B5:B8)",
   O6: "=L6*N6",
   P6: '=IF(AND(J6>=1,K6<>"Y"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1)))',
-  Q6: "=IF(M6<90,0.5,1)",
+  Q6: "=MIN(1,M6/MAX(1,C6-B6+1))",
   R6: "=O6*P6*Q6",
   S6: "=ROUND(MIN(R6,20000),2)",
   T6: '=IF(AND(J6>=1,K6<>"Y"),"EXCLUDED_CRITICAL",IF(S6=0,"NO_REBATE","PAYABLE"))',
@@ -19,18 +19,18 @@ const formulas = {
 const mutants = {
   M01: { L6: "=MAX(0,E6-G6)" },
   M02: { L6: "=MAX(0,E6-F6)" },
-  M03: { N6: "=IF(L6<=100000,0,IF(L6<250000,0.02,IF(L6<500000,0.03,0.04)))" },
-  M04: { N6: "=IF(L6<100000,0,IF(L6<=250000,0.02,IF(L6<500000,0.03,0.04)))" },
-  M05: { N6: "=IF(L6<100000,0,IF(L6<250000,0.02,IF(L6<=500000,0.03,0.04)))" },
+  M03: { N6: "=LOOKUP(L6-IF(AND(L6>=100000,L6<100000.01),0.01,0),TierSchedule!A5:A8,TierSchedule!B5:B8)" },
+  M04: { N6: "=LOOKUP(L6-IF(AND(L6>=250000,L6<250000.01),0.01,0),TierSchedule!A5:A8,TierSchedule!B5:B8)" },
+  M05: { N6: "=LOOKUP(L6-IF(AND(L6>=500000,L6<500000.01),0.01,0),TierSchedule!A5:A8,TierSchedule!B5:B8)" },
   M06: { P6: '=IF(AND(J6>=1,K6<>"Y"),0,IF(AND(H6<=0.95,I6>0.02),0.6,IF(OR(H6<=0.95,I6>0.02),0.75,1)))' },
   M07: { P6: '=IF(AND(J6>=1,K6<>"Y"),0,IF(AND(H6<0.95,I6>=0.02),0.6,IF(OR(H6<0.95,I6>=0.02),0.75,1)))' },
   M08: { P6: '=IF(AND(J6>1,K6<>"Y"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1)))' },
   M09: { P6: '=IF(AND(J6>=1,K6<>"Y"),0,IF(AND(H6<0.95,I6>0.02),0.5,IF(OR(H6<0.95,I6>0.02),0.75,1)))' },
   M10: { P6: '=IF(K6="Y",1,IF(AND(J6>=1,K6<>"Y"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1))))' },
-  M11: { Q6: "=IF(M6<=90,0.5,1)" },
+  M11: { Q6: "=MIN(1,M6/MAX(1,C6-B6))" },
   M12: { S6: "=ROUND(MIN(O6,20000)*P6*Q6,2)" },
   H01: {
-    N6: "=IF(L6<100000,0,IF(L6<250000,0.02,IF(L6<500000,0.03,0.035)))",
+    N6: "=IF(L6>=500000,0.035,LOOKUP(L6,TierSchedule!A5:A8,TierSchedule!B5:B8))",
     P6: '=IF(K6="Y",1,IF(AND(J6>=1,K6<>"Y"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1))))',
     S6: "=ROUND(MIN(O6,20000)*P6*Q6,2)",
   },
@@ -52,15 +52,16 @@ const defaults = {
 
 const cases = [
   { id: "pristine", patch: {}, input: defaults, kind: "reference" },
-  ...Object.entries(mutants).map(([id, patch]) => ({ id, patch, input: defaults, kind: id === "H01" ? "hard" : "mutant" })),
-  { id: "C01", patch: {}, input: { ...defaults, grossInvoices: 180000 }, kind: "control" },
-  { id: "C02", patch: {}, input: { ...defaults, grossInvoices: 250000, onTimeRate: 0.95, defectRate: 0.02, contractStart: new Date("2026-01-01T00:00:00Z") }, kind: "control" },
-  { id: "C03", patch: {}, input: { ...defaults, grossInvoices: 250000, onTimeRate: 0.94, defectRate: 0.01, criticalIncidents: 1, criticalWaiver: "Y" }, kind: "control" },
+  ...Object.entries(mutants).map(([id, patch]) => ({ id, patch, input: defaults, kind: id === "H01" ? "hard" : "mutants" })),
+  { id: "C01", patch: {}, input: { ...defaults, grossInvoices: 180000 }, kind: "controls" },
+  { id: "C02", patch: {}, input: { ...defaults, grossInvoices: 250000, onTimeRate: 0.95, defectRate: 0.02, contractStart: new Date("2026-01-01T00:00:00Z") }, kind: "controls" },
+  { id: "C03", patch: {}, input: { ...defaults, grossInvoices: 250000, onTimeRate: 0.94, defectRate: 0.01, criticalIncidents: 1, criticalWaiver: "Y" }, kind: "controls" },
 ];
 
 function styleWorkbook(workbook, input) {
   const cover = workbook.worksheets.add("Cover");
   const calc = workbook.worksheets.add("RebateCalc");
+  const tiers = workbook.worksheets.add("TierSchedule");
   const checks = workbook.worksheets.add("Checks");
 
   cover.showGridLines = false;
@@ -94,7 +95,7 @@ function styleWorkbook(workbook, input) {
   calc.getRange("A3").values = [["Inputs A:K | Controlled calculations L:T | Policy SR-SLA-2026.1"]];
   calc.getRange("A3:T3").format = { fill: "#DCE9F9", font: { color: "#234E83", italic: true } };
   calc.getRange("A5:T5").values = [[
-    "Supplier ID", "Period start", "Period end", "Contract start", "Gross eligible invoices", "Returns & credits", "Pass-through charges", "On-time rate", "Defect rate", "Critical incidents", "Critical waiver", "Eligible spend", "Active days", "Tier rate", "Gross rebate", "SLA multiplier", "Tenure multiplier", "Adjusted rebate", "Final rebate", "Decision code",
+    "Supplier ID", "Period start", "Period end", "Contract start", "Gross eligible invoices", "Returns & credits", "Pass-through charges", "On-time rate", "Defect rate", "Critical incidents", "Critical waiver", "Eligible spend", "Active days", "Tier rate", "Gross rebate", "SLA multiplier", "Effective proration", "Adjusted rebate", "Final rebate", "Decision code",
   ]];
   calc.getRange("A5:T5").format = { fill: "#244A78", font: { bold: true, color: "#FFFFFF" }, wrapText: true, verticalAlignment: "center", horizontalAlignment: "center", borders: { preset: "inside", style: "thin", color: "#7890AE" } };
   calc.getRange("A5:T5").format.rowHeight = 44;
@@ -122,6 +123,21 @@ function styleWorkbook(workbook, input) {
   calc.getRange("A:A").format.columnWidth = 15;
   calc.getRange("E:G").format.columnWidth = 18;
   calc.getRange("T:T").format.columnWidth = 22;
+
+  tiers.showGridLines = false;
+  tiers.getRange("A1:C2").merge();
+  tiers.getRange("A1").values = [["Controlled ordered tier lookup"]];
+  tiers.getRange("A1:C2").format = { fill: "#12233F", font: { bold: true, color: "#FFFFFF", size: 17 }, verticalAlignment: "center" };
+  tiers.getRange("A4:C4").values = [["Lower bound (inclusive)", "Rate", "Upper-bound behavior"]];
+  tiers.getRange("A5:C8").values = [[0, 0, "below 100,000"], [100000, 0.02, "below 250,000"], [250000, 0.03, "below 500,000"], [500000, 0.04, "no upper bound"]];
+  tiers.getRange("A4:C4").format = { fill: "#244A78", font: { bold: true, color: "#FFFFFF" } };
+  tiers.getRange("A5:C8").format.borders = { preset: "inside", style: "thin", color: "#B8C4D6" };
+  tiers.getRange("A5:A8").format.numberFormat = "$#,##0.00";
+  tiers.getRange("B5:B8").format.numberFormat = "0.0%";
+  tiers.getRange("A:C").format.columnWidth = 24;
+  tiers.getRange("A10:C12").merge();
+  tiers.getRange("A10").values = [["RebateCalc!N6 uses Excel LOOKUP against A5:B8. M03–M05 shift a narrow interval at each inclusive lower bound."]];
+  tiers.getRange("A10:C12").format = { fill: "#F7F9FC", font: { color: "#475569" }, wrapText: true, verticalAlignment: "center" };
 
   checks.showGridLines = false;
   checks.getRange("A1:F2").merge();

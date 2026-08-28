@@ -28,6 +28,17 @@ class Rule:
     evidence: SourceSpan
     boundaries: tuple[str, ...] = ()
     depends_on: tuple[str, ...] = ()
+    ambiguity_reasons: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class RuleIR:
+    """Executable policy operation derived from one or more cited rules."""
+
+    target: str
+    operation: str
+    rule_ids: tuple[str, ...]
+    parameters: dict[str, JsonValue]
 
 
 @dataclass(frozen=True)
@@ -62,6 +73,7 @@ class AuditResult:
     approval_hash: str | None = None
     output_workbook: str | None = None
     artifact_dir: str | None = None
+    budget: dict[str, JsonValue] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

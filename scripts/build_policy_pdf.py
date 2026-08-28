@@ -181,7 +181,7 @@ def build(output: Path) -> None:
             styles["Bodyx"],
         ),
         Paragraph(
-            "Control objective. A settlement is payable only when eligible spend, tiering, service performance, supplier tenure, caps, rounding, and exclusions are applied in the order stated in this document.",
+            "Control objective. A settlement is payable only when eligible spend, tiering, service performance, effective-date proration, caps, rounding, and exclusions are applied in the order stated in this document.",
             styles["Callout"],
         ),
         Paragraph("Document conventions", styles["H2x"]),
@@ -199,8 +199,8 @@ def build(output: Path) -> None:
         ),
         _rule(
             "RB-102",
-            "Tier boundaries",
-            "The rebate rate is 0% when eligible spend is below $100,000; 2% from $100,000 inclusive to below $250,000; 3% from $250,000 inclusive to below $500,000; and 4% at $500,000 or above.",
+            "Ordered tier lookup boundaries",
+            "The tier schedule is an ordered range lookup: the rebate rate is 0% when eligible spend is below $100,000; 2% from $100,000 inclusive to below $250,000; 3% from $250,000 inclusive to below $500,000; and 4% at $500,000 or above.",
             styles,
         ),
         _rule(
@@ -245,7 +245,8 @@ def build(output: Path) -> None:
             ),
         ),
         PageBreak(),
-        Paragraph("2. Service and tenure adjustments", styles["H1x"]),
+        Paragraph("2. Service and effective-date adjustments", styles["H1x"]),
+        Spacer(1, 0.10 * inch),
         _rule(
             "RB-201",
             "Critical incident precedence",
@@ -266,14 +267,14 @@ def build(output: Path) -> None:
         ),
         _rule(
             "RB-204",
-            "Active days",
-            "Active days are inclusive calendar days from the later of the period start and contract start through the period end, floored at zero.",
+            "Contract-effective active days",
+            "Contract-effective active days are inclusive calendar days from the later of the period start and contract start through the period end, floored at zero.",
             styles,
         ),
         _rule(
             "RB-205",
-            "Tenure multiplier",
-            "The tenure multiplier is 0.50 when active days are below 90 and 1.00 when active days are 90 or more.",
+            "Effective-date proration multiplier",
+            "The effective-date proration multiplier equals contract-effective active days divided by the inclusive calendar days in the settlement period, capped at 1.00 and floored at zero.",
             styles,
         ),
         Paragraph(
@@ -285,7 +286,7 @@ def build(output: Path) -> None:
         _rule(
             "RB-301",
             "Adjustment order",
-            "Adjusted rebate equals gross rebate multiplied by the SLA multiplier and then by the tenure multiplier.",
+            "Adjusted rebate equals gross rebate multiplied by the SLA multiplier and then by the effective-date proration multiplier.",
             styles,
         ),
         _rule(
@@ -305,11 +306,11 @@ def build(output: Path) -> None:
             [
                 ["Step", "Output", "Rule"],
                 ["1", "Eligible spend", "RB-101"],
-                ["2", "Active days", "RB-204"],
+                ["2", "Contract-effective active days", "RB-204"],
                 ["3", "Tier rate", "RB-102"],
                 ["4", "Gross rebate", "RB-103"],
                 ["5", "SLA multiplier", "RB-201 to RB-203"],
-                ["6", "Tenure multiplier", "RB-205"],
+                ["6", "Effective-date proration multiplier", "RB-205"],
                 ["7", "Adjusted rebate", "RB-301"],
                 ["8", "Final rebate", "RB-302"],
                 ["9", "Decision code", "RB-303"],

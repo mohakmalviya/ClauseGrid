@@ -2,7 +2,8 @@
   "acceptance": {
     "advanced_at_least_20pp_better": true,
     "advanced_clean_preservation_100": true,
-    "advanced_no_more_false_repairs": true
+    "advanced_no_more_false_repairs": true,
+    "fair_budget_contract": true
   },
   "advanced": {
     "clean_preservation_rate": 100.0,
@@ -10,483 +11,845 @@
     "e2e_semantic_repair_rate": 100.0,
     "hard_multi_rule_rate": 100.0,
     "method": "advanced",
+    "model_id": "deterministic-offline-v1",
     "primary_metric": "End-to-End Semantic Repair Rate",
     "records": [
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M01",
         "changed_cells": [
           "L6"
         ],
+        "changed_formulas": [
+          "RebateCalc!L6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "eligible-spend returns deduction",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-09e21595b937",
+        "run_id": "advanced-ba1723d04068",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M02",
         "changed_cells": [
           "L6"
         ],
+        "changed_formulas": [
+          "RebateCalc!L6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "eligible-spend pass-through deduction",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-e7d5b95ad664",
+        "run_id": "advanced-5f97537c8bd7",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M03",
         "changed_cells": [
           "N6"
         ],
+        "changed_formulas": [
+          "RebateCalc!N6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "ordered tier lookup: first lower-bound selection",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-f867c08b7263",
+        "run_id": "advanced-eaa4068d50e2",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M04",
         "changed_cells": [
           "N6"
         ],
+        "changed_formulas": [
+          "RebateCalc!N6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "ordered tier lookup: second lower-bound selection",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-67518ff7075f",
+        "run_id": "advanced-8d59fceb3c9e",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M05",
         "changed_cells": [
           "N6"
         ],
+        "changed_formulas": [
+          "RebateCalc!N6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "ordered tier lookup: third lower-bound selection",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-65dde1bce44b",
+        "run_id": "advanced-d285cc928f81",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M06",
         "changed_cells": [
           "P6"
         ],
+        "changed_formulas": [
+          "RebateCalc!P6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "delivery threshold boundary",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-d1e1d676493a",
+        "run_id": "advanced-098c0e17c4d9",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M07",
         "changed_cells": [
           "P6"
         ],
+        "changed_formulas": [
+          "RebateCalc!P6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "quality threshold boundary",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-7dabdae53844",
+        "run_id": "advanced-451c00151142",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M08",
         "changed_cells": [
           "P6"
         ],
+        "changed_formulas": [
+          "RebateCalc!P6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "critical-incident precedence",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-fb4d75195a90",
+        "run_id": "advanced-bc1591162d3b",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M09",
         "changed_cells": [
           "P6"
         ],
+        "changed_formulas": [
+          "RebateCalc!P6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "combined SLA penalty value",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-bbad01b4ce66",
+        "run_id": "advanced-9eeb854d361a",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M10",
         "changed_cells": [
           "P6"
         ],
+        "changed_formulas": [
+          "RebateCalc!P6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "waiver exception scope",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-9e4a2e37c326",
+        "run_id": "advanced-f569ca78b557",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M11",
         "changed_cells": [
           "Q6"
         ],
+        "changed_formulas": [
+          "RebateCalc!Q6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "contract-effective proportional-proration denominator",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-ebea0789ae2f",
+        "run_id": "advanced-121aa1160d91",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M12",
         "changed_cells": [
           "S6"
         ],
+        "changed_formulas": [
+          "RebateCalc!S6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "cap and multiplier order",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-84549dc2dd67",
+        "run_id": "advanced-7493a55f7380",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 140
+        },
         "case_id": "H01",
         "changed_cells": [
           "N6",
           "P6",
           "S6"
         ],
+        "changed_formulas": [
+          "RebateCalc!N6",
+          "RebateCalc!P6",
+          "RebateCalc!S6"
+        ],
         "decision": "REPAIR",
+        "defect_family": "tier lookup + waiver scope + cap order interaction",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-83c67593de7e",
+        "run_id": "advanced-64a27ee45171",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 20
+        },
         "case_id": "C01",
         "changed_cells": [],
+        "changed_formulas": [],
         "decision": "NO_CHANGE",
+        "defect_family": "clean ordinary control",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-3f36aef7c680",
+        "run_id": "advanced-f9306ebf6c1f",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 20
+        },
         "case_id": "C02",
         "changed_cells": [],
+        "changed_formulas": [],
         "decision": "NO_CHANGE",
+        "defect_family": "clean boundary control",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-40160c4b8776",
+        "run_id": "advanced-19072158a710",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 20
+        },
         "case_id": "C03",
         "changed_cells": [],
+        "changed_formulas": [],
         "decision": "NO_CHANGE",
+        "defect_family": "clean waiver control",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "advanced-1fe1d6ae84c2",
+        "run_id": "advanced-373926c5cdd1",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       }
-    ]
+    ],
+    "token_limit": 0,
+    "workbook_case_execution_limit": 160
   },
   "baseline": {
     "clean_preservation_rate": 100.0,
     "determinism": "one run required; workflow and model policy are deterministic",
-    "e2e_semantic_repair_rate": 50.0,
+    "e2e_semantic_repair_rate": 33.333333333333336,
     "hard_multi_rule_rate": 0.0,
     "method": "baseline",
+    "model_id": "deterministic-offline-v1",
     "primary_metric": "End-to-End Semantic Repair Rate",
     "records": [
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 20
+        },
         "case_id": "M01",
         "changed_cells": [],
+        "changed_formulas": [],
         "decision": "NO_CHANGE",
-        "first_failure": "H04",
+        "defect_family": "eligible-spend returns deduction",
+        "first_failure": "H01",
         "minimality_ok": true,
-        "run_id": "baseline-24a573c01f1f",
+        "run_id": "baseline-a835829a9d8d",
         "semantic_ok": false,
-        "semantic_vectors_passed": 3,
+        "semantic_vectors_passed": 0,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": false
+        "success": false,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 20
+        },
         "case_id": "M02",
         "changed_cells": [],
+        "changed_formulas": [],
         "decision": "NO_CHANGE",
+        "defect_family": "eligible-spend pass-through deduction",
         "first_failure": "H32",
         "minimality_ok": true,
-        "run_id": "baseline-655b95f2f235",
+        "run_id": "baseline-0573368b32d0",
         "semantic_ok": false,
         "semantic_vectors_passed": 31,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": false
+        "success": false,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M03",
         "changed_cells": [
           "N6"
         ],
+        "changed_formulas": [
+          "RebateCalc!N6"
+        ],
         "decision": "REPAIR",
-        "first_failure": null,
+        "defect_family": "ordered tier lookup: first lower-bound selection",
+        "first_failure": "H34: FormulaError",
         "minimality_ok": true,
-        "run_id": "baseline-1d9d81bf63b1",
-        "semantic_ok": true,
-        "semantic_vectors_passed": 48,
+        "run_id": "baseline-fc08fc3ba8bd",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 33,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": false,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M04",
         "changed_cells": [
           "N6"
         ],
+        "changed_formulas": [
+          "RebateCalc!N6"
+        ],
         "decision": "REPAIR",
-        "first_failure": null,
+        "defect_family": "ordered tier lookup: second lower-bound selection",
+        "first_failure": "H02",
         "minimality_ok": true,
-        "run_id": "baseline-b5a281fae38b",
-        "semantic_ok": true,
-        "semantic_vectors_passed": 48,
+        "run_id": "baseline-e0aebb590b97",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 1,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": false,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
         "case_id": "M05",
-        "changed_cells": [
-          "N6"
-        ],
-        "decision": "REPAIR",
-        "first_failure": null,
-        "minimality_ok": true,
-        "run_id": "baseline-3e949ecfe6d5",
-        "semantic_ok": true,
-        "semantic_vectors_passed": 48,
-        "semantic_vectors_total": 48,
-        "source_immutable": true,
-        "success": true
-      },
-      {
-        "case_id": "M06",
-        "changed_cells": [
-          "P6"
-        ],
-        "decision": "REPAIR",
-        "first_failure": "H14",
-        "minimality_ok": true,
-        "run_id": "baseline-247088fd1877",
-        "semantic_ok": false,
-        "semantic_vectors_passed": 13,
-        "semantic_vectors_total": 48,
-        "source_immutable": true,
-        "success": false
-      },
-      {
-        "case_id": "M07",
-        "changed_cells": [
-          "P6"
-        ],
-        "decision": "REPAIR",
-        "first_failure": "H17",
-        "minimality_ok": true,
-        "run_id": "baseline-c0117e690cf2",
-        "semantic_ok": false,
-        "semantic_vectors_passed": 16,
-        "semantic_vectors_total": 48,
-        "source_immutable": true,
-        "success": false
-      },
-      {
-        "case_id": "M08",
-        "changed_cells": [
-          "P6"
-        ],
-        "decision": "REPAIR",
-        "first_failure": null,
-        "minimality_ok": true,
-        "run_id": "baseline-499af8ac1edf",
-        "semantic_ok": true,
-        "semantic_vectors_passed": 48,
-        "semantic_vectors_total": 48,
-        "source_immutable": true,
-        "success": true
-      },
-      {
-        "case_id": "M09",
-        "changed_cells": [
-          "P6"
-        ],
-        "decision": "REPAIR",
-        "first_failure": null,
-        "minimality_ok": true,
-        "run_id": "baseline-2ebb8fc74196",
-        "semantic_ok": true,
-        "semantic_vectors_passed": 48,
-        "semantic_vectors_total": 48,
-        "source_immutable": true,
-        "success": true
-      },
-      {
-        "case_id": "M10",
         "changed_cells": [],
+        "changed_formulas": [],
         "decision": "NO_CHANGE",
-        "first_failure": "H24",
-        "minimality_ok": true,
-        "run_id": "baseline-42247bdea23d",
-        "semantic_ok": false,
-        "semantic_vectors_passed": 23,
-        "semantic_vectors_total": 48,
-        "source_immutable": true,
-        "success": false
-      },
-      {
-        "case_id": "M11",
-        "changed_cells": [
-          "Q6"
-        ],
-        "decision": "REPAIR",
-        "first_failure": null,
-        "minimality_ok": true,
-        "run_id": "baseline-0fb0020ecefd",
-        "semantic_ok": true,
-        "semantic_vectors_passed": 48,
-        "semantic_vectors_total": 48,
-        "source_immutable": true,
-        "success": true
-      },
-      {
-        "case_id": "M12",
-        "changed_cells": [],
-        "decision": "NO_CHANGE",
-        "first_failure": "H36",
-        "minimality_ok": true,
-        "run_id": "baseline-2605f91a1bac",
-        "semantic_ok": false,
-        "semantic_vectors_passed": 35,
-        "semantic_vectors_total": 48,
-        "source_immutable": true,
-        "success": false
-      },
-      {
-        "case_id": "H01",
-        "changed_cells": [],
-        "decision": "NO_CHANGE",
+        "defect_family": "ordered tier lookup: third lower-bound selection",
         "first_failure": "H10",
         "minimality_ok": true,
-        "run_id": "baseline-c436b861a8e3",
+        "run_id": "baseline-947d510cb1f2",
         "semantic_ok": false,
         "semantic_vectors_passed": 9,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": false
+        "success": false,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
+        "case_id": "M06",
+        "changed_cells": [
+          "P6"
+        ],
+        "changed_formulas": [
+          "RebateCalc!P6"
+        ],
+        "decision": "REPAIR",
+        "defect_family": "delivery threshold boundary",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-3b3d6946f12a",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true,
+        "unrelated_formula_changes": []
+      },
+      {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
+        "case_id": "M07",
+        "changed_cells": [
+          "P6"
+        ],
+        "changed_formulas": [
+          "RebateCalc!P6"
+        ],
+        "decision": "REPAIR",
+        "defect_family": "quality threshold boundary",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-6660af54c5e6",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true,
+        "unrelated_formula_changes": []
+      },
+      {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
+        "case_id": "M08",
+        "changed_cells": [
+          "P6"
+        ],
+        "changed_formulas": [
+          "RebateCalc!P6"
+        ],
+        "decision": "REPAIR",
+        "defect_family": "critical-incident precedence",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-a5378549c13e",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true,
+        "unrelated_formula_changes": []
+      },
+      {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
+        "case_id": "M09",
+        "changed_cells": [
+          "P6"
+        ],
+        "changed_formulas": [
+          "RebateCalc!P6"
+        ],
+        "decision": "REPAIR",
+        "defect_family": "combined SLA penalty value",
+        "first_failure": null,
+        "minimality_ok": true,
+        "run_id": "baseline-b3c2fbdb0429",
+        "semantic_ok": true,
+        "semantic_vectors_passed": 48,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": true,
+        "unrelated_formula_changes": []
+      },
+      {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 20
+        },
+        "case_id": "M10",
+        "changed_cells": [],
+        "changed_formulas": [],
+        "decision": "NO_CHANGE",
+        "defect_family": "waiver exception scope",
+        "first_failure": "H24",
+        "minimality_ok": true,
+        "run_id": "baseline-65c3fa8764dd",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 23,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": false,
+        "unrelated_formula_changes": []
+      },
+      {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 20
+        },
+        "case_id": "M11",
+        "changed_cells": [],
+        "changed_formulas": [],
+        "decision": "NO_CHANGE",
+        "defect_family": "contract-effective proportional-proration denominator",
+        "first_failure": "H27",
+        "minimality_ok": true,
+        "run_id": "baseline-43893a8abd0c",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 26,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": false,
+        "unrelated_formula_changes": []
+      },
+      {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 20
+        },
+        "case_id": "M12",
+        "changed_cells": [],
+        "changed_formulas": [],
+        "decision": "NO_CHANGE",
+        "defect_family": "cap and multiplier order",
+        "first_failure": "H36",
+        "minimality_ok": true,
+        "run_id": "baseline-2cd02195a8d3",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 35,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": false,
+        "unrelated_formula_changes": []
+      },
+      {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 40
+        },
+        "case_id": "H01",
+        "changed_cells": [],
+        "changed_formulas": [],
+        "decision": "NO_CHANGE",
+        "defect_family": "tier lookup + waiver scope + cap order interaction",
+        "first_failure": "H10",
+        "minimality_ok": true,
+        "run_id": "baseline-d7069c389254",
+        "semantic_ok": false,
+        "semantic_vectors_passed": 9,
+        "semantic_vectors_total": 48,
+        "source_immutable": true,
+        "success": false,
+        "unrelated_formula_changes": []
+      },
+      {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 20
+        },
         "case_id": "C01",
         "changed_cells": [],
+        "changed_formulas": [],
         "decision": "NO_CHANGE",
+        "defect_family": "clean ordinary control",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "baseline-0ac536f69971",
+        "run_id": "baseline-70cabef40389",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 20
+        },
         "case_id": "C02",
         "changed_cells": [],
+        "changed_formulas": [],
         "decision": "NO_CHANGE",
+        "defect_family": "clean boundary control",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "baseline-f3ba8d8e236b",
+        "run_id": "baseline-c7e5b3a4e526",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       },
       {
+        "budget": {
+          "model_id": "deterministic-offline-v1",
+          "token_limit": 0,
+          "tokens_used": 0,
+          "workbook_case_execution_limit": 160,
+          "workbook_case_executions_used": 20
+        },
         "case_id": "C03",
         "changed_cells": [],
+        "changed_formulas": [],
         "decision": "NO_CHANGE",
+        "defect_family": "clean waiver control",
         "first_failure": null,
         "minimality_ok": true,
-        "run_id": "baseline-32ef6f7b857e",
+        "run_id": "baseline-823ea394485d",
         "semantic_ok": true,
         "semantic_vectors_passed": 48,
         "semantic_vectors_total": 48,
         "source_immutable": true,
-        "success": true
+        "success": true,
+        "unrelated_formula_changes": []
       }
-    ]
+    ],
+    "token_limit": 0,
+    "workbook_case_execution_limit": 160
   },
-  "benchmark": "SupplierRebate-SLA-16",
+  "benchmark": "SupplierRebate-SLA-16-v2",
   "hidden_case_count_per_workbook": 48,
-  "improvement_percentage_points": 50.0,
+  "improvement_percentage_points": 66.66666666666666,
   "oracle": "independent Python Decimal/date implementation",
   "schema_version": 1
 }

@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 
 from .formula import evaluate_cells
-from .ooxml import inspect_safety, sheet_cells
+from .ooxml import calculation_cells, inspect_safety
 from .policy import CORE_OUTPUTS, INPUT_CELL_MAP
 
 
@@ -17,8 +17,11 @@ def main() -> int:
     try:
         request = json.loads(sys.stdin.read())
         workbook = Path(request["workbook"]).resolve()
+        from .path_guard import restrict_file_access
+
+        restrict_file_access(readable_files=(workbook,), writable_roots=(Path.cwd(),))
         safety = inspect_safety(workbook)
-        values, formulas = sheet_cells(workbook, "RebateCalc")
+        values, formulas = calculation_cells(workbook)
         input_cases = request.get("cases", [request.get("inputs", {})])
         results = []
         for inputs in input_cases:

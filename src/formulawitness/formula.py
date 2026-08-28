@@ -17,17 +17,63 @@ class FormulaError(ValueError):
 TOKEN_RE = re.compile(
     r"\s*(?:(?P<number>(?:\d+(?:\.\d*)?|\.\d+))|"
     r'(?P<string>"(?:[^"]|"")*")|'
+    r"(?P<sheetcell>(?:'[A-Za-z0-9_ .]+'|[A-Za-z_][A-Za-z0-9_. ]*)!\$?[A-Za-z]{1,3}\$?\d+)|"
     r"(?P<cell>\$?[A-Za-z]{1,3}\$?\d+)|"
     r"(?P<ident>[A-Za-z_][A-Za-z0-9_.]*)|"
-    r"(?P<op><=|>=|<>|[=<>+\-*/^(),]))"
+    r"(?P<op><=|>=|<>|[=<>+\-*/^(),:]))"
 )
 CELL_RE = re.compile(r"^\$?([A-Za-z]{1,3})\$?(\d+)$")
+QUALIFIED_CELL_RE = re.compile(
+    r"^(?:(?P<sheet>[A-Za-z_][A-Za-z0-9_. ]*)!)?(?P<column>[A-Z]{1,3})(?P<row>\d+)$"
+)
 
 
 @dataclass(frozen=True)
 class Token:
     kind: str
     value: str
+
+
+def _normalize_reference(value: str) -> str:
+    return value.replace("$", "").replace("'", "").upper()
+
+
+def _column_index(column: str) -> int:
+    result = 0
+    for character in column:
+        result = result * 26 + ord(character) - 64
+    return result
+
+
+def _column_name(index: int) -> str:
+    result = ""
+    while index:
+        index, remainder = divmod(index - 1, 26)
+        result = chr(65 + remainder) + result
+    return result
+
+
+def _expand_range(start: str, end: str) -> list[str]:
+    start_match = QUALIFIED_CELL_RE.fullmatch(start)
+    end_match = QUALIFIED_CELL_RE.fullmatch(end)
+    if not start_match or not end_match:
+        raise FormulaError(f"Unsupported range {start}:{end}")
+    start_sheet = start_match.group("sheet")
+    end_sheet = end_match.group("sheet") or start_sheet
+    if start_sheet != end_sheet:
+        raise FormulaError("Three-dimensional ranges are unsupported")
+    first_column = _column_index(start_match.group("column"))
+    last_column = _column_index(end_match.group("column"))
+    first_row = int(start_match.group("row"))
+    last_row = int(end_match.group("row"))
+    if first_column > last_column or first_row > last_row:
+        raise FormulaError("Descending ranges are unsupported")
+    prefix = f"{start_sheet}!" if start_sheet else ""
+    return [
+        f"{prefix}{_column_name(column)}{row}"
+        for row in range(first_row, last_row + 1)
+        for column in range(first_column, last_column + 1)
+    ]
 
 
 def tokenize(formula: str) -> list[Token]:
@@ -102,9 +148,19 @@ class Parser:
         if token.kind == "string":
             self.take()
             return ("literal", token.value[1:-1].replace('""', '"'))
-        if token.kind == "cell":
+        if token.kind in {"cell", "sheetcell"}:
             self.take()
-            return ("cell", token.value.replace("$", "").upper())
+            start = _normalize_reference(token.value)
+            if self.current.value == ":":
+                self.take(":")
+                end_token = self.take()
+                if end_token.kind not in {"cell", "sheetcell"}:
+                    raise FormulaError("Range endpoint must be a cell")
+                end = _normalize_reference(end_token.value)
+                if "!" not in end and "!" in start:
+                    end = f"{start.split('!', 1)[0]}!{end}"
+                return ("range", start, end)
+            return ("cell", start)
         if token.kind == "ident":
             name = self.take().value.upper()
             self.take("(")
@@ -148,6 +204,8 @@ def evaluate_ast(ast: Any, resolve_cell: Callable[[str], Any]) -> Any:
         return ast[1]
     if kind == "cell":
         return resolve_cell(ast[1])
+    if kind == "range":
+        return [resolve_cell(cell) for cell in _expand_range(ast[1], ast[2])]
     if kind == "unary":
         value = _number(evaluate_ast(ast[2], resolve_cell))
         return value if ast[1] == "+" else -value
@@ -157,28 +215,35 @@ def evaluate_ast(ast: Any, resolve_cell: Callable[[str], Any]) -> Any:
         right = evaluate_ast(ast[3], resolve_cell)
         if op in {"=", "<>", "<", ">", "<=", ">="}:
             if isinstance(left, str) or isinstance(right, str):
-                a, b = str(left), str(right)
-            else:
-                a, b = _number(left), _number(right)
+                text_left, text_right = str(left), str(right)
+                return {
+                    "=": text_left == text_right,
+                    "<>": text_left != text_right,
+                    "<": text_left < text_right,
+                    ">": text_left > text_right,
+                    "<=": text_left <= text_right,
+                    ">=": text_left >= text_right,
+                }[op]
+            number_left, number_right = _number(left), _number(right)
             return {
-                "=": a == b,
-                "<>": a != b,
-                "<": a < b,
-                ">": a > b,
-                "<=": a <= b,
-                ">=": a >= b,
+                "=": number_left == number_right,
+                "<>": number_left != number_right,
+                "<": number_left < number_right,
+                ">": number_left > number_right,
+                "<=": number_left <= number_right,
+                ">=": number_left >= number_right,
             }[op]
-        a, b = _number(left), _number(right)
+        numeric_left, numeric_right = _number(left), _number(right)
         if op == "+":
-            return a + b
+            return numeric_left + numeric_right
         if op == "-":
-            return a - b
+            return numeric_left - numeric_right
         if op == "*":
-            return a * b
+            return numeric_left * numeric_right
         if op == "/":
-            if b == 0:
+            if numeric_right == 0:
                 raise FormulaError("Division by zero")
-            return a / b
+            return numeric_left / numeric_right
         raise FormulaError(f"Unsupported operator {op}")
     if kind == "call":
         name, args = ast[1], ast[2]
@@ -201,18 +266,44 @@ def evaluate_ast(ast: Any, resolve_cell: Callable[[str], Any]) -> Any:
             if len(values) != 2:
                 raise FormulaError("ROUND requires two arguments")
             return _excel_round(_number(values[0]), int(_number(values[1])))
+        if name == "LOOKUP":
+            if (
+                len(values) != 3
+                or not isinstance(values[1], list)
+                or not isinstance(values[2], list)
+            ):
+                raise FormulaError("LOOKUP requires a value and two ranges")
+            lookup_values = [_number(value) for value in values[1]]
+            if lookup_values != sorted(lookup_values) or len(lookup_values) != len(values[2]):
+                raise FormulaError("LOOKUP ranges must be aligned and ascending")
+            needle = _number(values[0])
+            eligible = [index for index, value in enumerate(lookup_values) if value <= needle]
+            if not eligible:
+                raise FormulaError("LOOKUP value is below the first lower bound")
+            return values[2][eligible[-1]]
         raise FormulaError(f"Unsupported function {name}")
     raise FormulaError(f"Unsupported AST node {kind}")
 
 
 def referenced_cells(formula: str) -> list[str]:
-    return sorted(
-        {
-            token.value.replace("$", "").upper()
-            for token in tokenize(formula)
-            if token.kind == "cell"
-        }
-    )
+    references: set[str] = set()
+
+    def visit(ast: Any) -> None:
+        if ast[0] == "cell":
+            references.add(ast[1])
+        elif ast[0] == "range":
+            references.update(_expand_range(ast[1], ast[2]))
+        elif ast[0] == "binary":
+            visit(ast[2])
+            visit(ast[3])
+        elif ast[0] == "unary":
+            visit(ast[2])
+        elif ast[0] == "call":
+            for argument in ast[2]:
+                visit(argument)
+
+    visit(Parser(formula).parse())
+    return sorted(references)
 
 
 def excel_serial(value: str | date | datetime | float | Decimal) -> Decimal:

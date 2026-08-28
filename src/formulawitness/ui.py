@@ -7,12 +7,13 @@ import mimetypes
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import unquote, urlparse
 
-from .advanced import run_advanced
-from .benchmark import WORKBOOK_CASES
-from .policy import extract_rules
+from .advanced import approve_advanced_proposal, run_advanced
+from .policy import compile_rule_ir, extract_rules
+from .public_benchmark import WORKBOOK_CASES
+from .trace import object_hash
 
 HTML = r"""<!doctype html>
 <html lang="en">
@@ -32,7 +33,7 @@ label{display:block;font-size:12px;font-weight:700;color:#475467;margin-bottom:6
 select,input{width:100%;padding:11px 12px;border:1px solid #bbc7d7;border-radius:8px;background:#fff;color:var(--ink);font:inherit}
 button{border:0;border-radius:8px;padding:11px 16px;background:var(--blue);color:#fff;font-weight:700;cursor:pointer}button.secondary{background:#eef2f7;color:var(--navy)}button:disabled{opacity:.45;cursor:not-allowed}
 .actions{display:flex;gap:9px;margin-top:14px}.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:18px 0}.step{padding:10px;border-radius:8px;background:#e8edf4;color:#586578;font-size:12px;font-weight:700;text-align:center}.step.on{background:#dce9ff;color:#164da6}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.hidden{display:none}.status{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}.PASS{background:#dcf5e7;color:var(--ok)}.FAIL{background:#fde7e7;color:var(--bad)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.hidden{display:none}.status{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}.PASS,.EXACT,.NO_CHANGE{background:#dcf5e7;color:var(--ok)}.FAIL,.REPAIR,.AMBIGUOUS,.CONFLICT{background:#fde7e7;color:var(--bad)}.ABSTAIN{background:#fff0cf;color:var(--amber)}
 table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;color:#667085;border-bottom:1px solid var(--line);padding:8px}td{padding:8px;border-bottom:1px solid #edf0f4;vertical-align:top}
 code{font-family:Consolas,monospace;font-size:11px;background:#f1f4f8;padding:2px 5px;border-radius:4px;word-break:break-all}.quote{border-left:3px solid var(--blue);padding:9px 12px;background:#f7f9fc;color:#39465a;font-size:12px;line-height:1.45;margin:8px 0}.patch{border:1px solid #c9d5e5;border-radius:10px;padding:13px;margin:10px 0}.before{color:var(--bad)}.after{color:var(--ok)}
 .downloads a{display:inline-block;margin:5px 6px 0 0;padding:8px 10px;border:1px solid #b8c8df;border-radius:7px;text-decoration:none;color:#164da6;background:#f7faff;font-size:12px;font-weight:700}
@@ -54,30 +55,38 @@ function node(tag,text,cls){const n=document.createElement(tag);n.textContent=te
 async function api(path,options){const r=await fetch(path,options);const j=await r.json();if(!r.ok)throw new Error(j.error||r.statusText);return j}
 async function init(){const data=await api('/api/cases'); for(const c of data.cases){const o=node('option',`${c.id} — ${c.label}`);o.value=c.id;if(c.id==='M10')o.selected=true;$('case').append(o)}}
 function setSteps(n){for(let i=2;i<=5;i++)$('s'+i).classList.toggle('on',i<=n)}
-function render(data){current=data.result;$('results').classList.remove('hidden');$('sourceHash').textContent=current.source_sha256;setSteps(5);$('rules').replaceChildren();for(const r of data.rules){const d=node('div');d.append(node('b',`${r.rule_id} · ${r.title}`));d.append(node('div',`Page ${r.page}`, 'small'));d.append(node('div',r.quote,'quote'));$('rules').append(d)}
- $('diagnosis').replaceChildren(node('div',`Decision: ${current.decision}`,'status '+(current.decision==='REPAIR'?'FAIL':'PASS')));for(const p of current.patches){const d=node('div',null,'patch');d.append(node('b',`Patch ${p.cell} · ${p.rule_ids.join(', ')}`));d.append(node('div',p.old_formula,'before'));d.append(node('div',p.new_formula,'after'));d.append(node('p',p.rationale));$('diagnosis').append(d)}if(!current.patches.length)$('diagnosis').append(node('p','No core formula change is justified.'));
- $('tests').replaceChildren();for(const t of current.tests){const tr=document.createElement('tr');for(const value of [t.case_id,t.rule_ids.join(', '),t.status,t.mismatched_cells.join(', ')||'—']){tr.append(node('td',value,value===t.status?'status '+t.status:null))}$('tests').append(tr)} $('approve').disabled=current.decision!=='REPAIR';$('approvalMessage').textContent=current.decision==='REPAIR'?'Review the cited evidence and exact diff before approving.':'No repair approval is required.'}
+function renderDownloads(files){$('downloads').replaceChildren();for(const f of files||[]){const a=node('a',f);a.href=`/download/${encodeURIComponent(current.run_id)}/${encodeURIComponent(f)}`;$('downloads').append(a)}}
+function render(data){current=data.result;$('results').classList.remove('hidden');$('sourceHash').textContent=current.source_sha256;setSteps(5);$('rules').replaceChildren();for(const r of data.rules){const d=node('div');d.append(node('b',`${r.rule_id} · ${r.title}`));d.append(node('span',r.status,'status '+r.status));d.append(node('div',`Page ${r.page} · characters ${r.start_char}–${r.end_char}`, 'small'));d.append(node('div',r.quote,'quote'));if(r.operation)d.append(node('div',`Executable IR: ${r.operation} · ${JSON.stringify(r.parameters)}`,'small'));if(r.ambiguity_reasons.length)d.append(node('div',r.ambiguity_reasons.join('; '),'danger'));$('rules').append(d)}
+ $('diagnosis').replaceChildren(node('div',`Decision: ${current.decision}`,'status '+current.decision));for(const p of current.patches){const d=node('div',null,'patch');d.append(node('b',`Patch ${p.cell} · ${p.rule_ids.join(', ')}`));const s=current.suspicious_cells.find(x=>x.cell===p.cell);if(s)d.append(node('div',`Ochiai ${s.ochiai} · failing coverage ${s.failed_covered} · passing coverage ${s.passed_covered} · affected outputs ${s.affected_outputs.join(', ')}`,'small'));d.append(node('div',p.old_formula,'before'));d.append(node('div',p.new_formula,'after'));d.append(node('p',p.rationale));$('diagnosis').append(d)}if(!current.patches.length)$('diagnosis').append(node('p',current.decision==='ABSTAIN'?'Policy ambiguity requires human clarification; no executable oracle or repair was created.':'No core formula change is justified.'));
+ $('tests').replaceChildren();for(const t of current.tests){const tr=document.createElement('tr');for(const value of [t.case_id,t.rule_ids.join(', '),t.status,t.mismatched_cells.join(', ')||'—']){tr.append(node('td',value,value===t.status?'status '+t.status:null))}$('tests').append(tr)} const approved=Boolean(current.approval_hash);$('approve').disabled=current.decision!=='REPAIR'||approved;$('approvalMessage').textContent=approved?`Already approved: ${current.approval_hash}`:(current.decision==='REPAIR'?'Review the cited evidence and exact diff before approving.':'No repair approval is required.');renderDownloads(data.downloads)}
 $('audit').onclick=async()=>{try{$('audit').disabled=true;$('message').textContent='Extracting rules and executing counterexamples…';const d=await api('/api/audit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:$('case').value})});render(d);$('message').textContent=`Audit ${d.result.run_id} complete.`}catch(e){$('message').textContent=e.message;$('message').className='danger'}finally{$('audit').disabled=false}};
-$('approve').onclick=async()=>{try{$('approve').disabled=true;$('approvalMessage').textContent='Binding approval and writing repaired copy…';const d=await api('/api/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({run_id:current.run_id,reviewer:$('reviewer').value})});current=d.result;$('approvalMessage').textContent=`Approved: ${current.approval_hash}`;$('downloads').replaceChildren();for(const f of d.downloads){const a=node('a',f);a.href=`/download/${encodeURIComponent(current.run_id)}/${encodeURIComponent(f)}`;$('downloads').append(a)}}catch(e){$('approvalMessage').textContent=e.message;$('approvalMessage').className='danger'}finally{$('approve').disabled=false}};
+$('approve').onclick=async()=>{try{$('approve').disabled=true;$('approvalMessage').textContent='Binding approval and writing repaired copy…';const d=await api('/api/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({run_id:current.run_id,reviewer:$('reviewer').value})});current=d.result;$('approvalMessage').textContent=`Approved: ${current.approval_hash}`;renderDownloads(d.downloads)}catch(e){$('approvalMessage').textContent=e.message;$('approvalMessage').className='danger'}finally{$('approve').disabled=Boolean(current?.approval_hash)}};
 $('reset').onclick=()=>location.reload();init().catch(e=>$('message').textContent=e.message);
 </script></body></html>"""
 
 
 def _rule_payload(root: Path) -> list[dict[str, Any]]:
     rules = extract_rules(root / "policies/supplier_rebate_sla_policy.pdf")
+    operations = {rule_id: item for item in compile_rule_ir(rules) for rule_id in item.rule_ids}
     return [
         {
             "rule_id": rule.rule_id,
             "title": rule.title,
+            "status": rule.status,
             "page": rule.evidence.page,
+            "start_char": rule.evidence.start_char,
+            "end_char": rule.evidence.end_char,
             "quote": rule.evidence.exact_quote,
+            "ambiguity_reasons": list(rule.ambiguity_reasons),
+            "operation": operations[rule.rule_id].operation,
+            "parameters": operations[rule.rule_id].parameters,
         }
         for rule in rules
     ]
 
 
-def make_handler(root: Path):
-    sessions: dict[str, str] = {}
+def make_handler(root: Path) -> type[BaseHTTPRequestHandler]:
+    sessions: dict[str, dict[str, str]] = {}
     artifact_root = root / "artifacts/ui"
 
     class Handler(BaseHTTPRequestHandler):
@@ -96,7 +105,7 @@ def make_handler(root: Path):
             length = int(self.headers.get("Content-Length", "0"))
             if length > 20_000:
                 raise ValueError("Request too large")
-            return json.loads(self.rfile.read(length) or b"{}")
+            return cast(dict[str, Any], json.loads(self.rfile.read(length) or b"{}"))
 
         def do_GET(self) -> None:
             parsed = urlparse(self.path)
@@ -134,6 +143,7 @@ def make_handler(root: Path):
                     "trajectory.jsonl",
                     "counterexamples.json",
                     "approval.json",
+                    "proposal.json",
                 }
                 target = artifact_root / run_id / filename
                 if filename not in allowed or not target.is_file():
@@ -162,21 +172,47 @@ def make_handler(root: Path):
                     result = run_advanced(
                         workbook, root / "policies/supplier_rebate_sla_policy.pdf", artifact_root
                     )
-                    sessions[result.run_id] = case_id
-                    self._json({"result": result.to_dict(), "rules": _rule_payload(root)})
+                    proposal = json.loads(
+                        (artifact_root / result.run_id / "proposal.json").read_text(
+                            encoding="utf-8"
+                        )
+                    )
+                    sessions[result.run_id] = {
+                        "case_id": case_id,
+                        "proposal_hash": object_hash(proposal),
+                    }
+                    downloads = (
+                        sorted(
+                            path.name
+                            for path in (artifact_root / result.run_id).iterdir()
+                            if path.is_file()
+                        )
+                        if result.approval_hash
+                        else []
+                    )
+                    self._json(
+                        {
+                            "result": result.to_dict(),
+                            "rules": _rule_payload(root),
+                            "downloads": downloads,
+                        }
+                    )
                     return
                 if self.path == "/api/approve":
                     run_id = str(payload.get("run_id", ""))
                     reviewer = str(payload.get("reviewer", "")).strip()
                     if run_id not in sessions or not reviewer:
                         raise ValueError("A known run and non-empty reviewer identity are required")
-                    case_id = sessions[run_id]
+                    session = sessions[run_id]
+                    case_id = session["case_id"]
                     workbook = root / WORKBOOK_CASES[case_id]
-                    result = run_advanced(
+                    result = approve_advanced_proposal(
                         workbook,
                         root / "policies/supplier_rebate_sla_policy.pdf",
                         artifact_root,
-                        reviewer=reviewer,
+                        run_id,
+                        reviewer,
+                        expected_proposal_hash=session["proposal_hash"],
                     )
                     downloads = sorted(
                         path.name

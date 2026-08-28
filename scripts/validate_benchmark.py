@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
-from formulawitness.benchmark import held_out_cases
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from evals.sealed.cases import held_out_cases
+from evals.sealed.oracle import evaluate_policy
 from formulawitness.formula import evaluate_cells
-from formulawitness.ooxml import formula_map, inspect_safety, sheet_cells
-from formulawitness.oracle import evaluate_policy
+from formulawitness.ooxml import calculation_cells, formula_map, inspect_safety
 from formulawitness.policy import CORE_OUTPUTS, INPUT_CELL_MAP
 
 
@@ -36,7 +40,7 @@ def main() -> None:
     results: list[dict[str, Any]] = []
     for workbook in sorted((root / "workbooks/mutants").glob("M*.xlsx")):
         inspect_safety(workbook)
-        values, formulas = sheet_cells(workbook, "RebateCalc")
+        values, formulas = calculation_cells(workbook)
         changed = [cell for cell in CORE_OUTPUTS if formulas[cell] != pristine_formulas[cell]]
         kills = 0
         for case in cases:
