@@ -1,0 +1,31 @@
+{
+  "benchmark": "SupplierRebate-SLA-16",
+  "frozen_on": "2026-08-29",
+  "held_out_case_count": 48,
+  "held_out_manifest_sha256": "f3508f7ee91868116fea2a85b614a86ea9dcf0d8515949a2645cde59e692a0df",
+  "held_out_payload_published": false,
+  "note": "Hashes were fixed before baseline/advanced optimization; scored repair workflows receive neither held-out payload nor oracle.",
+  "policy_sha256": "29d09106888d42d0acd71226ac95c13392ed34f7f1848bdc2020d8f0011fd029",
+  "pristine_sha256": "2f6ef9bb9dccddc5adde7bd37d7390032efac74d76dd9e380ae8b8bdaf2fd23e",
+  "schema_version": 1,
+  "visible_case_count": 20,
+  "visible_manifest_sha256": "f9b03a068084099bf1aee19833e8e7b09ccb15f6c3a5b2f345db7b7e50a8bff9",
+  "workbooks": {
+    "C01": "a69d386b5b9e1fd028d89681c7b44d69217e4df789875c6145683652a52d92f8",
+    "C02": "063b5a049f5398b05ebb3c2f5581af460bbf4ff152ce081b21c203ad35f91f80",
+    "C03": "955ce3ba69a466bfd55a63a269e39b4419e96b473aacbb8ab59f1ddfda36b7a4",
+    "H01": "0ad495f75eb0b289c8bd9e3166756adc06ca74df5970622890abb7f03ac17716",
+    "M01": "31e89259b4732f3ee0792287918cc0c562130402a3d8d2469ebe1e4a7def41ce",
+    "M02": "3d9b1542a9346d819813fe48c82115592570c77856b96993f958e53a7f6ec8b3",
+    "M03": "9cd793d979ba654dd2b018e26f75700e2aabc27fc0a08c4306f71d8a11680b08",
+    "M04": "957fb1222061d8fd590d67a72720b7ef8864a8663983e361ee61a36b5c8c03b3",
+    "M05": "17efa7adc22a751f1c2583ed72de917af6fddc01f32ff2758624162fb6caeaf7",
+    "M06": "3d58e80b426538bff4b3b785684466727735f3f1cef1de4a37966e2dd8f5bca2",
+    "M07": "498bb4a27caf753a0b535f5959ff9366fe57aab71f3045c5175af85d6d186111",
+    "M08": "ea572128692c65bb6aeda5a826c1ba53a720474dad7f8fa2341f391301a4a66a",
+    "M09": "6279d2eec97581dcd9cc609946e7aac93f942165e693a8bac8c6f130fbf142b4",
+    "M10": "5beb61724aad4368960ad215205b1043f0afccb7b0931115cb2ca1a9c47f51af",
+    "M11": "e71ca1518b8603f2f103a2daaf050703a7f9ec165fb652f0fe19dfe19c0d7167",
+    "M12": "402704513b5a0d77a3d71b4595df56392431a26db299a664b9feb9dba75cf3e5"
+  }
+}

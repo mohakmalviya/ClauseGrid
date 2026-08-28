@@ -11,6 +11,9 @@ venv/
 dist/
 build/
 *.egg-info/
+node_modules/
+outputs/
+tmp/
 
 # Secrets and local configuration
 .env
@@ -29,7 +32,10 @@ build/
 ~$*.xlsx
 artifacts/tmp/
 artifacts/runs/
+artifacts/demo/
+artifacts/ui/
 workbooks/generated/
+workbooks/build-manifest.json
 
 # Editors and OS
 .idea/

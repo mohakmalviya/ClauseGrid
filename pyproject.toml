@@ -8,10 +8,19 @@ version = "0.1.0"
 description = "Agentic policy assurance for operational Excel workbooks"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "pypdf>=5.0,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0,<10",
+  "reportlab>=4.2,<5",
+  "ruff>=0.9,<1",
+]
 
 [project.scripts]
-formulawitness = "formulawitness.cli:app"
+formulawitness = "formulawitness.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/formulawitness"]
