@@ -29,4 +29,4 @@
 - The repaired M10 workbook imports through the strict artifact reader and opens/recalculates with the four source sheets plus Counterexamples and FormulaWitness_Report intact.
 - Added one-command setup, demo, evaluation, server, and verification scripts plus the complete documentation and tool disclosure.
 - Created a local submission evidence pack and JSONL trajectories.
-- Final local commit and clean-clone verification are in progress. Private GitHub creation and first push remain gated on explicit user confirmation.
+- The committed local build installs and passes the complete verification gate from a fresh clone. Private GitHub creation and first push remain gated on explicit user confirmation.

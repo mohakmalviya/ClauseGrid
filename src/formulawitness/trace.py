@@ -34,7 +34,7 @@ class Trajectory:
                 self.sequence = int(last["sequence"])
                 self.previous_event_hash = str(last["event_hash"])
         else:
-            path.write_text("", encoding="utf-8")
+            path.write_text("", encoding="utf-8", newline="\n")
 
     def record(
         self,

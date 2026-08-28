@@ -37,7 +37,11 @@ def main() -> None:
         "note": "Revision 2 was created during a pre-submission adversarial audit to require a real ordered LOOKUP, proportional effective-date proration, and 48 held-out inputs disjoint from visible inputs. No repair logic was changed in response to revision-2 held-out scores. Scored repair workers receive neither held-out payload nor oracle.",
     }
     output = root / "fixtures/frozen-benchmark.json"
-    output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    output.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
     print(output)
 
 
