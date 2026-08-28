@@ -21,3 +21,9 @@ An early design normalized every core formula to the policy compiler output. It 
 ## Why the direct baseline remains meaningful
 
 The baseline is not a strawman that always fails. It repairs four simple SLA defects: delivery and quality boundary operators, incident count, and a wrong combined-penalty literal. It fails omitted deductions, narrow lookup shifts, waiver scope, a proration-denominator defect, and cap order—the cases that require structured counterexamples, rule IR, or multi-rule reasoning.
+
+## Main failure mode and hot take
+
+The main failure mode is ambiguous or conflicting policy language: FormulaWitness must abstain until a qualified reviewer signs an interpretation, because generating an expected result would otherwise fabricate certainty. See [FAILURE_MODE.md](FAILURE_MODE.md).
+
+**A spreadsheet returning a number is not evidence that it implements the policy.** The evidence is the full witness chain: cited rule, discriminating input, observed divergence, dependency path, minimal patch, and accountable approval.

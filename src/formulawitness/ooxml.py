@@ -330,7 +330,11 @@ def patch_workbook(
                     deepcopy(info), payload if payload is not None else input_zip.read(info)
                 )
             for name, payload in replacements.items():
-                output_zip.writestr(name, payload)
+                info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.create_system = 0
+                info.external_attr = 0
+                output_zip.writestr(info, payload)
 
     inspect_safety(destination)
 

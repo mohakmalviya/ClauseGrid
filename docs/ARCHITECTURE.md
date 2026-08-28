@@ -48,9 +48,14 @@ The approval hash covers:
 - extracted-rule bundle hash;
 - visible case-manifest hash;
 - exact formula-diff hash;
-- reviewer identity and decision.
+- reviewer identity and decision;
+- repaired workbook SHA-256.
 
 The patcher also checks the exact old formula immediately before writing. A changed input or stale proposal therefore cannot silently reuse approval.
+
+## Why the runtime is deterministic
+
+The named agents are specialized state-machine roles with explicit instructions and narrow tools, not calls to an external language-model API. That is intentional for this assurance domain: policy ambiguity is escalated to a human, while formula execution, candidate search, minimality, approval binding, and scoring remain reproducible. Baseline and advanced workflows therefore use the same `deterministic-offline-v1` decision model, zero model tokens, and the same execution ceiling. OpenAI Codex is disclosed as the coding agent used to build the project.
 
 ## Isolation claim
 

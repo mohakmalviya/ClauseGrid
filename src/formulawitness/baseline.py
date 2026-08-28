@@ -12,7 +12,7 @@ from .artifacts import formula_diff, portable_audit_payload, report_rows, test_r
 from .budget import DEFAULT_RUN_BUDGET, BudgetLedger, RunBudget
 from .formula import evaluate_cells
 from .models import AuditResult, Patch, Rule, TestCase
-from .ooxml import calculation_cells, formula_map, inspect_safety, patch_workbook
+from .ooxml import calculation_cells, formula_map, inspect_safety, patch_workbook, sha256_file
 from .policy import (
     CORE_OUTPUTS,
     INPUT_CELL_MAP,
@@ -156,12 +156,27 @@ def run_baseline(
     values, source_formulas = calculation_cells(workbook)
     cases = visible_cases()
     ledger = BudgetLedger(budget)
-    run_id = "baseline-" + hashlib.sha256(f"{safety['sha256']}|direct-v1".encode()).hexdigest()[:12]
+    run_id = "baseline-" + hashlib.sha256(f"{safety['sha256']}|direct-v2".encode()).hexdigest()[:12]
     run_dir = artifact_root / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     trajectory = Trajectory(run_dir / "trajectory.jsonl", run_id)
     trajectory.record(
-        "direct-agent", "INGEST", {"workbook": safety["sha256"]}, {"formula_count": len(formulas)}
+        "direct-agent",
+        "INGEST",
+        {"workbook": safety["sha256"]},
+        {"formula_count": len(formulas)},
+        instruction=(
+            "Inspect the workbook as untrusted data and reject unsupported or active content "
+            "before auditing formulas."
+        ),
+        tool="ooxml.inspect_safety",
+        input_summary={"workbook_sha256": safety["sha256"], "extension": workbook.suffix},
+        output_summary={
+            "status": "ACCEPTED",
+            "package_entries": safety["entries"],
+            "formula_count": len(formulas),
+        },
+        feedback="The workbook passed the safety gate; execute the shared visible cases.",
     )
     ledger.charge_cases(len(cases))
     sandbox_results = execute_batch(workbook, [case.inputs for case in cases])
@@ -181,15 +196,34 @@ def run_baseline(
         "EXECUTE_VISIBLE_CASES",
         [case.case_id for case in cases],
         records,
+        instruction=(
+            "Run the shared public cases once and observe mismatches without generated "
+            "counterexamples or localization."
+        ),
+        tool="worker.execute_batch",
+        input_summary={
+            "case_count": len(cases),
+            "case_ids": [case.case_id for case in cases],
+        },
+        output_summary={
+            "passed": _passing(records),
+            "failed": len(records) - _passing(records),
+            "failing_case_ids": [
+                record["case_id"] for record in records if record["status"] == "FAIL"
+            ],
+        },
+        feedback="Use one direct policy/formula reading to decide whether a repair is justified.",
         elapsed_ms=sandbox_results[0].elapsed_ms if sandbox_results else 0,
     )
     candidate = _direct_candidate(formulas, rules)
     patches: list[Patch] = []
+    final_visible_records = records
     if candidate:
         candidate_formulas = {**source_formulas, candidate.cell: candidate.new_formula}
         candidate_records = _simulate_cases(values, candidate_formulas, cases, ledger, rules)
         if _passing(candidate_records) > _passing(records):
             patches.append(candidate)
+            final_visible_records = candidate_records
     decision: Literal["REPAIR", "NO_CHANGE"] = "REPAIR" if patches else "NO_CHANGE"
     result = AuditResult(
         run_id=run_id,
@@ -203,7 +237,29 @@ def run_baseline(
         artifact_dir=str(run_dir.resolve()),
         budget=ledger.to_dict(),
     )
-    trajectory.record("direct-agent", "DIRECT_REPAIR", formulas, formula_diff(patches))
+    trajectory.record(
+        "direct-agent",
+        "DIRECT_REPAIR",
+        formulas,
+        formula_diff(patches),
+        instruction=(
+            "Make at most one generic policy-derived formula edit, retain it only when the "
+            "shared visible replay improves, and otherwise return no change."
+        ),
+        tool="baseline.direct_candidate+formula.evaluate_cells",
+        input_summary={"formula_count": len(formulas), "rule_count": len(rules), "patch_budget": 1},
+        output_summary={
+            "decision": decision,
+            "changed_cells": [patch.cell for patch in patches],
+            "visible_passes_before": _passing(records),
+            "visible_passes_after": _passing(final_visible_records),
+        },
+        feedback=(
+            "A repair proposal is ready for human approval."
+            if patches
+            else "No direct repair cleared the evidence threshold; preserve the source workbook."
+        ),
+    )
     write_rules_yaml(run_dir / "rules.yaml", rules)
     write_json(run_dir / "formula-diff.json", formula_diff(patches))
     if patches and reviewer:
@@ -213,7 +269,6 @@ def run_baseline(
             "patch_hash": object_hash(formula_diff(patches)),
             "decision": "APPROVE",
         }
-        result.approval_hash = object_hash(approval)
         output = run_dir / "repaired.xlsx"
         patch_workbook(
             workbook,
@@ -222,6 +277,8 @@ def run_baseline(
             [["No structured counterexamples in direct-agent baseline"]],
             report_rows(result.to_dict()),
         )
+        approval["repaired_sha256"] = sha256_file(output)
+        result.approval_hash = object_hash(approval)
         result.output_workbook = str(output.resolve())
         write_json(run_dir / "approval.json", {**approval, "approval_hash": result.approval_hash})
         trajectory.record(
@@ -229,6 +286,22 @@ def run_baseline(
             "APPROVE",
             approval,
             {"approval_hash": result.approval_hash},
+            instruction=(
+                "Apply only the reviewed frozen patch and bind approval to the source, patch, "
+                "reviewer, and repaired workbook bytes."
+            ),
+            tool="ooxml.patch_workbook",
+            input_summary={
+                "reviewer": reviewer,
+                "source_sha256": result.source_sha256,
+                "patch_hash": approval["patch_hash"],
+            },
+            output_summary={
+                "approval_hash": result.approval_hash,
+                "repaired_sha256": approval["repaired_sha256"],
+                "artifacts": ["repaired.xlsx", "approval.json"],
+            },
+            feedback="Approval is recorded and the repaired copy is ready for sealed evaluation.",
             artifact_refs=["repaired.xlsx"],
         )
     elif not patches:

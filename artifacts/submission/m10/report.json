@@ -1,5 +1,5 @@
 {
-  "approval_hash": "6839789a39a423690fc06dbd39017f4c931d29a0cf34a3d08f649da1d11e2b56",
+  "approval_hash": "79840bacc7c108387dfe88da2ea18aa120f246fa98a14f8ad6080bc0f9c902b5",
   "artifact_dir": ".",
   "budget": {
     "model_id": "deterministic-offline-v1",
@@ -25,7 +25,7 @@
     }
   ],
   "rules_sha256": "72f8b8dfbf2104d453678f0c258031f1b7cadf0890e19af4727e163324f79b84",
-  "run_id": "advanced-f569ca78b557",
+  "run_id": "advanced-9dbbc5162fdd",
   "source_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762",
   "source_workbook": "M10_supplier_rebate.xlsx",
   "suspicious_cells": [

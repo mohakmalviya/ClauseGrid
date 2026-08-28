@@ -49,4 +49,4 @@ Run `scripts\eval.ps1`. Explain that hidden cases and the independent oracle are
 
 ## 4:35–5:00 — Result and limitation
 
-Show 33.3% baseline versus 100% FormulaWitness, +66.7 pp, with 100% clean preservation and a three-fault hard-case pass. Note that M03–M05 execute a real ordered `LOOKUP`, M11 tests the proportional-proration denominator, and all 48 sealed inputs are disjoint from visible inputs. End with the limitation: ambiguous real policies must trigger abstention and clarification, not confident repair.
+Show 33.3% baseline versus 100% FormulaWitness, +66.7 pp, with 100% clean preservation and a three-fault hard-case pass. Note that M03–M05 execute a real ordered `LOOKUP`, M11 tests the proportional-proration denominator, and all 48 sealed inputs are disjoint from visible inputs. End with the limitation that ambiguous real policies must trigger abstention and clarification, then the hot take: **“A spreadsheet returning a number is not evidence that it implements the policy.”**

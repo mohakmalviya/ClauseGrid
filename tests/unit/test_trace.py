@@ -9,12 +9,38 @@ from formulawitness.trace import Trajectory, verify_trajectory
 def test_trajectory_hash_chain_detects_tampering(tmp_path: Path) -> None:
     path = tmp_path / "trajectory.jsonl"
     trace = Trajectory(path, "run-1")
-    trace.record("rule-agent", "EXTRACT", {"a": 1}, {"b": 2})
-    trace.record("repair-agent", "PROPOSE", {"b": 2}, {"c": 3})
+    trace.record(
+        "rule-agent",
+        "EXTRACT",
+        {"a": 1},
+        {"b": 2},
+        instruction="Extract cited rules.",
+        tool="policy.extract_rules",
+        input_summary={"documents": 1},
+        output_summary={"rules": 1},
+        feedback="Continue to repair.",
+    )
+    trace.record(
+        "repair-agent",
+        "PROPOSE",
+        {"b": 2},
+        {"c": 3},
+        instruction="Propose a minimal repair.",
+        tool="repair.compile",
+        input_summary={"rules": 1},
+        output_summary={"patches": 1},
+        feedback="Wait for approval.",
+    )
     verified = verify_trajectory(path)
     assert verified["event_count"] == 2
 
     events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    assert events[0]["schema_version"] == 2
+    assert events[0]["instruction"] == "Extract cited rules."
+    assert events[0]["tool"] == "policy.extract_rules"
+    assert events[0]["output_summary"] == {"rules": 1}
+    assert events[0]["feedback"] == "Continue to repair."
+    assert events[0]["retry_count"] == 0
     events[0]["output_hash"] = "0" * 64
     path.write_text("\n".join(json.dumps(event) for event in events) + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match="hash mismatch"):
@@ -24,7 +50,18 @@ def test_trajectory_hash_chain_detects_tampering(tmp_path: Path) -> None:
 def test_trajectory_hash_chain_covers_runtime_metadata_and_resume(tmp_path: Path) -> None:
     path = tmp_path / "trajectory.jsonl"
     trace = Trajectory(path, "run-1")
-    trace.record("worker", "EXECUTE", {}, {}, elapsed_ms=17)
+    trace.record(
+        "worker",
+        "EXECUTE",
+        {},
+        {},
+        instruction="Execute the visible cases.",
+        tool="worker.execute_batch",
+        input_summary={"cases": 0},
+        output_summary={"passes": 0},
+        feedback="Execution complete.",
+        elapsed_ms=17,
+    )
 
     event = json.loads(path.read_text(encoding="utf-8"))
     event["elapsed_ms"] = 18

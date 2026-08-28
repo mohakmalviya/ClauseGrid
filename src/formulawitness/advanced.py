@@ -48,7 +48,7 @@ RULES_BY_CELL = {
     "S6": ("RB-302",),
     "T6": ("RB-303",),
 }
-WORKFLOW_VERSION = "witness-v2"
+WORKFLOW_VERSION = "witness-v3"
 
 
 def _audit_result(payload: dict[str, Any]) -> AuditResult:
@@ -221,6 +221,24 @@ def _apply_approval(
         "APPROVE",
         approval,
         {"approval_hash": result.approval_hash},
+        instruction=(
+            "Apply only the reviewed frozen proposal and bind approval to the source, rules, "
+            "case manifest, exact patch, reviewer, and repaired workbook bytes."
+        ),
+        tool="ooxml.patch_workbook",
+        input_summary={
+            "reviewer": reviewer,
+            "source_sha256": result.source_sha256,
+            "rules_sha256": result.rules_sha256,
+            "case_manifest_hash": case_manifest_hash,
+            "patch_hash": approval["patch_hash"],
+        },
+        output_summary={
+            "approval_hash": result.approval_hash,
+            "repaired_sha256": approval["repaired_sha256"],
+            "artifacts": ["repaired.xlsx", "approval.json"],
+        },
+        feedback="Approval is immutable; the repaired copy is ready for independent sealed replay.",
         artifact_refs=["repaired.xlsx"],
     )
     write_json(run_dir / "report.json", portable_audit_payload(result))
@@ -327,9 +345,49 @@ def run_advanced(
         if existing is not None:
             return existing
     trajectory = Trajectory(run_dir / "trajectory.jsonl", run_id)
-    trajectory.record("ingest-agent", "INGEST", {"workbook": safety["sha256"]}, safety)
     trajectory.record(
-        "rule-agent", "EXTRACT_RULES", {"policy": str(policy_pdf)}, [rule.rule_id for rule in rules]
+        "ingest-agent",
+        "INGEST",
+        {"workbook": safety["sha256"]},
+        safety,
+        instruction=(
+            "Inspect the workbook as untrusted data and reject unsupported or active content "
+            "before reading formulas."
+        ),
+        tool="ooxml.inspect_safety",
+        input_summary={"workbook_sha256": safety["sha256"], "extension": workbook.suffix},
+        output_summary={
+            "status": "ACCEPTED",
+            "package_entries": safety["entries"],
+            "formula_count": safety["formula_count"],
+        },
+        feedback="The workbook passed the safety gate; extract and verify the governing rules.",
+    )
+    trajectory.record(
+        "rule-agent",
+        "EXTRACT_RULES",
+        {"policy": str(policy_pdf)},
+        [rule.rule_id for rule in rules],
+        instruction=(
+            "Extract typed policy rules with exact page and character citations, then fail closed "
+            "on ambiguity or conflicting boundary language."
+        ),
+        tool="policy.extract_rules+policy.compile_rule_ir",
+        input_summary={
+            "policy_file": policy_pdf.name,
+            "policy_sha256": rules[0].evidence.document_sha256,
+        },
+        output_summary={
+            "rule_count": len(rules),
+            "exact_rule_count": sum(rule.status == "EXACT" for rule in rules),
+            "ambiguous_rule_ids": [rule.rule_id for rule in rules if rule.status != "EXACT"],
+            "targets": sorted({rule.target for rule in rules}),
+        },
+        feedback=(
+            "All rules are exact; generate discriminating public witnesses."
+            if ambiguity is None
+            else "Ambiguity blocks executable tests and repair pending human clarification."
+        ),
     )
     if ambiguity is not None:
         trajectory.record(
@@ -337,6 +395,18 @@ def run_advanced(
             "AMBIGUITY_GATE",
             [rule.rule_id for rule in rules],
             {"decision": "ABSTAIN", "reason": str(ambiguity)},
+            instruction="Stop before executable testing when any policy rule is unresolved.",
+            tool="policy.ambiguity_gate",
+            input_summary={
+                "rule_count": len(rules),
+                "blocking_rule_ids": [
+                    rule.rule_id
+                    for rule in rules
+                    if rule.status != "EXACT" or rule.ambiguity_reasons
+                ],
+            },
+            output_summary={"decision": "ABSTAIN", "reason": str(ambiguity)},
+            feedback="Request a qualified human interpretation; do not create a repair.",
         )
         result = AuditResult(
             run_id=run_id,
@@ -380,11 +450,61 @@ def run_advanced(
         "EXECUTE_COUNTEREXAMPLES",
         [case.case_id for case in cases],
         records,
+        instruction=(
+            "Generate policy-derived boundary and interaction witnesses, execute them in the "
+            "allowlisted worker, and preserve every observed mismatch."
+        ),
+        tool="worker.execute_batch+policy.evaluate_approved_rules",
+        input_summary={
+            "case_manifest_hash": case_manifest_hash,
+            "case_count": len(cases),
+            "case_ids": [case.case_id for case in cases],
+        },
+        output_summary={
+            "passed": _passing(records),
+            "failed": len(records) - _passing(records),
+            "failing_cases": [
+                {
+                    "case_id": record["case_id"],
+                    "mismatched_cells": record["mismatched_cells"],
+                }
+                for record in records
+                if record["status"] == "FAIL"
+            ],
+        },
+        feedback="Use the failing/passing evidence and dependency graph to localize formulas.",
         elapsed_ms=sandbox_results[0].elapsed_ms if sandbox_results else 0,
     )
     initial_records = records
     localization = _localize(records, formulas)
-    trajectory.record("localization-agent", "LOCALIZE", records, localization)
+    trajectory.record(
+        "localization-agent",
+        "LOCALIZE",
+        records,
+        localization,
+        instruction=(
+            "Combine backward dependency cones with failing and passing coverage using Ochiai "
+            "suspiciousness; treat the ranking as evidence, not certainty."
+        ),
+        tool="formula.referenced_cells+localizer.ochiai",
+        input_summary={
+            "failing_case_ids": [
+                record["case_id"] for record in records if record["status"] == "FAIL"
+            ],
+            "formula_count": len(formulas),
+        },
+        output_summary={
+            "ranked_candidates": [
+                {
+                    "cell": item["cell"],
+                    "ochiai": item["ochiai"],
+                    "affected_outputs": item["affected_outputs"],
+                }
+                for item in localization[:5]
+            ]
+        },
+        feedback="Compile candidates only from cited rule IR and replay them against public witnesses.",
+    )
     patches: list[Patch] = []
     current_passes = _passing(records)
     for _ in range(3):
@@ -415,11 +535,42 @@ def run_advanced(
         current_passes = score
         if current_passes == len(cases):
             break
-    trajectory.record("repair-agent", "PROPOSE_MINIMAL_PATCH", localization, formula_diff(patches))
     decision: Literal["REPAIR", "NO_CHANGE", "ABSTAIN"] = (
         "NO_CHANGE"
         if _passing(initial_records) == len(cases)
         else ("REPAIR" if _passing(records) == len(cases) else "ABSTAIN")
+    )
+    trajectory.record(
+        "repair-agent",
+        "PROPOSE_MINIMAL_PATCH",
+        localization,
+        formula_diff(patches),
+        instruction=(
+            "Search policy-compiled one-cell candidates in localized order, keep only strict "
+            "visible improvements, and stop at the smallest complete repair."
+        ),
+        tool="policy.compile_rule_formulas+formula.evaluate_cells",
+        input_summary={
+            "candidate_cells": [item["cell"] for item in localization],
+            "candidate_step_limit": 3,
+            "visible_passes_before": _passing(initial_records),
+        },
+        output_summary={
+            "decision": decision,
+            "changed_cells": [patch.cell for patch in patches],
+            "patch_count": len(patches),
+            "visible_passes_after": _passing(records),
+            "visible_case_count": len(cases),
+        },
+        feedback=(
+            "The complete minimal proposal is frozen and awaits human approval."
+            if decision == "REPAIR"
+            else (
+                "The workbook already satisfies every public witness; preserve it unchanged."
+                if decision == "NO_CHANGE"
+                else "No complete minimal repair was justified; abstain and escalate for review."
+            )
+        ),
     )
     result = AuditResult(
         run_id=run_id,

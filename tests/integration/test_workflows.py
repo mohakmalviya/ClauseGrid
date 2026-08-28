@@ -118,3 +118,14 @@ def test_rerun_rejects_tampered_approved_workbook(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="bindings no longer match"):
         run_advanced(source, POLICY, tmp_path, reviewer="test-reviewer")
+
+
+def test_independent_approved_runs_are_byte_reproducible(tmp_path: Path) -> None:
+    source = ROOT / "workbooks/mutants/M10_supplier_rebate.xlsx"
+    first = run_advanced(source, POLICY, tmp_path / "first", reviewer="same-reviewer")
+    second = run_advanced(source, POLICY, tmp_path / "second", reviewer="same-reviewer")
+
+    assert sha256_file(Path(first.output_workbook or "")) == sha256_file(
+        Path(second.output_workbook or "")
+    )
+    assert first.approval_hash == second.approval_hash

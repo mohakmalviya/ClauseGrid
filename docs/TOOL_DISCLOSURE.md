@@ -11,6 +11,8 @@
 
 No production or personal data, hidden hackathon test, external model API, or web service is used at runtime.
 
+FormulaWitness's runtime agents are deterministic typed roles rather than API-backed language-model calls. Each role has a human-readable instruction, named tool, input/output summary, feedback, retry count, and tamper-evident hash chain in the submitted trajectory. This trades open-ended policy generalization for auditability and exact reproduction; unresolved policy meaning is escalated to a qualified human.
+
 ## Submitted trajectories
 
-The advanced JSONL trajectory records `ingest-agent`, `rule-agent`, `counterexample-agent`, `localization-agent`, `repair-agent`, and `human-reviewer` transitions with stable input/output hashes and artifact references. A baseline trajectory is submitted separately. Hidden evaluator payloads are never written into either trajectory.
+The advanced JSONL trajectory records `ingest-agent`, `rule-agent`, `counterexample-agent`, `localization-agent`, `repair-agent`, and `human-reviewer` transitions with their instructions, tools, summarized responses, feedback, retry counts, stable input/output hashes, and artifact references. A baseline trajectory is submitted separately. Hidden evaluator payloads are never written into either trajectory.

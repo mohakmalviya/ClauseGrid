@@ -4,6 +4,10 @@ FormulaWitness is an agentic policy-assurance system for operational Excel workb
 
 The flagship defect is deliberately plausible: a critical-incident waiver incorrectly bypasses an ordinary SLA penalty. The workbook opens, the formula is valid, and typical rows look reasonable. Only the policy-derived waiver counterexample exposes it.
 
+## Intended user and bottleneck
+
+FormulaWitness is for finance, procurement, and supplier-operations reviewers who approve rebate and SLA settlements. Their policy is written in prose while the payable amount is implemented in formulas, so ordinary spreadsheet linting can miss a syntactically valid threshold, exception, lookup, date, or rounding rule that silently overpays or underpays a supplier. FormulaWitness turns that manual policy-to-formula review into a cited, reproducible witness and preserves the final judgment for a qualified reviewer.
+
 ## Measured result
 
 Frozen benchmark: **SupplierRebate-SLA-16-v2** — 12 one-fault mutants, three clean controls, one three-fault hard case, and 48 sealed vectors per workbook. Revision 2 was preregistered before its scored run after an adversarial audit required real ordered lookup, proportional proration, and a fully disjoint held-out input split.
@@ -18,7 +22,7 @@ A repair counts only when every sealed output `L6:T6` is semantically correct, w
 
 ## Run it
 
-Requirements: Python 3.11+ and PowerShell for the convenience scripts. Runtime evaluation is offline and does not require Excel, LibreOffice, an LLM key, or network access.
+Requirements: Python 3.11+ and PowerShell for the convenience scripts. Runtime evaluation is offline and does not require Excel, LibreOffice, an LLM key, or network access. A measured Windows/Python 3.12 run takes about one minute after setup and has **$0 model/API cost**; exact dependency versions and fuller timing notes are in the reproduction guide.
 
 ```powershell
 .\scripts\setup.ps1
@@ -53,6 +57,8 @@ The advanced workflow is a typed state machine with specialized roles and determ
 7. A separate sealed evaluator performs one-shot hidden replay with an independently coded `Decimal`/date oracle.
 
 The baseline receives the same workbook, policy, 20 visible cases, formula/execution tools, patch scope, deterministic policy model, zero-token model budget, and execution limit. It performs one generic policy-derived formula edit without mutation-specific lookup data. FormulaWitness adds typed extraction, ambiguity gating, generated witnesses, dependency localization, multi-candidate replay, and independent verification.
+
+This is deliberately a deterministic agent runtime, not an API-backed conversational agent. Specialized roles choose the next action from typed evidence and use narrow tools, while ambiguous policy meaning is escalated to a human. Codex was the required coding agent used to build and test the system. Keeping the correctness plane deterministic makes the benchmark rerunnable, removes credential and cost barriers for judges, and makes every decision inspectable in the submitted trajectories.
 
 ## Safety boundary
 

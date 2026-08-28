@@ -43,16 +43,37 @@ class Trajectory:
         inputs: Any,
         outputs: Any,
         *,
+        instruction: str,
+        tool: str,
+        input_summary: Any,
+        output_summary: Any,
+        feedback: str,
+        retry_count: int = 0,
         elapsed_ms: int = 0,
         artifact_refs: list[str] | None = None,
     ) -> None:
+        if (
+            not actor.strip()
+            or not event_type.strip()
+            or not instruction.strip()
+            or not tool.strip()
+        ):
+            raise ValueError("Trajectory events require actor, event, instruction, and tool")
+        if not feedback.strip() or retry_count < 0:
+            raise ValueError("Trajectory events require feedback and a nonnegative retry count")
         self.sequence += 1
         event = {
-            "schema_version": 1,
+            "schema_version": 2,
             "run_id": self.run_id,
             "sequence": self.sequence,
             "actor": actor,
             "event_type": event_type,
+            "instruction": instruction,
+            "tool": tool,
+            "input_summary": input_summary,
+            "output_summary": output_summary,
+            "feedback": feedback,
+            "retry_count": retry_count,
             "input_hash": object_hash(inputs),
             "output_hash": object_hash(outputs),
             "artifact_refs": artifact_refs or [],
@@ -81,21 +102,40 @@ def verify_trajectory(path: Path) -> dict[str, str | int]:
     for expected_sequence, event in enumerate(events, start=1):
         if event.get("run_id") != run_id or event.get("sequence") != expected_sequence:
             raise ValueError("Trajectory sequence or run identifier mismatch")
-        chained_event = {
-            key: event[key]
-            for key in (
-                "schema_version",
-                "run_id",
-                "sequence",
-                "actor",
-                "event_type",
+        version = event.get("schema_version")
+        fields = [
+            "schema_version",
+            "run_id",
+            "sequence",
+            "actor",
+            "event_type",
+        ]
+        if version == 2:
+            fields.extend(
+                [
+                    "instruction",
+                    "tool",
+                    "input_summary",
+                    "output_summary",
+                    "feedback",
+                    "retry_count",
+                ]
+            )
+        elif version != 1:
+            raise ValueError(f"Unsupported trajectory schema version: {version}")
+        fields.extend(
+            [
                 "input_hash",
                 "output_hash",
                 "artifact_refs",
                 "timestamp",
                 "elapsed_ms",
-            )
-        }
+            ]
+        )
+        try:
+            chained_event = {key: event[key] for key in fields}
+        except KeyError as exc:
+            raise ValueError(f"Trajectory field missing: {exc.args[0]}") from exc
         expected_hash = object_hash({"previous_event_hash": previous, "event": chained_event})
         if event.get("previous_event_hash") != previous or event.get("event_hash") != expected_hash:
             raise ValueError(f"Trajectory hash mismatch at sequence {expected_sequence}")

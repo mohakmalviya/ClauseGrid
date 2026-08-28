@@ -19,6 +19,8 @@ python -m venv .venv
 On Windows, replace `.venv/bin/python` with `.venv\Scripts\python.exe`.
 Workbook regeneration is not required for evaluation; its Codex-bundled authoring dependency is documented in `docs/BUILD_DEPENDENCIES.md`.
 
+The exact Python distribution versions are pinned in `requirements-lock.txt`. On the measured Windows host with Python 3.12 and cached package downloads, clean setup took about 70 seconds and the complete verification command took about 50 seconds; network and machine speed will change those figures. Baseline, advanced, demo, and evaluation runs make no model or network calls, so their model/API cost is **$0**.
+
 ## Verify the implementation
 
 ```powershell
@@ -40,7 +42,7 @@ advanced_clean_preservation: 100.0
 .\scripts\demo.ps1
 ```
 
-Output is written under `artifacts/demo/advanced-<source-hash>/`. The deterministic run ID changes only when the source workbook or workflow version changes.
+Output is written under `artifacts/demo/advanced-<run-hash>/`. The deterministic run ID changes when the source workbook, extracted-rule bundle, visible-case manifest, or workflow version changes.
 
 ## Run the interface
 

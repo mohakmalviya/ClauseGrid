@@ -44,7 +44,7 @@ End-to-End Semantic Repair Rate: a case succeeds only if the defect is detected,
 
 ## Baseline
 
-A direct general-purpose agent receives the workbook, policy, allowed tools, and a single instruction to audit and minimally repair the workbook. It receives no structured extraction, counterexample, localization, or verifier loop beyond the common tool boundary.
+A direct repair agent receives the workbook, policy, allowed tools, public cases, shared deterministic policy model, and a single instruction to audit and minimally repair the workbook. It receives no structured extraction, counterexample, localization, or verifier loop beyond the common tool boundary.
 
 ## Advanced solution
 
