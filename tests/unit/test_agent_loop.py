@@ -372,9 +372,7 @@ def test_evidence_closes_broad_discovery_with_eighteen_manager_turns_reserved(
                 name = "request_human"
             return ModelTurn(
                 model="evidence-coordination-test",
-                tool_calls=(
-                    ToolCall(call_id=f"evidence-{turn}", name=name, arguments={}),
-                ),
+                tool_calls=(ToolCall(call_id=f"evidence-{turn}", name=name, arguments={}),),
                 finish_reason="tool_calls",
                 usage=ModelUsage(input_tokens=10, output_tokens=5, total_tokens=15),
                 elapsed_ms=1,
@@ -769,6 +767,125 @@ def test_failed_evidence_ready_candidate_attempt_forces_candidate_retry(tmp_path
     assert [tool.name for tool in tools] == ["stage_candidate"]
 
 
+def test_two_rejected_candidates_force_fresh_experiment_before_another_retry(
+    tmp_path: Path,
+) -> None:
+    terminal = {"done": False}
+
+    class RecoveryRegistry(CoordinationRegistry):
+        def __init__(self) -> None:
+            super().__init__(terminal)
+            self.specs = (
+                _spec("inspect"),
+                _spec("run_experiment"),
+                _spec("stage_candidate"),
+                _spec("request_human"),
+            )
+            self.state = AgentRunState(
+                run_id="candidate-recovery",
+                source_sha256="1" * 64,
+                policy_sha256="2" * 64,
+            )
+            citation = CitationEvidence(
+                citation_id="citation-123456789abc",
+                document_sha256="2" * 64,
+                page=1,
+                start_char=0,
+                end_char=20,
+                exact_quote="Candidate recovery rule.",
+                quote_sha256="3" * 64,
+            )
+            self.state.citations[citation.citation_id] = citation
+            self.state.experiments["initial-evidence"] = ExperimentEvidence(
+                experiment_id="initial-evidence",
+                actor="audit-manager",
+                request={"overrides": {"A1": 1}},
+                observation={"observations": {"A1": 1}},
+            )
+
+    registry = RecoveryRegistry()
+    loop = ToolCallingAgent(
+        actor="audit-manager",
+        model=CoordinationModel(),
+        registry=cast(AgentToolRegistry, registry),
+        budget=AgentBudgetLedger(_limits()),
+        trajectory=Trajectory(tmp_path / "trajectory.jsonl", "candidate-recovery"),
+        system_prompt="Test candidate recovery phase.",
+        goal="Recover from repeated rejected candidates.",
+        prompt_version="candidate-recovery-v1",
+        is_terminal=lambda: terminal["done"],
+        terminal_tool_names=("request_human",),
+    )
+    loop._candidate_attempted = True
+    loop._stage_failures_since_experiment = 2
+
+    tools = loop._request_tools(final_turn=False)
+
+    assert [tool.name for tool in tools] == ["run_experiment"]
+    assert "stage_candidate" in loop._unavailable_progress_tools()
+
+
+def test_two_rejected_no_change_attempts_remove_that_coordination_action(
+    tmp_path: Path,
+) -> None:
+    terminal = {"done": False}
+    registry = CoordinationRegistry(terminal)
+    registry.specs = (
+        _spec("inspect"),
+        _spec("stage_candidate"),
+        _spec("finish_no_change"),
+        _spec("request_human"),
+    )
+    registry.state = AgentRunState(
+        run_id="no-change-recovery",
+        source_sha256="1" * 64,
+        policy_sha256="2" * 64,
+    )
+    citation = CitationEvidence(
+        citation_id="citation-123456789abc",
+        document_sha256="2" * 64,
+        page=1,
+        start_char=0,
+        end_char=20,
+        exact_quote="No-change policy rule.",
+        quote_sha256="3" * 64,
+    )
+    registry.state.citations[citation.citation_id] = citation
+    for index in range(3):
+        experiment_id = f"no-change-{index}"
+        registry.state.experiments[experiment_id] = ExperimentEvidence(
+            experiment_id=experiment_id,
+            actor="audit-manager",
+            request={"expectations": [{"cell": "A1", "expected": 1}]},
+            observation={"comparisons": [{"cell": "A1", "matches": True}]},
+        )
+    loop = ToolCallingAgent(
+        actor="audit-manager",
+        model=CoordinationModel(),
+        registry=cast(AgentToolRegistry, registry),
+        budget=AgentBudgetLedger(_limits()),
+        trajectory=Trajectory(tmp_path / "trajectory.jsonl", "no-change-recovery"),
+        system_prompt="Test no-change recovery.",
+        goal="Remove repeatedly rejected terminal actions.",
+        prompt_version="no-change-recovery-v1",
+        is_terminal=lambda: terminal["done"],
+        terminal_tool_names=("finish_no_change", "request_human"),
+        coordination_tool_names=(
+            "stage_candidate",
+            "finish_no_change",
+            "request_human",
+        ),
+        coordination_tool_call_reserve=2,
+    )
+    loop._tool_attempt_counts["finish_no_change"] = 2
+
+    tools = loop._request_tools(final_turn=False, coordination_mode=True)
+    final_tools = loop._request_tools(final_turn=True)
+
+    assert {tool.name for tool in tools} == {"stage_candidate", "request_human"}
+    assert [tool.name for tool in final_tools] == ["request_human"]
+
+
 def test_inconclusive_candidate_requires_new_evidence_or_revision_before_refalsifying(
     tmp_path: Path,
 ) -> None:
@@ -838,6 +955,71 @@ def test_inconclusive_candidate_requires_new_evidence_or_revision_before_refalsi
         "stage_candidate",
         "request_human",
     }
+
+
+def test_policy_exception_forces_cross_product_experiment_before_preservation(
+    tmp_path: Path,
+) -> None:
+    terminal = {"done": False}
+    registry = ExperimentProgressRegistry(terminal)
+    citation = next(iter(registry.state.citations.values()))
+    registry.state.citations[citation.citation_id] = citation.model_copy(
+        update={"exact_quote": "A waiver removes only the critical exception."}
+    )
+    for index in range(3):
+        registry.state.experiments[f"ordinary-{index}"] = ExperimentEvidence(
+            experiment_id=f"ordinary-{index}",
+            actor="audit-manager",
+            request={
+                "purpose": "Test an ordinary boundary.",
+                "overrides": {"A1": index},
+            },
+            observation={"observations": {"B1": index}},
+        )
+    limits = AgentRuntimeLimits(10, 0, 12, 12, 10_000, 10_000, 4, 1, 30.0)
+    budget = AgentBudgetLedger(limits)
+    for _ in range(3):
+        budget.record_model_call("manager", input_tokens=10, output_tokens=5)
+    loop = ToolCallingAgent(
+        actor="audit-manager",
+        model=CoordinationModel(),
+        registry=cast(AgentToolRegistry, registry),
+        budget=budget,
+        trajectory=Trajectory(tmp_path / "trajectory.jsonl", "exception-scope"),
+        system_prompt="Test exception coverage.",
+        goal="Do not preserve without testing exception scope.",
+        prompt_version="exception-scope-v1",
+        is_terminal=lambda: terminal["done"],
+        terminal_tool_names=("request_human",),
+        require_experiment_after_turns=1,
+    )
+    loop._tool_attempt_counts["run_experiment"] = 3
+
+    assert loop._experiment_required(budget.snapshot())
+    notice = loop._budget_notice(turns_remaining=7, experiment_mode=True)
+    assert "cross-product" in cast(str, notice[0].content)
+
+    registry.state.experiments["without-waiver"] = ExperimentEvidence(
+        experiment_id="without-waiver",
+        actor="audit-manager",
+        request={
+            "purpose": "Test critical incident without waiver.",
+            "overrides": {"A1": 1, "C1": "N"},
+        },
+        observation={"observations": {"B1": 0}},
+    )
+    assert loop._exception_scope_experiment_required(budget.snapshot())
+
+    registry.state.experiments["waiver-cross"] = ExperimentEvidence(
+        experiment_id="waiver-cross",
+        actor="audit-manager",
+        request={
+            "purpose": "Test waiver scope with an independent violation.",
+            "overrides": {"A1": 1, "C1": "Y"},
+        },
+        observation={"observations": {"B1": 0.75}},
+    )
+    assert not loop._exception_scope_experiment_required(budget.snapshot())
 
 
 def test_oversized_parallel_group_is_compacted_without_breaking_tool_protocol(

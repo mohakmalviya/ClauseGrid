@@ -18,10 +18,10 @@ rejects fewer than five trials. Select a different unique public case set with
 `--cases`, but retain at least five trials for a repeated comparison.
 
 ```powershell
-$env:NVIDIA_NIM_API_KEY = "<secret>"
+$env:QUBRID_API_KEY = "<secret>"
 formulawitness agent-eval `
-  --provider nvidia-nim `
-  --model "<provider-model-id>" `
+  --provider qubrid `
+  --model "deepseek-ai/DeepSeek-V3.2" `
   --allow-external-processing `
   --cases M10 H01 C03 `
   --trials 5 `
@@ -29,7 +29,9 @@ formulawitness agent-eval `
   --output evals/agent-results.json
 ```
 
-For OpenCode Zen, set `OPENCODE_API_KEY`, select `--provider opencode`, and pass an exact model ID
+The example shows how to run the current Qubrid default. A 30-run benchmark should begin only after
+the model passes both the tool-compatibility and single-run task gates. For OpenCode Zen, set
+`OPENCODE_API_KEY`, select `--provider opencode`, and pass an exact model ID
 from the live catalog. Free-model availability changes, so compatibility must be checked immediately
 before a paid or time-consuming repeated evaluation. Credential values are read only from the named
 server-side environment variable; they are never CLI values or result fields.

@@ -33,7 +33,9 @@ def _cell(value: Any) -> str:
 def _sheet(requested: Any, available: tuple[str, ...]) -> str:
     matches = [name for name in available if name.casefold() == str(requested).casefold()]
     if len(matches) != 1:
-        raise ValueError(f"Workbook sheet not found: {requested}")
+        raise ValueError(
+            f"Workbook sheet not found: {requested}. Available sheets: {', '.join(available)}"
+        )
     return matches[0]
 
 

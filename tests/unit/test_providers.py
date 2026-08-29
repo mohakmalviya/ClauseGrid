@@ -16,6 +16,7 @@ from formulawitness.model_client import ModelConfigurationError, OpenAITransport
         ("deepseek", "DEEPSEEK_API_KEY", "deepseek", OpenAITransport),
         ("nvidia-nim", "NVIDIA_NIM_API_KEY", "nvidia-nim", OpenAITransport),
         ("opencode", "OPENCODE_API_KEY", "opencode", OpenAITransport),
+        ("qubrid", "QUBRID_API_KEY", "qubrid", OpenAITransport),
     ),
 )
 def test_provider_presets_load_their_own_environment_key(
@@ -106,5 +107,25 @@ def test_nvidia_lightning_uses_its_documented_agent_profile(
             "chat_template_kwargs": {"enable_thinking": True},
             "reasoning_budget": 2_048,
         }
+    finally:
+        client.close()
+
+
+def test_qubrid_default_uses_catalog_profile(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("QUBRID_API_KEY", "provider-secret")
+
+    client, canonical = providers.build_model_client(
+        provider="qubrid",
+        model=providers.QUBRID_DEFAULT_MODEL,
+        base_url=None,
+        api_key_env=None,
+    )
+    try:
+        assert canonical == "qubrid"
+        assert client.config.base_url == "https://platform.qubrid.com/v1"
+        assert client.request_settings.temperature == 1.0
+        assert client.request_settings.top_p == 0.95
+        assert client.request_settings.parallel_tool_calls is False
+        assert client.request_settings.extra_body == {}
     finally:
         client.close()

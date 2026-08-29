@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +46,10 @@ class FalsifierAgent:
         state: AgentRunState,
         budget: AgentBudgetLedger,
         trajectory: Trajectory,
+        max_context_chars: int = 40_000,
+        require_experiment_after_turns: int = 6,
+        experiment_attempt_limit: int = 4,
+        progress_callback: Callable[[dict[str, object]], None] | None = None,
     ):
         self.model = model
         self.workbook = workbook
@@ -51,6 +57,10 @@ class FalsifierAgent:
         self.state = state
         self.budget = budget
         self.trajectory = trajectory
+        self.max_context_chars = max_context_chars
+        self.require_experiment_after_turns = require_experiment_after_turns
+        self.experiment_attempt_limit = experiment_attempt_limit
+        self.progress_callback = progress_callback
 
     def run(self, candidate: CandidateProposal) -> FalsifierVerdict:
         if (
@@ -97,7 +107,10 @@ class FalsifierAgent:
             coordination_tool_names=("run_experiment", "report_falsification"),
             coordination_tool_call_reserve=10,
             evidence_aware_coordination=True,
-            require_experiment_after_turns=6,
+            require_experiment_after_turns=self.require_experiment_after_turns,
+            max_context_chars=self.max_context_chars,
+            progress_callback=self.progress_callback,
+            experiment_attempt_limit=self.experiment_attempt_limit,
         )
         try:
             loop.run()
@@ -169,4 +182,52 @@ class FalsifierAgent:
                 )
                 continue
             raise ValueError(f"Candidate references unknown evidence: {evidence_id}")
+        # A manager can cite the wrong excerpt ID while still grounding its rationale in
+        # a rule identifier found during investigation. Give the independent reviewer
+        # the already-registered excerpts for those named rules; this is manager-visible
+        # evidence, not hidden benchmark truth.
+        candidate_text = " ".join(
+            [edit.rationale for edit in candidate.edits] + list(candidate.expected_invariants)
+        )
+        rule_ids = {
+            match.upper() for match in re.findall(r"\b[A-Z]{1,8}-\d{2,6}\b", candidate_text)
+        }
+        if rule_ids:
+            for evidence_id, citation in self.state.citations.items():
+                if evidence_id in evidence_ids:
+                    continue
+                quote = citation.exact_quote.upper()
+                if not any(rule_id in quote for rule_id in rule_ids):
+                    continue
+                raw = citation.model_dump(mode="json")
+                excerpts.append(
+                    {
+                        "evidence_id": evidence_id,
+                        "kind": "manager_registered_rule_citation",
+                        "record_sha256": object_hash(raw),
+                        "evidence": raw,
+                    }
+                )
+        edited_cells = {(edit.sheet.casefold(), edit.cell) for edit in candidate.edits}
+        included = {str(item["evidence_id"]) for item in excerpts}
+        for experiment in self.state.experiments.values():
+            if experiment.actor != "audit-manager" or experiment.experiment_id in included:
+                continue
+            request_sheet = str(experiment.request.get("sheet", "")).casefold()
+            observed = {
+                str(cell)
+                for cell in experiment.request.get("observations", [])
+                if isinstance(cell, str)
+            }
+            if not any(sheet == request_sheet and cell in observed for sheet, cell in edited_cells):
+                continue
+            raw = experiment.model_dump(mode="json")
+            excerpts.append(
+                {
+                    "evidence_id": experiment.experiment_id,
+                    "kind": "manager_experiment_for_edited_cell",
+                    "record_sha256": object_hash(raw),
+                    "evidence": raw,
+                }
+            )
         return excerpts

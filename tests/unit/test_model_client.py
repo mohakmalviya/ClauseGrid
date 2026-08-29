@@ -337,6 +337,28 @@ def test_required_tool_choice_fails_closed_after_bounded_protocol_repairs() -> N
     assert len(transport.payloads) == 2
 
 
+def test_undeclared_stale_tool_call_is_repaired_with_current_tool_list() -> None:
+    stale = response_with_tool_call()
+    stale.choices[0].message.tool_calls[0].function.name = "search_policy"
+    transport = ScriptedTransport([stale, response_with_tool_call()])
+    client = ModelClient(
+        config(),
+        transport=transport,
+        retry_policy=RetryPolicy(max_attempts=2, base_delay_seconds=0),
+    )
+
+    turn = client.complete(request())
+
+    assert turn.tool_calls[0].name == "inspect_region"
+    assert turn.retry_count == 1
+    assert turn.usage.input_tokens == 24
+    assert turn.usage.output_tokens == 14
+    correction = transport.payloads[1]["messages"][-1]
+    assert correction["role"] == "user"
+    assert "unavailable function(s): search_policy" in correction["content"]
+    assert "only: inspect_region" in correction["content"]
+
+
 def test_empty_completion_is_retried_and_usage_is_preserved() -> None:
     empty = SimpleNamespace(
         id="completion-empty",
@@ -422,9 +444,10 @@ def test_named_contract_is_enforced_and_nonparallel_calls_are_serialized() -> No
     )
     wrong = response_with_tool_call()
     wrong.choices[0].message.tool_calls[0].function.name = "other_tool"
-    client = ModelClient(config(), transport=ScriptedTransport([wrong]))
-    with pytest.raises(ModelProtocolError, match="named tool choice"):
-        client.complete(named_request)
+    client = ModelClient(config(), transport=ScriptedTransport([wrong, response_with_tool_call()]))
+    repaired_named = client.complete(named_request)
+    assert repaired_named.tool_calls[0].name == "inspect_region"
+    assert repaired_named.retry_count == 1
 
     duplicate = response_with_tool_call()
     second = SimpleNamespace(
@@ -456,10 +479,16 @@ def test_named_contract_is_enforced_and_nonparallel_calls_are_serialized() -> No
     assert [call.call_id for call in turn.tool_calls] == ["call-1", "call-2"]
 
 
-def test_undeclared_tool_call_is_rejected_even_when_tool_use_is_required() -> None:
-    response = response_with_tool_call()
-    response.choices[0].message.tool_calls[0].function.name = "undeclared_tool"
-    client = ModelClient(config(), transport=ScriptedTransport([response]))
+def test_repeated_undeclared_tool_call_fails_closed_after_repair() -> None:
+    first = response_with_tool_call()
+    first.choices[0].message.tool_calls[0].function.name = "undeclared_tool"
+    second = response_with_tool_call()
+    second.choices[0].message.tool_calls[0].function.name = "undeclared_tool"
+    client = ModelClient(
+        config(),
+        transport=ScriptedTransport([first, second]),
+        retry_policy=RetryPolicy(max_attempts=2, base_delay_seconds=0),
+    )
 
     with pytest.raises(ModelProtocolError, match="undeclared tool calls: undeclared_tool"):
         client.complete(request())

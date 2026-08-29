@@ -6,29 +6,27 @@ is disabled. It is not a production multi-tenant deployment.
 
 ## Render Blueprint
 
-Prerequisites: the private GitHub repository, a Render account that can access it, and an NVIDIA NIM
+Prerequisites: the private GitHub repository, a Render account that can access it, and a Qubrid
 API key. Render supports private Git repositories and Docker-based web services; its proxy forwards
 public traffic to the port supplied in `PORT`.
 
 1. Push the repository revision you intend to demo.
 2. In Render, create a **Blueprint**, connect the private GitHub repository, and select
    `render.yaml`.
-3. Supply `NVIDIA_NIM_API_KEY` when prompted. Do not put it in Git, Docker build arguments, or the
+3. Supply `QUBRID_API_KEY` when prompted. Do not put it in Git, Docker build arguments, or the
    image.
 4. Deploy and open the generated `https://...onrender.com` URL.
 5. Check `GET /healthz`, load the UI, select M10, and run one audit. The POST returns `202`; the UI
    polls an unguessable job URL until the result is complete.
 
-The Blueprint fixes the provider/model to `nvidia-nim` and
-`nvidia/nemotron-3.5-lightning-30b-a3b`. The deployment entry point reads
+The Blueprint fixes the provider/model to `qubrid` and `deepseek-ai/DeepSeek-V3.2`. The deployment entry point reads
 `RENDER_EXTERNAL_URL`, binds `0.0.0.0:$PORT`, and stores transient artifacts under
 `/tmp/formulawitness`. Render environment variables are configured at runtime, not embedded into the
 container.
 
-The exact model is the requested demo profile, not a production recommendation. The latest completed
-M10 run ended in a bounded `ABSTAIN` after the hosted model stopped honoring mandatory tool calls.
-Public users may therefore see a safe abstention, and a live audit can take several minutes. Use the
-repeated blind `agent-eval` harness before changing this status.
+The selected model remains a demo profile rather than a production recommendation. Public users may
+see a safe abstention, and a live audit can take several minutes. Use the repeated blind `agent-eval`
+harness before making an accuracy or availability claim.
 
 Official platform references:
 
@@ -50,7 +48,7 @@ Run the image with runtime environment variables:
 
 ```powershell
 docker run --rm -p 10000:10000 `
-  -e NVIDIA_NIM_API_KEY `
+  -e QUBRID_API_KEY `
   -e FORMULAWITNESS_PUBLIC_ORIGIN=https://demo.example `
   -e PORT=10000 `
   formulawitness:demo

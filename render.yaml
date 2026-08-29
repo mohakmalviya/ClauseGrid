@@ -6,12 +6,12 @@ services:
     healthCheckPath: /healthz
     autoDeploy: true
     envVars:
-      - key: NVIDIA_NIM_API_KEY
+      - key: QUBRID_API_KEY
         sync: false
       - key: FORMULAWITNESS_PROVIDER
-        value: nvidia-nim
+        value: qubrid
       - key: FORMULAWITNESS_MODEL
-        value: nvidia/nemotron-3.5-lightning-30b-a3b
+        value: deepseek-ai/DeepSeek-V3.2
       - key: FORMULAWITNESS_MAX_AUDITS_PER_HOUR
         value: "6"
       - key: FORMULAWITNESS_MAX_AUDITS_PER_CLIENT_HOUR

@@ -256,6 +256,11 @@ def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     assert "Independent falsifier verdict" in HTML
     assert "Legacy deterministic regression evidence" in HTML
     assert "It is not model-agent performance" in HTML
+    assert HTML.index("Why FormulaWitness exists") < HTML.index("Run agent audit")
+    assert "The problem" in HTML
+    assert "Why it is needed" in HTML
+    assert "Who it is for" in HTML
+    assert "How to try it" in HTML
 
 
 def test_audit_endpoint_runs_model_agent_and_returns_review_pack(tmp_path: Path) -> None:
@@ -283,7 +288,17 @@ def test_audit_endpoint_runs_model_agent_and_returns_review_pack(tmp_path: Path)
     )
     try:
         with urlopen(request, timeout=10) as response:
-            payload = json.loads(response.read())
+            queued = json.loads(response.read())
+        assert queued["status"] == "queued"
+        for _ in range(100):
+            with urlopen(f"http://127.0.0.1:{port}{queued['status_url']}", timeout=10) as response:
+                job = json.loads(response.read())
+            if job["status"] == "complete":
+                payload = job["result"]
+                break
+            time.sleep(0.01)
+        else:
+            pytest.fail("Local audit job did not finish")
     finally:
         server.shutdown()
         server.server_close()

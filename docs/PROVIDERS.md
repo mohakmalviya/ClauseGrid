@@ -11,6 +11,7 @@ budgets, evidence checks, traces, and human approval boundary remain the same.
 | `deepseek` | `https://api.deepseek.com` | `DEEPSEEK_API_KEY` | OpenAI-compatible chat completions |
 | `nvidia-nim` | `https://integrate.api.nvidia.com/v1` | `NVIDIA_NIM_API_KEY` | OpenAI-compatible chat completions |
 | `opencode` | `https://opencode.ai/zen/v1` | `OPENCODE_API_KEY` | OpenAI-compatible chat completions |
+| `qubrid` | `https://platform.qubrid.com/v1` | `QUBRID_API_KEY` | OpenAI-compatible chat completions |
 | `openai-compatible` | required `--base-url` | required `--api-key-env` | Custom OpenAI-compatible endpoint |
 
 Claude is Anthropic's model family, so `claude` is an alias for `anthropic`, not a second API-key
@@ -45,6 +46,10 @@ $env:OPENCODE_API_KEY = '<credential>'
 formulawitness agent workbooks\mutants\M10_supplier_rebate.xlsx `
   --provider opencode --model 'big-pickle' --allow-external-processing
 
+$env:QUBRID_API_KEY = '<credential>'
+formulawitness agent workbooks\mutants\M10_supplier_rebate.xlsx `
+  --provider qubrid --model 'deepseek-ai/DeepSeek-V3.2' --allow-external-processing
+
 $env:LOCAL_GATEWAY_KEY = '<credential-or-local-placeholder>'
 formulawitness agent workbooks\mutants\M10_supplier_rebate.xlsx `
   --provider openai-compatible --base-url http://127.0.0.1:9000/v1 `
@@ -59,6 +64,9 @@ credential.
 ## Validation status
 
 The provider-neutral contract and native Anthropic translation are covered by offline unit tests.
+Qubrid's authenticated catalog and candidate tool calls are probed against the live endpoint before
+a model becomes the default; full-pipeline results are recorded in
+[model selection evidence](MODEL_SELECTION.md).
 NVIDIA NIM and OpenCode Zen have authenticated transport evidence. The OpenCode free catalog is
 dynamic: query `https://opencode.ai/zen/v1/models` rather than hard-coding an assumed list. On the
 latest compatibility probe, `big-pickle`, `hy3-free`, `ling-3.0-flash-fin-free`, and

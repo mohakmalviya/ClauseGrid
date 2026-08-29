@@ -45,7 +45,7 @@ def _add_model_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--provider",
         choices=tuple(PROVIDER_PRESETS),
-        default="nvidia-nim",
+        default="qubrid",
         help=(
             "Model API provider. 'claude' is an alias for Anthropic; "
             "openai-compatible requires --base-url and --api-key-env"

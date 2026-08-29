@@ -6,9 +6,9 @@ Configure the selected provider only in the server process. Use a provider/model
 already completed this exact manager/falsifier workflow; for the current validated reference:
 
 ```powershell
-$env:NVIDIA_NIM_API_KEY = '<set outside the repository>'
+$env:QUBRID_API_KEY = '<set outside the repository>'
 .\.venv\Scripts\formulawitness.exe serve `
-  --provider nvidia-nim --model openai/gpt-oss-120b `
+  --provider qubrid --model 'deepseek-ai/DeepSeek-V3.2' `
   --allow-external-processing
 ```
 

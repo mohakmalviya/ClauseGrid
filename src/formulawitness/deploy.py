@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 from .cli import main as cli_main
-from .providers import NVIDIA_LIGHTNING_MODEL
+from .providers import QUBRID_DEFAULT_MODEL
 
 
 def _positive_int(name: str, default: int) -> int:
@@ -26,8 +26,8 @@ def _deployment_args() -> list[str]:
     origin = os.environ.get("FORMULAWITNESS_PUBLIC_ORIGIN") or os.environ.get("RENDER_EXTERNAL_URL")
     if not origin:
         raise SystemExit("FORMULAWITNESS_PUBLIC_ORIGIN is required")
-    provider = os.environ.get("FORMULAWITNESS_PROVIDER", "nvidia-nim")
-    model = os.environ.get("FORMULAWITNESS_MODEL", NVIDIA_LIGHTNING_MODEL)
+    provider = os.environ.get("FORMULAWITNESS_PROVIDER", "qubrid")
+    model = os.environ.get("FORMULAWITNESS_MODEL", QUBRID_DEFAULT_MODEL)
     port = _positive_int("PORT", 10_000)
     artifacts = Path(os.environ.get("FORMULAWITNESS_ARTIFACT_ROOT", "/tmp/formulawitness"))
     max_global = _positive_int("FORMULAWITNESS_MAX_AUDITS_PER_HOUR", 6)

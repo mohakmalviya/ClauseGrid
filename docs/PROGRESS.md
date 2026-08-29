@@ -85,3 +85,36 @@
   same-origin and Host enforcement, authenticated administrator approval, rate limits, transient
   storage, Render Blueprint, and deployment documentation. Sealed evaluator code/data are excluded
   from the image.
+
+## Checkpoint 7 - Qubrid integration and live GLM evaluation
+
+- Added `qubrid` as a first-class OpenAI-compatible provider using the runtime-only
+  `QUBRID_API_KEY`, exact endpoint/model identifiers, provider tests, deployment metadata, and a
+  complete user guide.
+- Verified `zai-org/GLM-4.7-Flash` with authenticated named-tool and mandatory-any-tool probes. The
+  calls were correct but took 106.9 seconds cold and 24.0 seconds warm.
+- Preserved two complete M10 failures. The first ended on Qubrid HTTP 429 after a rejected-candidate
+  loop. The second used the new recovery path, executed eight experiments, but still proposed no-op
+  candidates, missed the waiver-scope defect, and exhausted 30 manager turns. Both preserved the
+  source and ended `ABSTAIN`; neither invoked the falsifier or wrote a workbook.
+- Added provider-neutral recovery that forces fresh executable evidence after two rejected
+  candidates and removes repeatedly rejected no-change actions before they consume the remaining
+  coordination budget.
+- A focused policy/formula diagnostic also produced an incorrect correction, so GLM-4.7-Flash is
+  recorded as transport-compatible but not task-qualified. Zero price is not treated as correctness.
+
+## Checkpoint 8 - Qubrid model replacement and stale-tool recovery
+
+- Rejected `openai/gpt-oss-120b` on Qubrid after six live request variants returned no observable
+  function call despite provider reasoning that the call should be made. This does not invalidate the
+  earlier successful GPT-OSS run through NVIDIA NIM; it shows that provider routes require separate
+  qualification.
+- Selected `deepseek-ai/DeepSeek-V3.2` as the Qubrid integration default after correct named and
+  required tool probes. Its catalog settings are temperature 1.0 and top-p 0.95.
+- Added bounded recovery when a model reuses a tool that the controller has removed from the current
+  action set. The runtime states the exact current tools, retries within the existing attempt budget,
+  preserves usage, and fails closed if the model repeats the violation.
+- Ran M10 twice. The first exposed stale tool reuse. The repaired run reached the correct P6
+  waiver-scope diagnosis in 170.5 seconds, but invented invalid experiment cells, exhausted 30
+  manager turns, and never staged or falsified a candidate. DeepSeek is therefore an integration
+  default, not a task-qualified or production model.

@@ -3,10 +3,10 @@ from __future__ import annotations
 import pytest
 
 from formulawitness.deploy import _deployment_args
-from formulawitness.providers import NVIDIA_LIGHTNING_MODEL
+from formulawitness.providers import QUBRID_DEFAULT_MODEL
 
 
-def test_deployment_args_use_render_origin_and_lightning_defaults(
+def test_deployment_args_use_render_origin_and_qubrid_defaults(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("FORMULAWITNESS_PUBLIC_ORIGIN", raising=False)
@@ -17,8 +17,8 @@ def test_deployment_args_use_render_origin_and_lightning_defaults(
 
     assert args[:5] == ["serve", "--host", "0.0.0.0", "--port", "12345"]
     assert args[args.index("--public-origin") + 1] == "https://formulawitness.example"
-    assert args[args.index("--provider") + 1] == "nvidia-nim"
-    assert args[args.index("--model") + 1] == NVIDIA_LIGHTNING_MODEL
+    assert args[args.index("--provider") + 1] == "qubrid"
+    assert args[args.index("--model") + 1] == QUBRID_DEFAULT_MODEL
     assert "--allow-external-processing" in args
     assert all("KEY" not in item and "TOKEN" not in item for item in args)
 

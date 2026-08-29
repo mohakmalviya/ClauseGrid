@@ -8,7 +8,7 @@ import os
 import re
 import shutil
 import uuid
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -147,6 +147,20 @@ DEFAULT_AGENT_LIMITS = AgentRuntimeLimits(
     workbook_execution_limit=30,
     retry_limit=8,
     elapsed_time_limit_seconds=1_800.0,
+)
+
+# The browser demo favors a short, observable proof of the agent architecture. The CLI keeps the
+# deeper default limits above for unfamiliar real-world workbooks.
+DEMO_AGENT_LIMITS = AgentRuntimeLimits(
+    manager_turn_limit=20,
+    falsifier_turn_limit=10,
+    model_call_limit=36,
+    tool_call_limit=44,
+    input_token_limit=260_000,
+    output_token_limit=40_000,
+    workbook_execution_limit=20,
+    retry_limit=4,
+    elapsed_time_limit_seconds=420.0,
 )
 
 
@@ -523,6 +537,13 @@ def run_agentic(
     limits: AgentRuntimeLimits = DEFAULT_AGENT_LIMITS,
     run_id: str | None = None,
     comparison_mode: Literal["manager-falsifier", "single-agent"] = "manager-falsifier",
+    manager_max_context_chars: int = 40_000,
+    falsifier_max_context_chars: int = 40_000,
+    manager_experiment_after_turns: int = 12,
+    falsifier_experiment_after_turns: int = 6,
+    manager_experiment_attempt_limit: int = 8,
+    falsifier_experiment_attempt_limit: int = 4,
+    progress_callback: Callable[[dict[str, object]], None] | None = None,
 ) -> AuditResult:
     """Run a proposal-only manager/falsifier audit; never write a repaired workbook."""
 
@@ -578,6 +599,10 @@ def run_agentic(
             state=state,
             budget=budget,
             trajectory=trajectory,
+            max_context_chars=falsifier_max_context_chars,
+            require_experiment_after_turns=falsifier_experiment_after_turns,
+            experiment_attempt_limit=falsifier_experiment_attempt_limit,
+            progress_callback=progress_callback,
         )
         if use_falsifier
         else None
@@ -641,7 +666,10 @@ def run_agentic(
         coordination_tool_names=manager_coordination_tools,
         coordination_tool_call_reserve=manager_coordination_reserve,
         evidence_aware_coordination=True,
-        require_experiment_after_turns=12,
+        require_experiment_after_turns=manager_experiment_after_turns,
+        max_context_chars=manager_max_context_chars,
+        progress_callback=progress_callback,
+        experiment_attempt_limit=manager_experiment_attempt_limit,
     )
     try:
         manager.run()

@@ -79,7 +79,9 @@ def _address_parts(address: str) -> tuple[int, int]:
 def _sheet_name(requested: str, available: tuple[str, ...]) -> str:
     matches = [name for name in available if name.casefold() == requested.casefold()]
     if len(matches) != 1:
-        raise ValueError(f"Workbook sheet not found: {requested}")
+        raise ValueError(
+            f"Workbook sheet not found: {requested}. Available sheets: {', '.join(available)}"
+        )
     return matches[0]
 
 

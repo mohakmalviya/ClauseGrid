@@ -342,6 +342,18 @@ def _serialize_tool_calls(request: ModelRequest, turn: ModelTurn) -> ModelTurn:
 def _protocol_repair_instruction(request: ModelRequest, turn: ModelTurn) -> str | None:
     """Return a bounded correction for protocol drift that can be retried safely."""
 
+    declared = {tool.name for tool in request.tools}
+    undeclared = sorted({call.name for call in turn.tool_calls if call.name not in declared})
+    if undeclared and request.tool_choice != "none":
+        available = ", ".join(sorted(declared))
+        attempted = ", ".join(undeclared)
+        return (
+            f"Your previous response called unavailable function(s): {attempted}. "
+            f"The functions available on this turn are only: {available}. Call exactly one "
+            "currently available function with a valid JSON argument object. Do not call a "
+            "function merely because it appeared earlier in the conversation."
+        )
+
     requires_tool = request.tool_choice == "required" or isinstance(
         request.tool_choice, NamedToolChoice
     )

@@ -327,7 +327,7 @@ def test_agent_eval_cli_defaults_to_repeated_tight_case_set() -> None:
     args = build_parser().parse_args(["agent-eval", "--model", "test-model"])
     assert args.cases == ["M10", "H01", "C03"]
     assert args.trials == 5
-    assert args.provider == "nvidia-nim"
+    assert args.provider == "qubrid"
     assert not args.allow_external_processing
     consented = build_parser().parse_args(
         ["agent-eval", "--model", "test-model", "--allow-external-processing"]
@@ -343,6 +343,7 @@ def test_cli_exposes_provider_presets_and_claude_alias() -> None:
         "deepseek",
         "nvidia-nim",
         "opencode",
+        "qubrid",
     ):
         args = build_parser().parse_args(
             ["agent", "workbook.xlsx", "--provider", provider, "--model", "model-id"]

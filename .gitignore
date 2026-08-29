@@ -38,6 +38,7 @@ artifacts/ui/
 artifacts/live-nim/
 artifacts/model-tournament/
 artifacts/opencode-runs/
+artifacts/qubrid-live*/
 workbooks/generated/
 workbooks/build-manifest.json
 

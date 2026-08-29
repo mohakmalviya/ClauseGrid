@@ -12,6 +12,7 @@ from .model_client import ModelClient, ModelTransport, OpenAICompatibleConfig, R
 TransportKind = Literal["openai-compatible", "anthropic"]
 
 NVIDIA_LIGHTNING_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b"
+QUBRID_DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3.2"
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,12 @@ PROVIDER_PRESETS: dict[str, ProviderPreset] = {
         "opencode",
         "https://opencode.ai/zen/v1",
         "OPENCODE_API_KEY",
+        "openai-compatible",
+    ),
+    "qubrid": ProviderPreset(
+        "qubrid",
+        "https://platform.qubrid.com/v1",
+        "QUBRID_API_KEY",
         "openai-compatible",
     ),
     "openai-compatible": ProviderPreset("openai-compatible", None, None, "openai-compatible"),
@@ -103,5 +110,11 @@ def _request_settings(provider: str, model: str) -> ModelRequestSettings:
                 "chat_template_kwargs": {"enable_thinking": True},
                 "reasoning_budget": 2_048,
             },
+        )
+    if provider == "qubrid" and model == QUBRID_DEFAULT_MODEL:
+        return ModelRequestSettings(
+            temperature=1.0,
+            top_p=0.95,
+            parallel_tool_calls=False,
         )
     return ModelRequestSettings()

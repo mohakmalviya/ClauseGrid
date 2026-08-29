@@ -33,12 +33,12 @@ workflows.
 Set the credential outside the repository. Do not put it in a command argument or committed file.
 
 ```powershell
-$env:NVIDIA_NIM_API_KEY = '<credential>'
+$env:QUBRID_API_KEY = '<credential>'
 .\.venv\Scripts\python.exe -m formulawitness agent `
   workbooks\mutants\M10_supplier_rebate.xlsx `
   --policy policies\supplier_rebate_sla_policy.pdf `
-  --provider nvidia-nim `
-  --model openai/gpt-oss-120b `
+  --provider qubrid `
+  --model 'deepseek-ai/DeepSeek-V3.2' `
   --allow-external-processing `
   --artifacts artifacts\runs
 ```
@@ -62,7 +62,7 @@ Query `https://opencode.ai/zen/v1/models` immediately before the run because fre
 changes. This path uses FormulaWitness's manager, falsifier, tools, budgets, and trace; it does not
 launch an external coding harness or grant it workspace access.
 
-OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM, OpenCode Zen, and a custom OpenAI-compatible
+Qubrid, OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM, OpenCode Zen, and a custom OpenAI-compatible
 gateway use the same agent commands. See [model providers](PROVIDERS.md) for exact credential
 variables, compatibility limits, and examples.
 

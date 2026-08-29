@@ -29,17 +29,17 @@ The archived hackathon-format comparison reports $0 API cost only for the legacy
 ## Run it
 
 Requirements: Python 3.11+ and PowerShell. Legacy deterministic evaluation remains offline. The
-model-directed commands support OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM, OpenCode
-Zen, and custom OpenAI-compatible endpoints. Credentials are read from provider-specific environment variables;
+model-directed commands support Qubrid, OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM,
+OpenCode Zen, and custom OpenAI-compatible endpoints. Credentials are read from provider-specific environment variables;
 the key is never accepted as a CLI argument or persisted. Provider cost is recorded as `Not
 reported` unless the provider supplies it.
 
 ```powershell
 .\scripts\setup.ps1
 .\scripts\eval.ps1
-$env:NVIDIA_NIM_API_KEY = '<set outside the repository>'
+$env:QUBRID_API_KEY = '<set outside the repository>'
 .\.venv\Scripts\formulawitness.exe serve `
-  --provider nvidia-nim --model nvidia/nemotron-3.5-lightning-30b-a3b `
+  --provider qubrid --model 'deepseek-ai/DeepSeek-V3.2' `
   --allow-external-processing
 ```
 
@@ -61,9 +61,9 @@ Direct CLI equivalents:
 Model-directed proposal and approval commands:
 
 ```powershell
-$env:NVIDIA_NIM_API_KEY = '<set outside the repository>'
+$env:QUBRID_API_KEY = '<set outside the repository>'
 .\.venv\Scripts\formulawitness.exe agent workbooks\mutants\M10_supplier_rebate.xlsx `
-  --provider nvidia-nim --model nvidia/nemotron-3.5-lightning-30b-a3b `
+  --provider qubrid --model 'deepseek-ai/DeepSeek-V3.2' `
   --allow-external-processing
 .\.venv\Scripts\formulawitness.exe agent-baseline workbooks\mutants\M10_supplier_rebate.xlsx `
   --provider nvidia-nim --model openai/gpt-oss-120b --allow-external-processing
@@ -88,6 +88,11 @@ explicit because the free catalog and availability can change; query OpenCode's 
 before running. FormulaWitness reads only `OPENCODE_API_KEY` from the process environment. See
 [model providers](docs/PROVIDERS.md) for the currently verified free-model compatibility results.
 
+The `qubrid` preset uses `https://platform.qubrid.com/v1` and reads `QUBRID_API_KEY`. The current
+default is `deepseek-ai/DeepSeek-V3.2`, selected only after a live mandatory-tool compatibility gate.
+Task-level evidence and eliminated alternatives are recorded in
+[model selection evidence](docs/MODEL_SELECTION.md).
+
 ## Publish the synthetic public demo
 
 The repository includes a non-root Docker image, an environment-only deployment entry point, and a
@@ -98,7 +103,7 @@ approval is disabled; the public site demonstrates investigation and falsificati
 write authorization.
 
 1. Push the private repository to GitHub and create a Render Blueprint from `render.yaml`.
-2. Enter `NVIDIA_NIM_API_KEY` as the Blueprint's secret when Render asks for it.
+2. Enter `QUBRID_API_KEY` as the Blueprint's secret when Render asks for it.
 3. Deploy. Render supplies `RENDER_EXTERNAL_URL`; the container binds to Render's `PORT` on
    `0.0.0.0` and exposes `/healthz`.
 
@@ -144,4 +149,4 @@ tests/          Unit, integration, security, and evaluation tests
 docs/           Architecture, reproduction, limitations, demo, and disclosure
 ```
 
-More detail: [Submission report](docs/SUBMISSION_REPORT.md), [Improvement changelog](docs/IMPROVEMENT_CHANGELOG.md), [Architecture](docs/ARCHITECTURE.md), [Model providers](docs/PROVIDERS.md), [Reproduction](docs/REPRODUCE.md), [Metric](docs/METRIC.md), [Security](docs/SECURITY.md), [deployment](docs/DEPLOYMENT.md), and [five-minute demo](docs/DEMO_SCRIPT.md).
+Start with the [user guide](docs/USER_GUIDE.md). More detail: [Submission report](docs/SUBMISSION_REPORT.md), [Improvement changelog](docs/IMPROVEMENT_CHANGELOG.md), [Architecture](docs/ARCHITECTURE.md), [Model providers](docs/PROVIDERS.md), [Reproduction](docs/REPRODUCE.md), [Metric](docs/METRIC.md), [Security](docs/SECURITY.md), [deployment](docs/DEPLOYMENT.md), and [five-minute demo](docs/DEMO_SCRIPT.md).

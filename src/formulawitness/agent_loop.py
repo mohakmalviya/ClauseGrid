@@ -57,6 +57,8 @@ class ToolCallingAgent:
         max_context_chars: int = 40_000,
         evidence_aware_coordination: bool = False,
         require_experiment_after_turns: int | None = None,
+        experiment_attempt_limit: int | None = None,
+        progress_callback: Callable[[dict[str, object]], None] | None = None,
     ):
         self.actor = actor
         self.model = model
@@ -97,12 +99,18 @@ class ToolCallingAgent:
             if "run_experiment" not in available_tools:
                 raise ValueError("Required-experiment mode needs a run_experiment tool")
         self.require_experiment_after_turns = require_experiment_after_turns
+        if experiment_attempt_limit is not None and experiment_attempt_limit < 1:
+            raise ValueError("Experiment attempt limit must be positive")
+        self.experiment_attempt_limit = experiment_attempt_limit
+        self.progress_callback = progress_callback
         self._last_input_tokens: int | None = None
         self._tool_result_cache: dict[str, ToolEnvelope] = {}
         self._tool_attempt_counts: dict[str, int] = {}
         self._observation_ledger: dict[str, dict[str, object]] = {}
         self._completed_one_shot_tools: set[str] = set()
         self._candidate_attempted = False
+        self._stage_failures_since_experiment = 0
+        self._exception_scope_mode = False
         self.messages: list[ChatMessage] = [
             SystemMessage(content=system_prompt),
             UserMessage(content=goal),
@@ -211,6 +219,7 @@ class ToolCallingAgent:
                 reported_cost_usd=turn.usage.reported_cost_usd,
             )
             self._last_input_tokens = turn.usage.input_tokens
+            self._notify_progress("model_response")
             self.trajectory.record_agent_event(
                 self.actor,
                 "MODEL_RESPONSE",
@@ -242,6 +251,7 @@ class ToolCallingAgent:
                 )
                 continue
             duplicate_notes: list[str] = []
+            candidate_recovery_note = False
             for call in turn.tool_calls:
                 if self.is_terminal():
                     break
@@ -267,6 +277,14 @@ class ToolCallingAgent:
                     if call.name == "stage_candidate":
                         self._candidate_attempted = True
                     envelope = self.registry.execute(call)
+                    if call.name == "stage_candidate":
+                        if envelope.ok:
+                            self._stage_failures_since_experiment = 0
+                        else:
+                            self._stage_failures_since_experiment += 1
+                            candidate_recovery_note = self._stage_failures_since_experiment == 2
+                    elif call.name == "run_experiment" and envelope.ok:
+                        self._stage_failures_since_experiment = 0
                     if cache_key is not None and envelope.ok:
                         self._tool_result_cache[cache_key] = envelope
                         self._register_observation(cache_key, call, envelope)
@@ -296,6 +314,11 @@ class ToolCallingAgent:
                         content=envelope.to_model_json(),
                     )
                 )
+                self._notify_progress(
+                    "tool_result",
+                    tool=call.name,
+                    ok=envelope.ok,
+                )
             if duplicate_notes and not self.is_terminal():
                 repeated = ", ".join(sorted(set(duplicate_notes)))
                 self.messages.append(
@@ -304,6 +327,17 @@ class ToolCallingAgent:
                             "Controller note: an exact duplicate read was served from cache and "
                             f"did not expand evidence ({repeated}). Choose a different or narrower "
                             "evidence action next."
+                        )
+                    )
+                )
+            if candidate_recovery_note and not self.is_terminal():
+                self.messages.append(
+                    UserMessage(
+                        content=(
+                            "Controller note: two candidate submissions were rejected. Do not "
+                            "resubmit the same cell and formula. The next action is a fresh "
+                            "workbook experiment that must discriminate a materially different "
+                            "policy branch or dependency before another candidate is attempted."
                         )
                     )
                 )
@@ -368,12 +402,43 @@ class ToolCallingAgent:
             selected.append(group)
             remaining -= size
         if not selected:
-            raise RuntimeError("Most recent agent action group exceeds the context limit")
+            compacted_without_history = [*base, summary, *trailing_messages]
+            if (
+                sum(len(message.model_dump_json()) for message in compacted_without_history)
+                <= context_limit
+            ):
+                return tuple(compacted_without_history)
+            raise RuntimeError("Agent base context exceeds the context limit")
         compacted = [*base, summary]
         for group in reversed(selected):
             compacted.extend(group)
         compacted.extend(trailing_messages)
         return tuple(compacted)
+
+    def _notify_progress(
+        self,
+        event: str,
+        *,
+        tool: str | None = None,
+        ok: bool | None = None,
+    ) -> None:
+        """Publish non-sensitive progress without allowing UI failures to stop an audit."""
+
+        if self.progress_callback is None:
+            return
+        payload: dict[str, object] = {
+            "actor": self.actor,
+            "event": event,
+            "budget": self.budget.snapshot(),
+        }
+        if tool is not None:
+            payload["tool"] = tool
+        if ok is not None:
+            payload["ok"] = ok
+        try:
+            self.progress_callback(payload)
+        except Exception:  # noqa: BLE001 - observability must never control audit behavior
+            return
 
     def _compact_action_group(
         self,
@@ -455,17 +520,26 @@ class ToolCallingAgent:
             if len(tools) != 1:
                 raise RuntimeError("Agent candidate retry phase has no unique stage_candidate tool")
             return tools
+        if not final_turn and self._candidate_evidence_recovery_required():
+            tools = tuple(tool for tool in self.registry.specs if tool.name == "run_experiment")
+            if len(tools) != 1:
+                raise RuntimeError(
+                    "Agent candidate recovery phase has no unique run_experiment tool"
+                )
+            return tools
         if not final_turn and not coordination_mode:
             unavailable = self._completed_one_shot_tools | self._unavailable_progress_tools()
             if self._experiment_attempt_limit_reached():
                 unavailable.add("run_experiment")
-            return tuple(
-                tool
-                for tool in self.registry.specs
-                if tool.name not in unavailable
-            )
+            return tuple(tool for tool in self.registry.specs if tool.name not in unavailable)
         allowed = set(self.terminal_tool_names if final_turn else self.coordination_tool_names)
-        if not final_turn:
+        if final_turn and self.actor == "audit-manager":
+            filtered = allowed.difference(self._unavailable_progress_tools())
+            # Keep at least one fail-closed terminal path even when its normal evidence
+            # preconditions are unavailable; otherwise the controller could not stop safely.
+            if filtered:
+                allowed = filtered
+        elif not final_turn:
             allowed.difference_update(self._unavailable_progress_tools())
             if self._experiment_attempt_limit_reached():
                 allowed.discard("run_experiment")
@@ -476,7 +550,9 @@ class ToolCallingAgent:
         return tools
 
     def _experiment_attempt_limit_reached(self) -> bool:
-        limit = 8 if self.actor == "audit-manager" else 4
+        limit = self.experiment_attempt_limit
+        if limit is None:
+            limit = 8 if self.actor == "audit-manager" else 4
         return self._tool_attempt_counts.get("run_experiment", 0) >= limit
 
     def _unavailable_progress_tools(self) -> set[str]:
@@ -496,7 +572,13 @@ class ToolCallingAgent:
         ]
         if not citations or not manager_experiments:
             unavailable.update({"stage_candidate", "request_human"})
+        elif self._stage_failures_since_experiment >= 2:
+            unavailable.add("stage_candidate")
         if not citations or len(manager_experiments) < 3:
+            unavailable.add("finish_no_change")
+        elif self._tool_attempt_counts.get("finish_no_change", 0) >= 2:
+            # A successful terminal call ends the loop. Reaching this branch means two
+            # no-change attempts failed their evidence guard, so force a different outcome.
             unavailable.add("finish_no_change")
         return unavailable
 
@@ -527,6 +609,19 @@ class ToolCallingAgent:
             and getattr(state, "candidate", None) is None
             and getattr(state, "citations", {})
             and getattr(state, "experiments", {})
+            and self._stage_failures_since_experiment < 2
+        )
+
+    def _candidate_evidence_recovery_required(self) -> bool:
+        """Break repeated rejected candidate loops with fresh executable evidence."""
+
+        if self.actor != "audit-manager" or self._stage_failures_since_experiment < 2:
+            return False
+        state = getattr(self.registry, "state", None)
+        return bool(
+            state is not None
+            and getattr(state, "candidate", None) is None
+            and not self._experiment_attempt_limit_reached()
         )
 
     def _budget_notice(
@@ -555,12 +650,24 @@ class ToolCallingAgent:
                 "fail-closed terminal outcome rather than attempting more investigation."
             )
         elif experiment_mode:
-            content = (
-                "The controller has observed enough discovery turns without executable workbook "
-                "evidence. Run one discriminating sandbox experiment now. Choose input overrides, "
-                "observations, and explicit expectations from the policy/workbook evidence already "
-                "registered; do not perform another manifest, formula-list, or region read."
-            )
+            if self._exception_scope_mode:
+                content = (
+                    "Registered policy evidence contains a waiver, exception, or unless-clause "
+                    "that no executed experiment has tested. Run one cross-product sandbox "
+                    "experiment now: enable the exception while also activating an independent "
+                    "ordinary violation, observe the governed formula output, and provide explicit "
+                    "policy-derived expectations. Name the waiver or exception in the purpose. "
+                    "Use only sheet names and cell coordinates from the successful workbook reads "
+                    "below; never invent workbook coordinates." + self._workbook_coordinate_hint()
+                )
+            else:
+                content = (
+                    "The controller has observed enough discovery turns without executable "
+                    "workbook evidence. Run one discriminating sandbox experiment now. Choose "
+                    "input overrides, observations, and explicit expectations from the "
+                    "policy/workbook evidence already registered; do not perform another "
+                    "manifest, formula-list, or region read."
+                )
         elif coordination_mode:
             names = ", ".join(self.coordination_tool_names)
             content = (
@@ -577,6 +684,21 @@ class ToolCallingAgent:
                 f"high-information action, then finish through one of: {names}."
             )
         return (UserMessage(content=content + self._evidence_ledger()),)
+
+    def _workbook_coordinate_hint(self, *, max_chars: int = 7_000) -> str:
+        """Repeat successful workbook reads next to forced experiment instructions."""
+
+        useful = [
+            entry
+            for entry in self._observation_ledger.values()
+            if entry.get("tool") in {"workbook_manifest", "read_region"}
+        ]
+        if not useful:
+            return ""
+        encoded = json.dumps(useful[-4:], sort_keys=True, separators=(",", ":"), default=str)
+        if len(encoded) > max_chars:
+            encoded = encoded[:max_chars] + "...[truncated]"
+        return "\nSuccessful workbook coordinate evidence: " + encoded
 
     def _evidence_ledger(self) -> str:
         """Keep registered handles available when their original observations are compacted."""
@@ -727,9 +849,13 @@ class ToolCallingAgent:
             )
             if has_experiment and self._turns_remaining(snapshot) <= evidence_turn_reserve:
                 return True
-        if self.evidence_aware_coordination and self.actor == "audit-manager" and (
-            getattr(state, "candidate", None) is not None
-            or getattr(state, "falsifier_verdict", None) is not None
+        if (
+            self.evidence_aware_coordination
+            and self.actor == "audit-manager"
+            and (
+                getattr(state, "candidate", None) is not None
+                or getattr(state, "falsifier_verdict", None) is not None
+            )
         ):
             return True
         if remaining > self.coordination_tool_call_reserve:
@@ -743,6 +869,9 @@ class ToolCallingAgent:
         return remaining <= self.terminal_tool_call_reserve + 2
 
     def _experiment_required(self, snapshot: AgentBudgetSnapshot) -> bool:
+        self._exception_scope_mode = self._exception_scope_experiment_required(snapshot)
+        if self._exception_scope_mode:
+            return True
         threshold = self.require_experiment_after_turns
         if threshold is None or self._experiment_attempt_limit_reached():
             return False
@@ -754,7 +883,12 @@ class ToolCallingAgent:
             return False
         if self.actor == "falsifier" and candidate is None:
             return False
-        if getattr(state, "experiments", {}):
+        actor_experiments = [
+            evidence
+            for evidence in getattr(state, "experiments", {}).values()
+            if getattr(evidence, "actor", None) == self.actor
+        ]
+        if actor_experiments:
             return False
         citations = getattr(state, "citations", {})
         if not citations:
@@ -764,6 +898,56 @@ class ToolCallingAgent:
         else:
             turns_used = int(snapshot["falsifier_turns_used"] or 0)
         return turns_used >= threshold
+
+    def _exception_scope_experiment_required(self, snapshot: AgentBudgetSnapshot) -> bool:
+        """Require one cross-product test when registered policy evidence contains an exception."""
+
+        if self.actor != "audit-manager":
+            return False
+        state = getattr(self.registry, "state", None)
+        if state is None or getattr(state, "candidate", None) is not None:
+            return False
+        citations = getattr(state, "citations", {}).values()
+        policy_text = " ".join(str(getattr(item, "exact_quote", "")) for item in citations).lower()
+        if not any(term in policy_text for term in ("waiver", "exception", "unless")):
+            return False
+        manager_experiments = [
+            evidence
+            for evidence in getattr(state, "experiments", {}).values()
+            if getattr(evidence, "actor", None) == "audit-manager"
+        ]
+        for evidence in manager_experiments:
+            request = getattr(evidence, "request", {})
+            description = (
+                str(request.get("purpose", ""))
+                + " "
+                + json.dumps(request.get("overrides", {}), sort_keys=True, default=str)
+            ).lower()
+            exception_covered = any(
+                term in description for term in ("waiver", "exception", "unless")
+            )
+            explicitly_disabled = any(
+                term in description for term in ("without waiver", "no waiver", "unwaived", '"n"')
+            )
+            ordinary_dimension_covered = any(
+                term in description
+                for term in (
+                    "ordinary",
+                    "delivery",
+                    "quality",
+                    "penalty",
+                    "violation",
+                    "breach",
+                    "scope",
+                    "cross-product",
+                )
+            )
+            if exception_covered and ordinary_dimension_covered and not explicitly_disabled:
+                return False
+        attempts = self._tool_attempt_counts.get("run_experiment", 0)
+        turns_used = int(snapshot["manager_turns_used"] or 0)
+        threshold = self.require_experiment_after_turns or 1
+        return attempts >= 3 and turns_used >= threshold
 
     def _cache_key(self, call: ToolCall) -> str | None:
         key_builder = getattr(self.registry, "cache_key", None)

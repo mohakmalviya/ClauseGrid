@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from formulawitness.agent_budget import AgentBudgetLedger, AgentRuntimeLimits
-from formulawitness.agent_state import AgentRunState
+from formulawitness.agent_state import AgentRunState, FalsifierVerdict
 from formulawitness.agent_tools import AgentToolRegistry, ToolEnvelope
 from formulawitness.agent_types import ModelRequest, ModelTurn, ModelUsage, ToolCall
 from formulawitness.falsifier import FalsifierAgent
@@ -198,8 +198,8 @@ def _experiment(
     return _call(falsifier, "run_experiment", arguments)
 
 
-def test_falsifier_rejects_missing_and_non_candidate_formula_overrides() -> None:
-    manager, falsifier, _, citation_id, old_hash = _registries()
+def test_falsifier_injects_missing_candidate_and_rejects_non_candidate_overrides() -> None:
+    manager, falsifier, state, citation_id, old_hash = _registries()
     assert _stage(manager, citation_id, old_hash, "=1").ok
 
     missing = _call(
@@ -214,10 +214,30 @@ def test_falsifier_rejects_missing_and_non_candidate_formula_overrides() -> None
             "purpose": "This deliberately omits the staged formula candidate.",
         },
     )
-    assert not missing.ok and "apply the staged candidate" in str(missing.error)
+    assert missing.ok
+    applied = state.experiments["missing-candidate"].request["formula_overrides"]
+    assert applied and applied[0]["new_formula"] == "=1"
 
     wrong = _experiment(falsifier, "wrong-candidate", old_hash, "=2", expected=0.6)
     assert not wrong.ok and "not an exact edit" in str(wrong.error)
+
+
+def test_experiment_decodes_provider_stringified_json_arguments() -> None:
+    manager, _, _, _, _ = _registries()
+    result = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "stringified-arguments",
+            "sheet": "RebateCalc",
+            "overrides": '{"H6":0.94,"I6":0.02,"J6":0,"K6":"N"}',
+            "observations": '["P6"]',
+            "expectations": '[{"cell":"P6","expected":0.75}]',
+            "purpose": "Accept semantically valid JSON emitted as nested strings.",
+        },
+    )
+
+    assert result.ok
 
 
 def test_conclusive_verdict_requires_expectations_and_mechanical_outcome() -> None:
@@ -510,3 +530,108 @@ def test_invalid_final_falsifier_verdict_falls_back_to_inconclusive(tmp_path: Pa
     assert "falsifier_turns" in verdict.remaining_risks[0]
     assert len(model.requests) == 1
     assert [tool.name for tool in model.requests[0].tools] == ["report_falsification"]
+
+
+def test_falsifier_receives_manager_experiments_for_edited_cells(tmp_path: Path) -> None:
+    manager, _, state, citation_id, old_hash = _registries()
+    experiment = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "edited-cell-counterexample",
+            "sheet": "RebateCalc",
+            "overrides": {"H6": 0.9, "K6": "Y"},
+            "observations": ["P6"],
+            "expectations": [{"cell": "P6", "expected": 0.75}],
+            "purpose": "Expose waiver scope leakage at the candidate target.",
+        },
+    )
+    assert experiment.ok
+    assert _stage(manager, citation_id, old_hash, "=1").ok
+    assert state.candidate is not None
+    falsifier = FalsifierAgent(
+        model=InvalidTerminalVerdictModel(),
+        workbook=MUTANT,
+        policy=PolicyText(POLICY),
+        state=state,
+        budget=AgentBudgetLedger(AgentRuntimeLimits(0, 1, 1, 1, 1_000, 1_000, 1, 0, 30.0)),
+        trajectory=Trajectory(tmp_path / "trajectory.jsonl", "focused-evidence"),
+    )
+
+    evidence = falsifier._supporting_evidence(state.candidate)
+
+    focused = [item for item in evidence if item["evidence_id"] == "edited-cell-counterexample"]
+    assert focused and focused[0]["kind"] == "manager_experiment_for_edited_cell"
+
+
+def test_falsifier_receives_registered_citation_for_rule_named_in_rationale(
+    tmp_path: Path,
+) -> None:
+    manager, _, state, citation_id, old_hash = _registries()
+    source = state.citations[citation_id]
+    rule_citation = source.model_copy(
+        update={
+            "citation_id": "citation-rule-202",
+            "exact_quote": "RB-202 applies the ordinary service penalty.",
+        }
+    )
+    state.citations[rule_citation.citation_id] = rule_citation
+    assert _stage(manager, citation_id, old_hash, "=1").ok
+    assert state.candidate is not None
+    edit = state.candidate.edits[0].model_copy(update={"rationale": "Required by RB-202."})
+    state.candidate = state.candidate.model_copy(update={"edits": (edit,)})
+    falsifier = FalsifierAgent(
+        model=InvalidTerminalVerdictModel(),
+        workbook=MUTANT,
+        policy=PolicyText(POLICY),
+        state=state,
+        budget=AgentBudgetLedger(AgentRuntimeLimits(0, 1, 1, 1, 1_000, 1_000, 1, 0, 30.0)),
+        trajectory=Trajectory(tmp_path / "trajectory.jsonl", "rule-evidence"),
+    )
+
+    evidence = falsifier._supporting_evidence(state.candidate)
+
+    focused = [item for item in evidence if item["evidence_id"] == "citation-rule-202"]
+    assert focused and focused[0]["kind"] == "manager_registered_rule_citation"
+
+
+def test_inconclusive_falsification_stops_manager_without_more_model_turns() -> None:
+    manager, _, state, citation_id, old_hash = _registries()
+    assert _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "manager-evidence",
+            "sheet": "RebateCalc",
+            "overrides": {"H6": 0.9},
+            "observations": ["P6"],
+            "expectations": [{"cell": "P6", "expected": 0.75}],
+            "purpose": "Register evidence before an inconclusive independent check.",
+        },
+    ).ok
+    assert _stage(manager, citation_id, old_hash, "=1").ok
+    assert state.candidate is not None
+    proposal_id = state.candidate.proposal_id
+    registry = AgentToolRegistry(
+        workbook=MUTANT,
+        policy=PolicyText(POLICY),
+        state=state,
+        actor="audit-manager",
+        charge_workbook_execution=lambda: None,
+        falsify=lambda _: FalsifierVerdict(
+            status="INCONCLUSIVE",
+            proposal_id=proposal_id,
+            experiment_ids=(),
+            counterexamples=(),
+            remaining_risks=("One edge case remains untested.",),
+            explanation="Independent evidence was insufficient for authorization.",
+        ),
+        require_falsifier=True,
+    )
+
+    result = _call(registry, "falsify_candidate", {})
+
+    assert result.ok
+    assert state.decision is not None
+    assert state.decision.decision == "ABSTAIN"
+    assert "manager-evidence" in state.decision.evidence_ids

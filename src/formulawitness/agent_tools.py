@@ -94,6 +94,24 @@ class RunExperimentArgs(ToolArgs):
     formula_overrides: tuple[FormulaOverrideArgs, ...] = Field(default=(), max_length=5)
     purpose: str = Field(min_length=8, max_length=1_000)
 
+    @model_validator(mode="before")
+    @classmethod
+    def decode_stringified_structures(cls, raw: Any) -> Any:
+        """Recover valid JSON structures stringified by OpenAI-compatible providers."""
+
+        if not isinstance(raw, dict):
+            return raw
+        normalized = dict(raw)
+        for field in ("overrides", "observations", "expectations", "formula_overrides"):
+            value = normalized.get(field)
+            if not isinstance(value, str):
+                continue
+            try:
+                normalized[field] = json.loads(value)
+            except json.JSONDecodeError:
+                pass
+        return normalized
+
 
 class CandidateEditArgs(ToolArgs):
     sheet: str = Field(min_length=1, max_length=128)
@@ -523,6 +541,24 @@ class AgentToolRegistry:
 
     def _run_experiment(self, raw: ToolArgs) -> dict[str, Any]:
         args = RunExperimentArgs.model_validate(raw)
+        if self.actor == "falsifier" and not args.formula_overrides:
+            candidate = self.state.candidate
+            if candidate is None:
+                raise ValueError("Falsifier experiments require a staged candidate")
+            matching_edits = [
+                FormulaOverrideArgs(
+                    cell=edit.cell,
+                    old_formula_sha256=edit.old_formula_sha256,
+                    new_formula=edit.new_formula,
+                )
+                for edit in candidate.edits
+                if edit.sheet.casefold() == args.sheet.casefold()
+            ]
+            if not matching_edits:
+                raise ValueError(
+                    "Falsifier experiment sheet does not contain a staged candidate edit"
+                )
+            args = args.model_copy(update={"formula_overrides": tuple(matching_edits)})
         if args.experiment_id in self.state.experiments:
             raise ValueError("Experiment id has already been used")
         if self.actor == "falsifier" and not args.expectations:
@@ -634,9 +670,6 @@ class AgentToolRegistry:
             if edit.sheet.casefold() == args.sheet.casefold()
         }
         requested = {item.cell: item for item in args.formula_overrides}
-        if self.actor == "falsifier" and not requested:
-            raise ValueError("Falsifier experiments must apply the staged candidate")
-
         matched: list[CandidateEdit] = []
         for cell, override in requested.items():
             edit = edits_on_sheet.get(cell)
@@ -745,6 +778,22 @@ class AgentToolRegistry:
         if verdict.proposal_id != self.state.candidate.proposal_id:
             raise ValueError("Falsifier verdict is not bound to the staged candidate")
         self.state.falsifier_verdict = verdict
+        if verdict.status == "INCONCLUSIVE":
+            evidence_ids = {
+                evidence_id
+                for edit in self.state.candidate.edits
+                for evidence_id in edit.evidence_ids
+            }
+            evidence_ids.update(self.state.experiments)
+            self.state.decision = AgentDecision(
+                decision="ABSTAIN",
+                explanation=(
+                    "Independent falsification was inconclusive, so the controller stopped "
+                    "without authorizing a workbook repair. " + verdict.explanation
+                )[:4_000],
+                evidence_ids=tuple(sorted(evidence_ids)),
+                proposal_id=self.state.candidate.proposal_id,
+            )
         return verdict.model_dump(mode="json")
 
     def _submit_repair(self, raw: ToolArgs) -> dict[str, Any]:
