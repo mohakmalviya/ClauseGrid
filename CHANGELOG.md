@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Aligned the submission report and UI with the hackathon evaluation format: stage-by-stage experiments, challenging-case learning, measured automated runtime, model/API cost, and an explicit no-claim disclosure for unmeasured human time.
 - Isolated the sealed evaluator from both repair workers and enforced all-formula minimality.
 - Replaced the mutation-specific baseline with a generic policy-derived direct repair.
 - Added ambiguity abstention, immutable approval reruns, shared execution budgets, and tamper-evident trajectory verification.

@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "task": "M10 waiver-scope audit and repair",
+  "workbook": "M10_supplier_rebate.xlsx",
+  "measurement": "end-to-end automated wall-clock time from call to final result",
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.13",
+    "processor": "AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD"
+  },
+  "baseline": {
+    "repetitions": 5,
+    "seconds": [
+      0.319089,
+      0.350831,
+      0.352542,
+      0.330756,
+      0.311394
+    ],
+    "median_seconds_per_task": 0.330756,
+    "min_seconds_per_task": 0.311394,
+    "max_seconds_per_task": 0.352542,
+    "decisions": [
+      "NO_CHANGE",
+      "NO_CHANGE",
+      "NO_CHANGE",
+      "NO_CHANGE",
+      "NO_CHANGE"
+    ]
+  },
+  "advanced": {
+    "repetitions": 5,
+    "seconds": [
+      0.459825,
+      0.448179,
+      0.444148,
+      0.461628,
+      0.451404
+    ],
+    "median_seconds_per_task": 0.451404,
+    "min_seconds_per_task": 0.444148,
+    "max_seconds_per_task": 0.461628,
+    "decisions": [
+      "REPAIR",
+      "REPAIR",
+      "REPAIR",
+      "REPAIR",
+      "REPAIR"
+    ]
+  },
+  "model_api_cost_usd_per_task": {
+    "baseline": 0.0,
+    "advanced": 0.0
+  },
+  "compute_cost_note": "Local compute was not monetized.",
+  "human_time_per_task": {
+    "status": "not_measured",
+    "reason": "No qualified-reviewer timing study has been run; no time-saving claim is made."
+  }
+}

@@ -38,12 +38,14 @@ table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;colo
 code{font-family:Consolas,monospace;font-size:11px;background:#f1f4f8;padding:2px 5px;border-radius:4px;word-break:break-all}.quote{border-left:3px solid var(--blue);padding:9px 12px;background:#f7f9fc;color:#39465a;font-size:12px;line-height:1.45;margin:8px 0}.patch{min-width:0;border:1px solid #c9d5e5;border-radius:10px;padding:13px;margin:10px 0}.before,.after{font-family:Consolas,monospace;font-size:11px;overflow-wrap:anywhere;word-break:break-word}.before{color:var(--bad)}.after{color:var(--ok)}
 .downloads a{display:inline-block;margin:5px 6px 0 0;padding:8px 10px;border:1px solid #b8c8df;border-radius:7px;text-decoration:none;color:#164da6;background:#f7faff;font-size:12px;font-weight:700}
 #message{margin-top:12px;color:var(--muted);font-size:13px}.danger{color:var(--bad)!important}.approval{border:1px solid #efc986;background:#fff9ed}.small{font-size:11px;color:var(--muted)}
+.evidence{margin-bottom:18px}.evidence-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.evidence-head p{margin:4px 0 12px}.benchmark-badge{white-space:nowrap;background:#edf3fc;color:var(--navy);border-radius:999px;padding:7px 10px;font-size:11px;font-weight:800}.score-table td:nth-child(n+2),.score-table th:nth-child(n+2){text-align:right}.score-table td.best{font-weight:800;color:var(--ok)}.disclosure{margin-top:12px;padding:10px 12px;border-left:3px solid #7c8ba1;background:#f7f9fc;color:#475467;font-size:12px;line-height:1.5}
 @media(max-width:850px){.hero,.grid{grid-template-columns:1fr}.steps{grid-template-columns:1fr}.metric{grid-template-columns:1fr}}
 </style></head>
 <body><header><div class="brand">FormulaWitness</div><div class="tag">Policy-grounded spreadsheet assurance</div></header>
 <main>
 <section class="hero"><div class="panel"><h1>Make spreadsheet semantics reviewable.</h1><p>Turn written rebate policy into cited rules and discriminating witnesses, localize plausible-but-wrong formulas, and require approval before a repaired copy is written.</p><div class="metric"><div><b>48</b><span class="small">sealed vectors / workbook</span></div><div><b>1 cell</b><span class="small">default repair limit</span></div><div><b>0</b><span class="small">source files overwritten</span></div></div></div>
 <div class="panel"><label for="case">Benchmark workbook</label><select id="case"></select><div class="actions"><button id="audit">Run witness audit</button><button class="secondary" id="reset">Reset</button></div><div id="message">Select a case. Mutant M10 is the flagship waiver-scope demo.</div></div></section>
+<section class="panel evidence"><div class="evidence-head"><div><h2>Frozen evaluation evidence</h2><p>Same task, public cases, tools, model policy, and execution budget.</p></div><div class="benchmark-badge" id="benchmarkBadge">Loading benchmark…</div></div><div style="overflow:auto"><table class="score-table"><thead><tr><th>Metric</th><th>Simple baseline</th><th>FormulaWitness</th><th>Change</th></tr></thead><tbody id="scorecard"></tbody></table></div><div class="disclosure" id="measurementDisclosure"></div></section>
 <div class="steps"><div class="step on">1 · Case</div><div class="step" id="s2">2 · Cited rules</div><div class="step" id="s3">3 · Counterexamples</div><div class="step" id="s4">4 · Diagnose</div><div class="step" id="s5">5 · Approve & export</div></div>
 <section id="results" class="hidden"><div class="grid"><div class="panel"><h2>Source-cited rules</h2><div id="rules"></div></div><div class="panel"><h2>Diagnosis</h2><div id="diagnosis"></div></div></div>
 <div class="panel" style="margin-top:18px"><h2>Counterexample witnesses</h2><div style="overflow:auto"><table><thead><tr><th>Case</th><th>Rule</th><th>Status</th><th>Mismatch</th></tr></thead><tbody id="tests"></tbody></table></div></div>
@@ -53,7 +55,9 @@ code{font-family:Consolas,monospace;font-size:11px;background:#f1f4f8;padding:2p
 const $=id=>document.getElementById(id); let current=null;
 function node(tag,text,cls){const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n}
 async function api(path,options){const r=await fetch(path,options);const j=await r.json();if(!r.ok)throw new Error(j.error||r.statusText);return j}
-async function init(){const data=await api('/api/cases'); for(const c of data.cases){const o=node('option',`${c.id} — ${c.label}`);o.value=c.id;if(c.id==='M10')o.selected=true;$('case').append(o)}}
+function pct(value){return `${Number(value).toFixed(1)}%`}function seconds(value){return `${Number(value).toFixed(3)} s`}
+function renderSummary(s){$('benchmarkBadge').textContent=`${s.benchmark} · ${s.workbook_count} workbooks × ${s.hidden_cases_per_workbook} sealed cases`;$('scorecard').replaceChildren();const rows=[['Primary outcome: E2E-SRR',pct(s.baseline_e2e_srr),pct(s.advanced_e2e_srr),`+${Number(s.improvement_pp).toFixed(1)} pp`],['Clean preservation',pct(s.baseline_clean_preservation),pct(s.advanced_clean_preservation),'no regression'],['Challenging case H01',pct(s.baseline_hard_rate),pct(s.advanced_hard_rate),`+${Number(s.advanced_hard_rate-s.baseline_hard_rate).toFixed(1)} pp`],['Automated wall-clock, M10 median',seconds(s.baseline_runtime_seconds),seconds(s.advanced_runtime_seconds),`+${seconds(s.advanced_runtime_seconds-s.baseline_runtime_seconds)}`],['Human time per task','Not measured','Not measured','No claim'],['Model/API cost per task','$0.00','$0.00','$0.00']];for(const [index,values] of rows.entries()){const tr=document.createElement('tr');for(const value of values)tr.append(node('td',value));if(index<3)tr.cells[2].className='best';$('scorecard').append(tr)}$('measurementDisclosure').textContent='Human time is intentionally not claimed because no qualified-reviewer timing study has been run. H01 combines lookup, waiver-scope, and cap-order faults; the baseline passes 9/48 sealed vectors, while FormulaWitness changes exactly N6, P6, and S6 and passes 48/48.'}
+async function init(){const [data,summary]=await Promise.all([api('/api/cases'),api('/api/summary')]);for(const c of data.cases){const o=node('option',`${c.id} — ${c.label}`);o.value=c.id;if(c.id==='M10')o.selected=true;$('case').append(o)}renderSummary(summary)}
 function setSteps(n){for(let i=2;i<=5;i++)$('s'+i).classList.toggle('on',i<=n)}
 function renderDownloads(files){$('downloads').replaceChildren();for(const f of files||[]){const a=node('a',f);a.href=`/download/${encodeURIComponent(current.run_id)}/${encodeURIComponent(f)}`;$('downloads').append(a)}}
 function render(data){current=data.result;$('results').classList.remove('hidden');$('sourceHash').textContent=current.source_sha256;setSteps(5);$('rules').replaceChildren();for(const r of data.rules){const d=node('div');d.append(node('b',`${r.rule_id} · ${r.title}`));d.append(node('span',r.status,'status '+r.status));d.append(node('div',`Page ${r.page} · characters ${r.start_char}–${r.end_char}`, 'small'));d.append(node('div',r.quote,'quote'));if(r.operation)d.append(node('div',`Executable IR: ${r.operation} · ${JSON.stringify(r.parameters)}`,'small'));if(r.ambiguity_reasons.length)d.append(node('div',r.ambiguity_reasons.join('; '),'danger'));$('rules').append(d)}
@@ -83,6 +87,31 @@ def _rule_payload(root: Path) -> list[dict[str, Any]]:
         }
         for rule in rules
     ]
+
+
+def _summary_payload(root: Path) -> dict[str, Any]:
+    evaluation = json.loads((root / "evals/results.json").read_text(encoding="utf-8"))
+    performance = json.loads(
+        (root / "artifacts/submission/performance-results.json").read_text(encoding="utf-8")
+    )
+    baseline = evaluation["baseline"]
+    advanced = evaluation["advanced"]
+    return {
+        "benchmark": evaluation["benchmark"],
+        "workbook_count": len(advanced["records"]),
+        "hidden_cases_per_workbook": evaluation["hidden_case_count_per_workbook"],
+        "baseline_e2e_srr": baseline["e2e_semantic_repair_rate"],
+        "advanced_e2e_srr": advanced["e2e_semantic_repair_rate"],
+        "improvement_pp": evaluation["improvement_percentage_points"],
+        "baseline_clean_preservation": baseline["clean_preservation_rate"],
+        "advanced_clean_preservation": advanced["clean_preservation_rate"],
+        "baseline_hard_rate": baseline["hard_multi_rule_rate"],
+        "advanced_hard_rate": advanced["hard_multi_rule_rate"],
+        "baseline_runtime_seconds": performance["baseline"]["median_seconds_per_task"],
+        "advanced_runtime_seconds": performance["advanced"]["median_seconds_per_task"],
+        "human_time_status": performance["human_time_per_task"]["status"],
+        "model_api_cost_usd_per_task": performance["model_api_cost_usd_per_task"],
+    }
 
 
 def make_handler(root: Path) -> type[BaseHTTPRequestHandler]:
@@ -127,6 +156,9 @@ def make_handler(root: Path) -> type[BaseHTTPRequestHandler]:
                     for case_id, relative in WORKBOOK_CASES.items()
                 ]
                 self._json({"cases": cases})
+                return
+            if parsed.path == "/api/summary":
+                self._json(_summary_payload(root))
                 return
             if parsed.path.startswith("/download/"):
                 parts = [unquote(part) for part in parsed.path.split("/") if part]

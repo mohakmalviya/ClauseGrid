@@ -8,6 +8,10 @@ The flagship defect is deliberately plausible: a critical-incident waiver incorr
 
 FormulaWitness is for finance, procurement, and supplier-operations reviewers who approve rebate and SLA settlements. Their policy is written in prose while the payable amount is implemented in formulas, so ordinary spreadsheet linting can miss a syntactically valid threshold, exception, lookup, date, or rounding rule that silently overpays or underpays a supplier. FormulaWitness turns that manual policy-to-formula review into a cited, reproducible witness and preserves the final judgment for a qualified reviewer.
 
+## Competition provenance
+
+FormulaWitness began as the reviewed scaffold in root commit `0941c68`; the policy, synthetic workbooks, application, benchmark, interface, and evidence were created during the competition. Codex was the required coding agent. The language runtimes and dependencies listed in `requirements-lock.txt` were pre-existing tools. No pre-existing FormulaWitness application code or private dataset was used.
+
 ## Measured result
 
 Frozen benchmark: **SupplierRebate-SLA-16-v2** — 12 one-fault mutants, three clean controls, one three-fault hard case, and 48 sealed vectors per workbook. Revision 2 was preregistered before its scored run after an adversarial audit required real ordered lookup, proportional proration, and a fully disjoint held-out input split.
@@ -19,6 +23,8 @@ Frozen benchmark: **SupplierRebate-SLA-16-v2** — 12 one-fault mutants, three c
 | Improvement | **+66.7 percentage points** | no regression | +100 pp |
 
 A repair counts only when every sealed output `L6:T6` is semantically correct, workbook integrity passes, the original is unchanged, and the patch respects the one-cell limit (three cells for the hard case). See [evals/results.json](evals/results.json).
+
+The full hackathon-format comparison, including measured automated runtime, $0 model/API cost, an explicit `Not measured` disclosure for human time, and the challenging-case analysis, is in [the submission report](docs/SUBMISSION_REPORT.md). No human time-saving claim is made without a qualified-reviewer study.
 
 ## Run it
 
@@ -84,4 +90,4 @@ tests/          Unit, integration, security, and evaluation tests
 docs/           Architecture, reproduction, limitations, demo, and disclosure
 ```
 
-More detail: [Architecture](docs/ARCHITECTURE.md), [Reproduction](docs/REPRODUCE.md), [Metric](docs/METRIC.md), [Security](docs/SECURITY.md), and [five-minute demo](docs/DEMO_SCRIPT.md).
+More detail: [Submission report](docs/SUBMISSION_REPORT.md), [Improvement changelog](docs/IMPROVEMENT_CHANGELOG.md), [Architecture](docs/ARCHITECTURE.md), [Reproduction](docs/REPRODUCE.md), [Metric](docs/METRIC.md), [Security](docs/SECURITY.md), and [five-minute demo](docs/DEMO_SCRIPT.md).

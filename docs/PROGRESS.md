@@ -25,9 +25,10 @@
 
 ## Checkpoint 3 - verification and submission pack
 
-- Thirty-three automated tests, lint, formatting, strict typing, mutation validation, and benchmark acceptance all pass.
+- Thirty-four automated tests, lint, formatting, strict typing, mutation validation, and benchmark acceptance all pass.
 - The repaired M10 workbook imports through the strict artifact reader and opens/recalculates with the four source sheets plus Counterexamples and FormulaWitness_Report intact.
 - Added one-command setup, demo, evaluation, server, and verification scripts plus the complete documentation and tool disclosure.
 - Created a local submission evidence pack and JSONL trajectories.
 - Upgraded submitted trajectories with readable agent instructions, tool responses, feedback, retry counts, and hash-chain verification.
-- The committed local build installs and passes the complete verification gate from a fresh clone. Private GitHub creation and first push remain gated on explicit user confirmation.
+- Added a PDF-aligned submission report, stage-by-stage evidence changelog, honest human-time disclosure and study protocol, reproducible five-run task timing, H01 analysis, and an evidence-backed evaluation panel in the UI.
+- The private GitHub remote exists on `main`; a fresh remote clone installs cleanly and passes the complete verification gate. Later evidence hardening is committed and pushed only after the same checks pass.

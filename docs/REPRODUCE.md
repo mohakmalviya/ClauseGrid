@@ -21,6 +21,14 @@ Workbook regeneration is not required for evaluation; its Codex-bundled authorin
 
 The exact Python distribution versions are pinned in `requirements-lock.txt`. On the measured Windows host with Python 3.12 and cached package downloads, clean setup took about 70 seconds and the complete verification command took about 50 seconds; network and machine speed will change those figures. Baseline, advanced, demo, and evaluation runs make no model or network calls, so their model/API cost is **$0**.
 
+Reproduce the separate five-run M10 wall-clock measurement with:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\measure_runtime.py --repetitions 5
+```
+
+The committed measurement is `artifacts/submission/performance-results.json`. It reports automated runtime and $0 model/API cost. Human time is intentionally marked `not_measured`; see `docs/HUMAN_TIME_STUDY.md` for the required participant-study protocol.
+
 ## Verify the implementation
 
 ```powershell
