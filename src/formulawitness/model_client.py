@@ -216,6 +216,18 @@ class ModelClient:
                 continue
 
             elapsed_ms = max(0, round((self._clock() - start) * 1000))
+            if _response_has_no_observable_output(raw_response):
+                usage = _response_usage(raw_response)
+                if attempt + 1 >= max_attempts:
+                    raise TransientModelError(
+                        "Model request exhausted retries: provider repeatedly returned no "
+                        "observable output",
+                        status_code=503,
+                        retry_count=attempt,
+                    )
+                protocol_retry_usage.append(usage)
+                payload = _protocol_repair_payload(payload, previous_content=None)
+                continue
             turn = _normalize_response(
                 raw_response,
                 configured_model=self.config.model,
@@ -225,7 +237,8 @@ class ModelClient:
             try:
                 _validate_response_contract(request, turn)
             except ModelProtocolError as exc:
-                if not _can_repair_missing_tool_call(request, turn):
+                repair_instruction = _protocol_repair_instruction(request, turn)
+                if repair_instruction is None:
                     raise
                 if attempt + 1 >= max_attempts:
                     raise ModelProtocolError(
@@ -234,7 +247,11 @@ class ModelClient:
                         retry_count=attempt,
                     ) from None
                 protocol_retry_usage.append(turn.usage)
-                payload = _protocol_repair_payload(payload, request, turn)
+                payload = _protocol_repair_payload(
+                    payload,
+                    instruction=repair_instruction,
+                    previous_content=turn.content,
+                )
                 continue
             if protocol_retry_usage:
                 turn = turn.model_copy(
@@ -300,42 +317,52 @@ def _validate_response_contract(request: ModelRequest, turn: ModelTurn) -> None:
         )
 
 
-def _can_repair_missing_tool_call(request: ModelRequest, turn: ModelTurn) -> bool:
-    """Retry only a plain-text response to an otherwise valid mandatory-tool request."""
+def _protocol_repair_instruction(request: ModelRequest, turn: ModelTurn) -> str | None:
+    """Return a bounded correction for protocol drift that can be retried safely."""
+
+    if request.parallel_tool_calls is False and len(turn.tool_calls) > 1:
+        return (
+            "Your previous response contained multiple function calls even though parallel tool "
+            "calls are disabled. Call exactly one available function now with a valid JSON "
+            "argument object. Do not answer with plain text."
+        )
 
     requires_tool = request.tool_choice == "required" or isinstance(
         request.tool_choice, NamedToolChoice
     )
-    return requires_tool and not turn.tool_calls and bool(turn.content)
-
-
-def _protocol_repair_payload(
-    payload: Mapping[str, Any],
-    request: ModelRequest,
-    turn: ModelTurn,
-) -> dict[str, Any]:
-    """Continue the same conversation with an explicit observable protocol correction."""
-
+    if not (requires_tool and not turn.tool_calls and bool(turn.content)):
+        return None
     if isinstance(request.tool_choice, NamedToolChoice):
-        instruction = (
+        return (
             "Your previous response did not contain the required function call. "
             f"Call {request.tool_choice.name} now with a valid JSON argument object. "
             "Do not answer with plain text."
         )
-    else:
-        names = ", ".join(tool.name for tool in request.tools)
+    names = ", ".join(tool.name for tool in request.tools)
+    return (
+        "Your previous response did not contain a required function call. Call exactly one "
+        f"available function now ({names}) with a valid JSON argument object. Do not answer "
+        "with plain text."
+    )
+
+
+def _protocol_repair_payload(
+    payload: Mapping[str, Any],
+    *,
+    instruction: str | None = None,
+    previous_content: str | None,
+) -> dict[str, Any]:
+    """Continue the same conversation with an explicit observable protocol correction."""
+
+    if instruction is None:
         instruction = (
-            "Your previous response did not contain a required function call. Call exactly one "
-            f"available function now ({names}) with a valid JSON argument object. Do not answer "
-            "with plain text."
+            "Your previous response did not contain a required function call. Return exactly one "
+            "observable function call now. Do not answer with plain text."
         )
     messages = list(payload.get("messages", []))
-    messages.extend(
-        [
-            {"role": "assistant", "content": turn.content},
-            {"role": "user", "content": instruction},
-        ]
-    )
+    if previous_content:
+        messages.append({"role": "assistant", "content": previous_content})
+    messages.append({"role": "user", "content": instruction})
     return {**dict(payload), "messages": messages}
 
 
@@ -347,6 +374,30 @@ def _combined_usage(items: list[ModelUsage]) -> ModelUsage:
         total_tokens=sum(item.total_tokens for item in items),
         cached_input_tokens=sum(item.cached_input_tokens for item in items),
         reported_cost_usd=(sum(costs) if costs else None),
+    )
+
+
+def _response_has_no_observable_output(response: Any) -> bool:
+    """Recognize a well-shaped completion whose first choice contains no text or tool call."""
+
+    try:
+        choices = _member(response, "choices")
+        if not isinstance(choices, (list, tuple)):
+            return False
+        if not choices:
+            return True
+        message = _member(choices[0], "message")
+        content = _member(message, "content", default=None)
+        calls = _member(message, "tool_calls", default=None)
+        return not content and not calls
+    except (TypeError, ValueError):
+        return False
+
+
+def _response_usage(response: Any) -> ModelUsage:
+    return _normalize_usage(
+        _member(response, "usage", default=None),
+        reported_cost_usd=_member(response, "reported_cost_usd", default=None),
     )
 
 

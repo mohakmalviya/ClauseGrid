@@ -29,10 +29,10 @@ formulawitness agent-eval `
   --output evals/agent-results.json
 ```
 
-For the CommandCode transport, set `COMMAND_CODE_API_KEY`, select
-`--provider commandcode-go`, and pass the exact model ID supported by that
-account. Credential values are read only from the named server-side environment
-variable; they are never CLI values or result fields.
+For OpenCode Zen, set `OPENCODE_API_KEY`, select `--provider opencode`, and pass an exact model ID
+from the live catalog. Free-model availability changes, so compatibility must be checked immediately
+before a paid or time-consuming repeated evaluation. Credential values are read only from the named
+server-side environment variable; they are never CLI values or result fields.
 Non-loopback endpoints require `--allow-external-processing`; this gate runs before
 the credential environment variable is read. Loopback development endpoints may
 omit the flag.

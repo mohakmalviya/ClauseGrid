@@ -10,8 +10,8 @@ budgets, evidence checks, traces, and human approval boundary remain the same.
 | `anthropic` or `claude` | `https://api.anthropic.com` | `ANTHROPIC_API_KEY` | Native Anthropic Messages API |
 | `deepseek` | `https://api.deepseek.com` | `DEEPSEEK_API_KEY` | OpenAI-compatible chat completions |
 | `nvidia-nim` | `https://integrate.api.nvidia.com/v1` | `NVIDIA_NIM_API_KEY` | OpenAI-compatible chat completions |
+| `opencode` | `https://opencode.ai/zen/v1` | `OPENCODE_API_KEY` | OpenAI-compatible chat completions |
 | `openai-compatible` | required `--base-url` | required `--api-key-env` | Custom OpenAI-compatible endpoint |
-| `commandcode-go` | `https://api.commandcode.ai` | `COMMAND_CODE_API_KEY` | Temporary native-pool/MiMo test adapter |
 
 Claude is Anthropic's model family, so `claude` is an alias for `anthropic`, not a second API-key
 system. FormulaWitness uses the native Messages API rather than Anthropic's OpenAI SDK compatibility
@@ -39,6 +39,10 @@ $env:NVIDIA_NIM_API_KEY = '<credential>'
 formulawitness agent workbooks\mutants\M10_supplier_rebate.xlsx `
   --provider nvidia-nim --model '<nim-model-id>' --allow-external-processing
 
+$env:OPENCODE_API_KEY = '<credential>'
+formulawitness agent workbooks\mutants\M10_supplier_rebate.xlsx `
+  --provider opencode --model 'big-pickle' --allow-external-processing
+
 $env:LOCAL_GATEWAY_KEY = '<credential-or-local-placeholder>'
 formulawitness agent workbooks\mutants\M10_supplier_rebate.xlsx `
   --provider openai-compatible --base-url http://127.0.0.1:9000/v1 `
@@ -53,8 +57,9 @@ credential.
 ## Validation status
 
 The provider-neutral contract and native Anthropic translation are covered by offline unit tests.
-NVIDIA NIM and CommandCode/MiMo have authenticated transport evidence. MiMo V2.5 has also completed
-one proposal-only M10 manager/falsifier repair with a verified trajectory. That does not certify
-every provider/model combination—or MiMo's repeated reliability: each selected model still needs a
-compatibility probe and repeated blind end-to-end evaluation because tool-choice behavior, context
-limits, rate limits, and model quality differ by provider and model.
+NVIDIA NIM and OpenCode Zen have authenticated transport evidence. The OpenCode free catalog is
+dynamic: query `https://opencode.ai/zen/v1/models` rather than hard-coding an assumed list. On the
+latest compatibility probe, `big-pickle`, `hy3-free`, `ling-3.0-flash-fin-free`, and
+`nemotron-3.5-lightning-free` honored a mandatory function call. Catalog presence alone is not
+validation; each model still needs repeated blind end-to-end evaluation because tool behavior,
+availability, context limits, and quality differ by model.

@@ -6,10 +6,9 @@ from dataclasses import dataclass
 from typing import Literal
 
 from .anthropic_transport import AnthropicTransport
-from .commandcode_go import CommandCodeGoTransport
 from .model_client import ModelClient, ModelTransport, OpenAICompatibleConfig, RetryPolicy
 
-TransportKind = Literal["openai-compatible", "anthropic", "commandcode-go"]
+TransportKind = Literal["openai-compatible", "anthropic"]
 
 
 @dataclass(frozen=True)
@@ -41,14 +40,13 @@ PROVIDER_PRESETS: dict[str, ProviderPreset] = {
         "openai-compatible",
         1.6,
     ),
-    "openai-compatible": ProviderPreset("openai-compatible", None, None, "openai-compatible"),
-    # Temporary compatibility path retained for reproducing the MiMo experiment.
-    "commandcode-go": ProviderPreset(
-        "commandcode-go",
-        "https://api.commandcode.ai",
-        "COMMAND_CODE_API_KEY",
-        "commandcode-go",
+    "opencode": ProviderPreset(
+        "opencode",
+        "https://opencode.ai/zen/v1",
+        "OPENCODE_API_KEY",
+        "openai-compatible",
     ),
+    "openai-compatible": ProviderPreset("openai-compatible", None, None, "openai-compatible"),
 }
 
 
@@ -75,8 +73,6 @@ def build_model_client(
     transport: ModelTransport | None
     if preset.transport == "anthropic":
         transport = AnthropicTransport(config)
-    elif preset.transport == "commandcode-go":
-        transport = CommandCodeGoTransport(config)
     else:
         transport = None
     client = ModelClient(

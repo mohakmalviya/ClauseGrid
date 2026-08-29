@@ -98,8 +98,8 @@ def test_agent_ui_exposes_persisted_review_evidence(tmp_path: Path) -> None:
     payload = _agent_review_payload(
         result,
         tmp_path,
-        provider="commandcode-go",
-        model_id="xiaomi/mimo-v2.5",
+        provider="opencode",
+        model_id="big-pickle",
     )
 
     assert payload["proposal_hash"] == object_hash(proposal)
@@ -108,8 +108,8 @@ def test_agent_ui_exposes_persisted_review_evidence(tmp_path: Path) -> None:
         "citation-b",
     ]
     assert payload["experiments"][0]["experiment_id"] == "experiment-1"
-    assert payload["provider"] == "commandcode-go"
-    assert payload["model"] == "xiaomi/mimo-v2.5"
+    assert payload["provider"] == "opencode"
+    assert payload["model"] == "big-pickle"
     assert payload["downloads"] == ["agent-state.json", "proposal.json"]
 
 
@@ -118,10 +118,8 @@ def test_review_server_requires_explicit_model_and_loopback_binding() -> None:
         build_parser().parse_args(["serve"])
     with pytest.raises(SystemExit):
         build_parser().parse_args(["demo"])
-    args = build_parser().parse_args(
-        ["serve", "--provider", "commandcode-go", "--model", "xiaomi/mimo-v2.5"]
-    )
-    assert args.model == "xiaomi/mimo-v2.5"
+    args = build_parser().parse_args(["serve", "--provider", "opencode", "--model", "big-pickle"])
+    assert args.model == "big-pickle"
     assert _is_loopback_host("127.0.0.1")
     assert _is_loopback_host("::1")
     assert not _is_loopback_host("0.0.0.0")
@@ -131,8 +129,8 @@ def test_review_server_requires_explicit_model_and_loopback_binding() -> None:
             "0.0.0.0",
             8765,
             model=object(),  # type: ignore[arg-type]
-            provider="commandcode-go",
-            model_id="xiaomi/mimo-v2.5",
+            provider="opencode",
+            model_id="big-pickle",
         )
 
 

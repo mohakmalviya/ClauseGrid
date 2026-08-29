@@ -46,8 +46,8 @@
 
 ## Checkpoint 5 - provider-neutral runtime
 
-- Added explicit OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM, custom OpenAI-compatible,
-  and temporary CommandCode/MiMo provider choices with provider-specific environment variables.
+- Added explicit OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM, OpenCode Zen, and custom
+  OpenAI-compatible provider choices with provider-specific environment variables.
 - Added native Anthropic Messages translation for system messages, typed tools, tool history,
   tool results, usage, IDs, stop reasons, bounded responses, and non-retention of reasoning blocks.
 - Kept the exact model ID explicit and documented that each provider/model pair requires its own
@@ -55,7 +55,11 @@
 - Added protocol-preserving context compaction, a bounded registered-evidence ledger, investigation/
   coordination/terminal tool-call reserves, and bounded recovery when a provider returns plain text
   despite a mandatory tool request.
-- MiMo run `agent-702385dc5cee-771cae24` completed an M10 proposal-only `REPAIR`: 8 manager turns,
-  14 falsifier turns, 36 tool calls, 7 sandbox executions, and five passing candidate-bound
-  falsifier experiments. The 120-event trajectory verifies. This is single-run evidence, not a
-  repeated model benchmark or production-readiness claim.
+- Removed the temporary native-pool transport and replaced it with OpenCode Zen's documented
+  OpenAI-compatible endpoint. Live free-model compatibility probing is recorded separately from
+  end-to-end repair evidence.
+- Hardened the model boundary against empty completions, empty choice lists, and providers that
+  ignore `parallel_tool_calls=false`; every recovery is bounded and usage remains traceable.
+- Exercised seven currently listed OpenCode free chat models. The strongest run reached 33 workbook
+  and policy tool calls, but no tested free model completed candidate staging and fresh-context
+  falsification; current failures are recorded rather than promoted as production success.

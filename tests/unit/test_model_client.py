@@ -305,6 +305,85 @@ def test_required_tool_choice_fails_closed_after_bounded_protocol_repairs() -> N
     assert len(transport.payloads) == 2
 
 
+def test_empty_completion_is_retried_and_usage_is_preserved() -> None:
+    empty = SimpleNamespace(
+        id="completion-empty",
+        model="test-model",
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(content=None, tool_calls=[]),
+                finish_reason="stop",
+            )
+        ],
+        usage=SimpleNamespace(prompt_tokens=5, completion_tokens=0, total_tokens=5),
+    )
+    transport = ScriptedTransport([empty, response_with_tool_call()])
+    client = ModelClient(
+        config(),
+        transport=transport,
+        retry_policy=RetryPolicy(max_attempts=2, base_delay_seconds=0),
+    )
+
+    turn = client.complete(request())
+
+    assert turn.tool_calls[0].name == "inspect_region"
+    assert turn.retry_count == 1
+    assert turn.usage.input_tokens == 17
+    assert turn.usage.output_tokens == 7
+    repaired_messages = transport.payloads[1]["messages"]
+    assert repaired_messages[-1]["role"] == "user"
+    assert "did not contain a required function call" in repaired_messages[-1]["content"]
+
+
+def test_repeated_empty_completion_exhausts_bounded_retries() -> None:
+    empty = SimpleNamespace(
+        id="completion-empty",
+        model="test-model",
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(content=None, tool_calls=[]),
+                finish_reason="stop",
+            )
+        ],
+        usage=None,
+    )
+    transport = ScriptedTransport([empty, empty])
+    client = ModelClient(
+        config(),
+        transport=transport,
+        retry_policy=RetryPolicy(max_attempts=2, base_delay_seconds=0),
+    )
+
+    with pytest.raises(TransientModelError, match="no observable output") as captured:
+        client.complete(request())
+
+    assert captured.value.status_code == 503
+    assert captured.value.retry_count == 1
+    assert len(transport.payloads) == 2
+
+
+def test_empty_choice_list_is_retried() -> None:
+    empty = SimpleNamespace(
+        id="completion-empty-choices",
+        model="test-model",
+        choices=[],
+        usage=SimpleNamespace(prompt_tokens=4, completion_tokens=0, total_tokens=4),
+    )
+    transport = ScriptedTransport([empty, response_with_tool_call()])
+    client = ModelClient(
+        config(),
+        transport=transport,
+        retry_policy=RetryPolicy(max_attempts=2, base_delay_seconds=0),
+    )
+
+    turn = client.complete(request())
+
+    assert turn.tool_calls[0].name == "inspect_region"
+    assert turn.retry_count == 1
+    assert turn.usage.input_tokens == 16
+    assert len(transport.payloads) == 2
+
+
 def test_named_and_nonparallel_tool_contracts_are_enforced() -> None:
     named_request = request().model_copy(
         update={"tool_choice": NamedToolChoice(name="inspect_region")}
@@ -322,9 +401,12 @@ def test_named_and_nonparallel_tool_contracts_are_enforced() -> None:
         function=SimpleNamespace(name="inspect_region", arguments='{"sheet":"Other"}'),
     )
     duplicate.choices[0].message.tool_calls.append(second)
-    client = ModelClient(config(), transport=ScriptedTransport([duplicate]))
-    with pytest.raises(ModelProtocolError, match="parallel tool calls"):
-        client.complete(request())
+    transport = ScriptedTransport([duplicate, response_with_tool_call()])
+    client = ModelClient(config(), transport=transport)
+    repaired = client.complete(request())
+    assert [call.call_id for call in repaired.tool_calls] == ["call-1"]
+    assert repaired.retry_count == 1
+    assert "multiple function calls" in transport.payloads[1]["messages"][-1]["content"]
 
     allowed = response_with_tool_call()
     allowed.choices[0].message.tool_calls.append(second)

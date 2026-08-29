@@ -15,6 +15,7 @@ from formulawitness.model_client import ModelConfigurationError, OpenAITransport
         ("claude", "ANTHROPIC_API_KEY", "anthropic", AnthropicTransport),
         ("deepseek", "DEEPSEEK_API_KEY", "deepseek", OpenAITransport),
         ("nvidia-nim", "NVIDIA_NIM_API_KEY", "nvidia-nim", OpenAITransport),
+        ("opencode", "OPENCODE_API_KEY", "opencode", OpenAITransport),
     ),
 )
 def test_provider_presets_load_their_own_environment_key(
@@ -66,3 +67,20 @@ def test_missing_preset_key_names_the_expected_environment_variable() -> None:
             base_url=None,
             api_key_env=None,
         )
+
+
+def test_opencode_uses_official_zen_chat_base(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENCODE_API_KEY", "provider-secret")
+
+    client, canonical = providers.build_model_client(
+        provider="opencode",
+        model="big-pickle",
+        base_url=None,
+        api_key_env=None,
+    )
+    try:
+        assert canonical == "opencode"
+        assert client.config.base_url == "https://opencode.ai/zen/v1"
+        assert client.config.model == "big-pickle"
+    finally:
+        client.close()

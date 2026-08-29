@@ -21,13 +21,11 @@ Anthropic/Claude uses the native Messages API. The verified live smoke used NVID
 it was not printed, copied into the repository, or written to an artifact. NIM responses reported
 token usage but not monetary cost, so cost is disclosed as `Not reported`.
 
-FormulaWitness temporarily supports CommandCode's Go/native-pool stream through `--provider
-commandcode-go`, including `xiaomi/mimo-v2.5`, to preserve the MiMo experiment. The adapter only
-translates the same bounded FormulaWitness messages and tools to CommandCode's `/alpha/generate`
-protocol. It does not invoke CommandCode's filesystem-capable coding harness. The credential is
-read only from `COMMAND_CODE_API_KEY`. Authenticated run `agent-702385dc5cee-771cae24` completed a
-proposal-only M10 `REPAIR` with a five-experiment `SURVIVED` falsifier verdict. This is one
-end-to-end compatibility result, not a repeated benchmark or production certification.
+FormulaWitness supports OpenCode Zen through `--provider opencode` and its OpenAI-compatible chat
+endpoint. The credential is read only from `OPENCODE_API_KEY`; model IDs remain explicit and are not
+silently selected from the changing free catalog. Compatibility probes send only synthetic prompts.
+An end-to-end result is disclosed only after a full manager/falsifier run completes and its trajectory
+verifies.
 
 The audit manager chooses tools and stopping actions. The advanced command can invoke a separate
 fresh-context falsifier. Workbook execution stays in a no-network subprocess that receives no API

@@ -46,24 +46,25 @@ $env:NVIDIA_NIM_API_KEY = '<credential>'
 The command stops at a proposal. It does not write a repaired workbook. Inspect `proposal.json`,
 `formula-diff.json`, `agent-state.json`, `report.json`, and `trajectory.jsonl`. Verify the hash chain:
 
-To evaluate MiMo V2.5 through an authenticated CommandCode Go/native account:
+To evaluate a currently available OpenCode Zen free model:
 
 ```powershell
-$env:COMMAND_CODE_API_KEY = '<credential>'
+$env:OPENCODE_API_KEY = '<credential>'
 .\.venv\Scripts\python.exe -m formulawitness agent `
   workbooks\mutants\M10_supplier_rebate.xlsx `
-  --provider commandcode-go `
-  --model xiaomi/mimo-v2.5 `
+  --provider opencode `
+  --model big-pickle `
   --allow-external-processing `
-  --artifacts artifacts\runs
+  --artifacts artifacts\opencode-runs
 ```
 
-This path uses FormulaWitness's manager, falsifier, tools, budgets, and trace. It does not launch the
-CommandCode coding CLI or grant an external coding harness workspace access.
+Query `https://opencode.ai/zen/v1/models` immediately before the run because free-model availability
+changes. This path uses FormulaWitness's manager, falsifier, tools, budgets, and trace; it does not
+launch an external coding harness or grant it workspace access.
 
-OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM, and a custom OpenAI-compatible gateway use
-the same agent commands. See [model providers](PROVIDERS.md) for exact credential variables and
-examples. CommandCode/MiMo is a temporary compatibility path, not the default architecture.
+OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM, OpenCode Zen, and a custom OpenAI-compatible
+gateway use the same agent commands. See [model providers](PROVIDERS.md) for exact credential
+variables, compatibility limits, and examples.
 
 ```powershell
 .\.venv\Scripts\python.exe -m formulawitness verify-trajectory `

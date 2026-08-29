@@ -336,7 +336,14 @@ def test_agent_eval_cli_defaults_to_repeated_tight_case_set() -> None:
 
 
 def test_cli_exposes_provider_presets_and_claude_alias() -> None:
-    for provider in ("openai", "anthropic", "claude", "deepseek", "nvidia-nim"):
+    for provider in (
+        "openai",
+        "anthropic",
+        "claude",
+        "deepseek",
+        "nvidia-nim",
+        "opencode",
+    ):
         args = build_parser().parse_args(
             ["agent", "workbook.xlsx", "--provider", provider, "--model", "model-id"]
         )

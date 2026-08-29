@@ -529,7 +529,7 @@ class ToolCallingAgent:
             snapshot["input_tokens_used"] or 0
         )
         # Tool JSON is token-dense. A 1.25 chars/token ceiling is deliberately conservative
-        # compared with the live MiMo trace while preserving the base prompt and latest group.
+        # compared with live provider traces while preserving the base prompt and latest group.
         return min(
             self.max_context_chars,
             max(10_000, math.floor(max(0, input_tokens_remaining) * 1.25)),

@@ -29,8 +29,8 @@ The archived hackathon-format comparison reports $0 API cost only for the legacy
 ## Run it
 
 Requirements: Python 3.11+ and PowerShell. Legacy deterministic evaluation remains offline. The
-model-directed commands support OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM, and custom
-OpenAI-compatible endpoints. Credentials are read from provider-specific environment variables;
+model-directed commands support OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM, OpenCode
+Zen, and custom OpenAI-compatible endpoints. Credentials are read from provider-specific environment variables;
 the key is never accepted as a CLI argument or persisted. Provider cost is recorded as `Not
 reported` unless the provider supplies it.
 
@@ -66,9 +66,9 @@ $env:NVIDIA_NIM_API_KEY = '<set outside the repository>'
   --provider nvidia-nim --model openai/gpt-oss-120b --allow-external-processing
 .\.venv\Scripts\formulawitness.exe agent-baseline workbooks\mutants\M10_supplier_rebate.xlsx `
   --provider nvidia-nim --model openai/gpt-oss-120b --allow-external-processing
-$env:COMMAND_CODE_API_KEY = '<set outside the repository>'
+$env:OPENCODE_API_KEY = '<set outside the repository>'
 .\.venv\Scripts\formulawitness.exe agent workbooks\mutants\M10_supplier_rebate.xlsx `
-  --provider commandcode-go --model xiaomi/mimo-v2.5 --allow-external-processing
+  --provider opencode --model big-pickle --allow-external-processing
 .\.venv\Scripts\formulawitness.exe approve-agent RUN_ID `
   workbooks\mutants\M10_supplier_rebate.xlsx `
   --proposal-hash REVIEWED_HASH --reviewer reviewer@example.test
@@ -82,10 +82,10 @@ omit it. Browser requests never contain the provider credential.
 Model choice is intentionally explicit; see [model selection evidence](docs/MODEL_SELECTION.md) for the
 current task-specific tournament and its limitations.
 
-The `commandcode-go` provider is retained as a temporary MiMo experiment/reproducibility path. It
-uses CommandCode's native-pool transport, not its coding-agent harness. FormulaWitness never reads
-CommandCode configuration or credential files. See [model providers](docs/PROVIDERS.md) for all
-provider presets, credential variables, custom endpoints, and current validation limits.
+The `opencode` provider uses OpenCode Zen's OpenAI-compatible chat endpoint. Model IDs remain
+explicit because the free catalog and availability can change; query OpenCode's live model catalog
+before running. FormulaWitness reads only `OPENCODE_API_KEY` from the process environment. See
+[model providers](docs/PROVIDERS.md) for the currently verified free-model compatibility results.
 
 ## What makes it agentic
 
