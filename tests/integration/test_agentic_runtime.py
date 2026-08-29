@@ -308,7 +308,15 @@ def test_model_directed_loop_revises_after_falsifier_counterexample(tmp_path: Pa
     )
 
     assert result.decision == "REPAIR"
-    assert all(request.parallel_tool_calls for request in model.manager_requests[:-1])
+    discovery_requests = [
+        request
+        for request in model.manager_requests
+        if "search_policy" in {tool.name for tool in request.tools}
+    ]
+    assert all(request.parallel_tool_calls for request in discovery_requests)
+    assert [tool.name for tool in model.manager_requests[3].tools] == ["falsify_candidate"]
+    assert [tool.name for tool in model.manager_requests[5].tools] == ["falsify_candidate"]
+    assert [tool.name for tool in model.manager_requests[6].tools] == ["submit_repair"]
     assert model.manager_requests[-1].parallel_tool_calls is False
     first_falsifier_goal = model.falsifier_requests[0].messages[1].content
     assert model.citation_id in first_falsifier_goal

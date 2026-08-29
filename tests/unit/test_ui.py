@@ -2,8 +2,11 @@ import inspect
 import json
 import shutil
 import threading
+import time
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from typing import Any, cast
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 import pytest
@@ -14,6 +17,8 @@ from formulawitness.models import AuditResult
 from formulawitness.trace import object_hash
 from formulawitness.ui import (
     HTML,
+    PublicServerConfig,
+    SlidingWindowRateLimiter,
     _agent_review_payload,
     _is_loopback_host,
     _summary_payload,
@@ -132,6 +137,114 @@ def test_review_server_requires_explicit_model_and_loopback_binding() -> None:
             provider="opencode",
             model_id="big-pickle",
         )
+
+
+def test_public_config_and_rate_limiter_fail_closed() -> None:
+    with pytest.raises(ValueError, match="HTTPS origin"):
+        PublicServerConfig(origin="http://demo.example")
+    config = PublicServerConfig(
+        origin="https://demo.example",
+        max_audits_per_hour=2,
+        max_audits_per_client_hour=1,
+    )
+    assert config.hostname == "demo.example"
+    limiter = SlidingWindowRateLimiter(global_limit=2, client_limit=1, window_seconds=60)
+    assert limiter.allow("client-a", now=0) == (True, 0)
+    allowed, retry_after = limiter.allow("client-a", now=1)
+    assert allowed is False
+    assert retry_after == 59
+    assert limiter.allow("client-a", now=61) == (True, 0)
+
+    mixed_limiter = SlidingWindowRateLimiter(global_limit=3, client_limit=2, window_seconds=60)
+    assert mixed_limiter.allow("client-a", now=0) == (True, 0)
+    assert mixed_limiter.allow("client-b", now=20) == (True, 0)
+    assert mixed_limiter.allow("client-b", now=30) == (True, 0)
+    allowed, retry_after = mixed_limiter.allow("client-b", now=31)
+    assert allowed is False
+    assert retry_after == 49
+
+
+def test_public_audit_is_same_origin_asynchronous_and_disables_browser_approval(
+    tmp_path: Path,
+) -> None:
+    workbook_relative = Path("workbooks/mutants/M10_supplier_rebate.xlsx")
+    policy_relative = Path("policies/supplier_rebate_sla_policy.pdf")
+    (tmp_path / workbook_relative).parent.mkdir(parents=True)
+    (tmp_path / policy_relative).parent.mkdir(parents=True)
+    shutil.copy2(ROOT / workbook_relative, tmp_path / workbook_relative)
+    shutil.copy2(ROOT / policy_relative, tmp_path / policy_relative)
+    handler = make_handler(
+        tmp_path,
+        model=AbstainingUiModel(),
+        provider="scripted-provider",
+        model_id="scripted-ui-agent",
+        public_config=PublicServerConfig(origin="https://demo.example"),
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+
+    def request(
+        path: str, *, method: str = "GET", body: dict[str, str] | None = None
+    ) -> dict[str, Any]:
+        headers = {"Host": "demo.example"}
+        data = None
+        if body is not None:
+            headers |= {"Content-Type": "application/json", "Origin": "https://demo.example"}
+            data = json.dumps(body).encode("utf-8")
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}{path}",
+                data=data,
+                headers=headers,
+                method=method,
+            ),
+            timeout=10,
+        ) as response:
+            return cast(dict[str, Any], json.loads(response.read()))
+
+    try:
+        assert request("/healthz") == {"status": "ok"}
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}/",
+                headers={"Host": "demo.example"},
+            ),
+            timeout=10,
+        ) as response:
+            assert response.headers["Strict-Transport-Security"] == "max-age=31536000"
+        config = request("/api/config")
+        assert config["public_demo"] is True
+        assert config["browser_approval_enabled"] is False
+        queued = request("/api/audit", method="POST", body={"case_id": "M10"})
+        assert queued["status"] == "queued"
+        for _ in range(100):
+            job = request(queued["status_url"])
+            if job["status"] == "complete":
+                break
+            time.sleep(0.01)
+        else:
+            pytest.fail("Public audit job did not finish")
+        assert job["result"]["result"]["decision"] == "ABSTAIN"
+
+        bad_origin = Request(
+            f"http://127.0.0.1:{port}/api/audit",
+            data=json.dumps({"case_id": "M10"}).encode(),
+            headers={
+                "Host": "demo.example",
+                "Origin": "https://evil.example",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with pytest.raises(HTTPError) as captured:
+            urlopen(bad_origin, timeout=10)
+        assert captured.value.code == 403
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:

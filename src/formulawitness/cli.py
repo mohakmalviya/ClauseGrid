@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from collections.abc import Sequence
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -188,6 +189,11 @@ def build_parser() -> argparse.ArgumentParser:
     serve_parser = subparsers.add_parser("serve", help="Start the local review interface")
     serve_parser.add_argument("--host", default="127.0.0.1")
     serve_parser.add_argument("--port", type=int, default=8765)
+    serve_parser.add_argument("--artifacts", type=Path, default=_root() / "artifacts/ui")
+    serve_parser.add_argument("--public-origin")
+    serve_parser.add_argument("--max-audits-per-hour", type=int, default=6)
+    serve_parser.add_argument("--max-audits-per-client-hour", type=int, default=2)
+    serve_parser.add_argument("--admin-token-env", default="FORMULAWITNESS_ADMIN_TOKEN")
     _add_model_options(serve_parser)
     trajectory_parser = subparsers.add_parser(
         "verify-trajectory",
@@ -300,9 +306,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(demo_result.to_dict(), indent=2, default=str))
         return 0
     if args.command == "serve":
-        from .ui import serve
+        from .ui import PublicServerConfig, serve
 
         model_client, provider, model_id = _configured_model(args)
+        public_config = None
+        if args.public_origin:
+            public_config = PublicServerConfig(
+                origin=args.public_origin,
+                max_audits_per_hour=args.max_audits_per_hour,
+                max_audits_per_client_hour=args.max_audits_per_client_hour,
+                admin_token=os.environ.get(args.admin_token_env),
+            )
         try:
             serve(
                 root,
@@ -311,6 +325,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 model=model_client,
                 provider=provider,
                 model_id=model_id,
+                public_config=public_config,
+                artifact_root=args.artifacts,
             )
         finally:
             model_client.close()

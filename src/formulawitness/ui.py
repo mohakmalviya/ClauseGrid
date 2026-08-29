@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import hmac
 import json
 import mimetypes
 import threading
+import time
+import uuid
+from collections import defaultdict, deque
+from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from ipaddress import ip_address
@@ -56,12 +61,13 @@ code{font-family:Consolas,monospace;font-size:11px;background:#f1f4f8;padding:2p
 <div class="panel approval" style="margin-top:18px"><h2>Local human approval gate</h2><p>Review the exact proposal, citations, experiments, falsifier verdict, and proposal hash. The model cannot invoke this gate.</p><div class="grid"><div><label for="reviewer">Reviewer label</label><input id="reviewer" value="hackathon-reviewer"></div><div><label>Source SHA-256</label><code id="sourceHash"></code><label style="margin-top:12px">Proposal hash</label><code id="proposalHash"></code></div></div><div class="actions"><button id="approve">Approve exact proposal</button></div><div id="approvalMessage" class="small"></div><div id="downloads" class="downloads"></div></div></section>
 </main>
 <script>
-const $=id=>document.getElementById(id); let current=null;
+const $=id=>document.getElementById(id); let current=null; let runtimeConfig=null;
 function node(tag,text,cls){const n=document.createElement(tag);n.textContent=text??'';if(cls)n.className=cls;return n}
 async function api(path,options){const r=await fetch(path,options);const j=await r.json();if(!r.ok)throw new Error(j.error||r.statusText);return j}
 function pct(value){return `${Number(value).toFixed(1)}%`}function seconds(value){return `${Number(value).toFixed(3)} s`}
 function renderSummary(s){$('benchmarkBadge').textContent=`${s.benchmark} · ${s.workbook_count} workbooks × ${s.hidden_cases_per_workbook} sealed cases`;$('scorecard').replaceChildren();const rows=[['Primary outcome: E2E-SRR',pct(s.baseline_e2e_srr),pct(s.advanced_e2e_srr),`+${Number(s.improvement_pp).toFixed(1)} pp`],['Clean preservation',pct(s.baseline_clean_preservation),pct(s.advanced_clean_preservation),'no regression'],['Challenging case H01',pct(s.baseline_hard_rate),pct(s.advanced_hard_rate),`+${Number(s.advanced_hard_rate-s.baseline_hard_rate).toFixed(1)} pp`],['Automated wall-clock, M10 median',seconds(s.baseline_runtime_seconds),seconds(s.advanced_runtime_seconds),`+${seconds(s.advanced_runtime_seconds-s.baseline_runtime_seconds)}`],['Human time per task','Not measured','Not measured','No claim'],['Model/API cost per task','$0.00 legacy','$0.00 legacy','Model cost not reported']];for(const values of rows){const tr=document.createElement('tr');for(const value of values)tr.append(node('td',value));$('scorecard').append(tr)}$('measurementDisclosure').textContent='The model-agent manager/falsifier is intentionally reported separately and has not inherited these scores. Every run below exposes its own provider, model, usage, evidence, and outcome.'}
-async function init(){const [data,summary,config]=await Promise.all([api('/api/cases'),api('/api/summary'),api('/api/config')]);for(const c of data.cases){const o=node('option',`${c.id} — ${c.label}`);o.value=c.id;if(c.id==='M10')o.selected=true;$('case').append(o)}$('runtime').textContent=`${config.provider} · ${config.model}`;renderSummary(summary)}
+async function init(){const [data,summary,config]=await Promise.all([api('/api/cases'),api('/api/summary'),api('/api/config')]);runtimeConfig=config;for(const c of data.cases){const o=node('option',`${c.id} — ${c.label}`);o.value=c.id;if(c.id==='M10')o.selected=true;$('case').append(o)}$('runtime').textContent=`${config.provider} · ${config.model}`;if(config.public_demo)$('message').textContent='Public live audits are queued, globally rate-limited, and use synthetic workbooks only.';renderSummary(summary)}
+async function waitForJob(url){for(let attempt=0;attempt<1050;attempt++){const job=await api(url);if(job.status==='complete')return job.result;if(job.status==='failed')throw new Error(job.error||'Audit failed closed');$('message').textContent=`Agent audit ${job.status}…`;await new Promise(resolve=>setTimeout(resolve,2000))}throw new Error('Audit did not finish within thirty-five minutes')}
 function setSteps(n){for(let i=2;i<=5;i++)$('s'+i).classList.toggle('on',i<=n)}
 function renderDownloads(files){$('downloads').replaceChildren();for(const f of files||[]){const a=node('a',f);a.href=`/download/${encodeURIComponent(current.result.run_id)}/${encodeURIComponent(f)}`;$('downloads').append(a)}}
 function observedSummary(item){const observation=item.observation||{};const applied=(observation.applied_formula_overrides||[]).join(', ')||'source formula';const values=JSON.stringify(observation.observations||{});return `${applied} → ${values}`}
@@ -70,8 +76,8 @@ function render(data){current=data;const result=data.result;const state=data.sta
  $('diagnosis').replaceChildren(node('div',`Decision: ${result.decision}`,'status '+result.decision),node('div',`${data.provider} · ${data.model}`,'small'));if(state.decision?.explanation)$('diagnosis').append(node('p',state.decision.explanation));for(const p of result.patches||[]){const d=node('div',null,'patch');d.append(node('b',`Patch ${p.cell} · ${(p.rule_ids||[]).join(', ')}`));d.append(node('div',p.old_formula,'before'));d.append(node('div',p.new_formula,'after'));d.append(node('p',p.rationale));$('diagnosis').append(d)}if(!(result.patches||[]).length)$('diagnosis').append(node('p','No workbook patch has been authorized.'));
  $('experiments').replaceChildren();for(const t of data.experiments||[]){const tr=document.createElement('tr');for(const value of [t.experiment_id,t.actor,t.request?.purpose||'—',observedSummary(t)])tr.append(node('td',value));$('experiments').append(tr)}if(!(data.experiments||[]).length){const tr=document.createElement('tr');const td=node('td','No sandbox experiment completed.');td.colSpan=4;tr.append(td);$('experiments').append(tr)}
  $('falsifier').replaceChildren();const v=data.falsifier_verdict;if(v){$('falsifier').append(node('span',v.status,'status '+v.status),node('p',v.explanation));if(v.counterexamples?.length)$('falsifier').append(node('div',`Counterexamples: ${v.counterexamples.join('; ')}`,'danger'));if(v.remaining_risks?.length)$('falsifier').append(node('div',`Remaining risks: ${v.remaining_risks.join('; ')}`,'small'))}else $('falsifier').append(node('p','No falsifier verdict was produced.'));
- const approved=Boolean(result.approval_hash);const survived=v?.status==='SURVIVED';$('approve').disabled=result.decision!=='REPAIR'||!survived||approved;$('approvalMessage').textContent=approved?`Approved: ${result.approval_hash}`:(result.decision==='REPAIR'&&!survived?'Repair is locked because independent falsification did not survive.':(result.decision==='REPAIR'?'Review every artifact before approval.':'No repair is eligible for approval.'));renderDownloads(data.downloads)}
-$('audit').onclick=async()=>{try{$('audit').disabled=true;$('message').className='';$('message').textContent='The audit manager is choosing evidence and experiments…';const d=await api('/api/audit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:$('case').value})});render(d);$('message').textContent=`Agent audit ${d.result.run_id} completed with ${d.result.decision}.`}catch(e){$('message').textContent=e.message;$('message').className='danger'}finally{$('audit').disabled=false}};
+ const approved=Boolean(result.approval_hash);const survived=v?.status==='SURVIVED';const browserApproval=runtimeConfig?.browser_approval_enabled===true;$('approve').disabled=!browserApproval||result.decision!=='REPAIR'||!survived||approved;$('approvalMessage').textContent=!browserApproval?'Public approval is disabled; only an authenticated administrator can approve artifacts.':(approved?`Approved: ${result.approval_hash}`:(result.decision==='REPAIR'&&!survived?'Repair is locked because independent falsification did not survive.':(result.decision==='REPAIR'?'Review every artifact before approval.':'No repair is eligible for approval.')));renderDownloads(data.downloads)}
+$('audit').onclick=async()=>{try{$('audit').disabled=true;$('message').className='';$('message').textContent='The audit manager is choosing evidence and experiments…';let d=await api('/api/audit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:$('case').value})});if(d.job_id)d=await waitForJob(d.status_url);render(d);$('message').textContent=`Agent audit ${d.result.run_id} completed with ${d.result.decision}.`}catch(e){$('message').textContent=e.message;$('message').className='danger'}finally{$('audit').disabled=false}};
 $('approve').onclick=async()=>{try{$('approve').disabled=true;$('approvalMessage').className='small';$('approvalMessage').textContent='Revalidating evidence and writing a copied workbook…';const d=await api('/api/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({run_id:current.result.run_id,reviewer:$('reviewer').value})});render(d)}catch(e){$('approvalMessage').textContent=e.message;$('approvalMessage').className='danger'}finally{$('approve').disabled=Boolean(current?.result?.approval_hash)}};
 $('reset').onclick=()=>location.reload();init().catch(e=>{$('message').textContent=e.message;$('message').className='danger'});
 </script></body></html>"""
@@ -88,6 +94,70 @@ DOWNLOAD_ALLOWLIST = frozenset(
         "trajectory.jsonl",
     }
 )
+
+
+@dataclass(frozen=True)
+class PublicServerConfig:
+    """Explicit internet-facing demo boundary; secrets never enter browser configuration."""
+
+    origin: str
+    max_audits_per_hour: int = 6
+    max_audits_per_client_hour: int = 2
+    admin_token: str | None = None
+
+    def __post_init__(self) -> None:
+        parsed = urlsplit(self.origin)
+        if parsed.scheme != "https" or not parsed.hostname or parsed.path not in {"", "/"}:
+            raise ValueError("Public origin must be an HTTPS origin without a path")
+        if parsed.username or parsed.password or parsed.query or parsed.fragment:
+            raise ValueError("Public origin cannot contain credentials, query, or fragment")
+        if self.max_audits_per_hour < 1 or self.max_audits_per_client_hour < 1:
+            raise ValueError("Public audit limits must be positive")
+
+    @property
+    def hostname(self) -> str:
+        hostname = urlsplit(self.origin).hostname
+        assert hostname is not None
+        return hostname.casefold()
+
+
+class SlidingWindowRateLimiter:
+    """Small in-process limiter for the single-instance public demonstration."""
+
+    def __init__(self, *, global_limit: int, client_limit: int, window_seconds: float = 3600):
+        self.global_limit = global_limit
+        self.client_limit = client_limit
+        self.window_seconds = window_seconds
+        self._global: deque[float] = deque()
+        self._clients: defaultdict[str, deque[float]] = defaultdict(deque)
+        self._lock = threading.Lock()
+
+    def allow(self, client: str, *, now: float | None = None) -> tuple[bool, int]:
+        current = time.monotonic() if now is None else now
+        cutoff = current - self.window_seconds
+        with self._lock:
+            while self._global and self._global[0] <= cutoff:
+                self._global.popleft()
+            client_events = self._clients.get(client, deque())
+            while client_events and client_events[0] <= cutoff:
+                client_events.popleft()
+            global_exhausted = len(self._global) >= self.global_limit
+            client_exhausted = len(client_events) >= self.client_limit
+            if global_exhausted or client_exhausted:
+                candidates: list[float] = []
+                if global_exhausted:
+                    candidates.append(self._global[0])
+                if client_exhausted:
+                    candidates.append(client_events[0])
+                retry = max(
+                    1,
+                    round(max(candidates) + self.window_seconds - current),
+                )
+                return False, retry
+            self._global.append(current)
+            self._clients[client] = client_events
+            client_events.append(current)
+            return True, 0
 
 
 def _is_loopback_host(host: str) -> bool:
@@ -176,15 +246,38 @@ def make_handler(
     model: ChatModel,
     provider: str,
     model_id: str,
+    public_config: PublicServerConfig | None = None,
+    configured_artifact_root: Path | None = None,
 ) -> type[BaseHTTPRequestHandler]:
     sessions: dict[str, dict[str, str]] = {}
-    artifact_root = root / "artifacts/ui"
+    jobs: dict[str, dict[str, Any]] = {}
+    jobs_lock = threading.Lock()
+    artifact_root = (configured_artifact_root or root / "artifacts/ui").resolve(strict=False)
+    artifact_root.mkdir(parents=True, exist_ok=True)
     operation_lock = threading.Lock()
+    limiter = (
+        None
+        if public_config is None
+        else SlidingWindowRateLimiter(
+            global_limit=public_config.max_audits_per_hour,
+            client_limit=public_config.max_audits_per_client_hour,
+        )
+    )
 
     class Handler(BaseHTTPRequestHandler):
-        server_version = "FormulaWitness/0.2"
+        server_version = "FormulaWitness/0.3"
 
-        def _json(self, payload: Any, status: HTTPStatus = HTTPStatus.OK) -> None:
+        def setup(self) -> None:
+            super().setup()
+            self.connection.settimeout(15)
+
+        def _json(
+            self,
+            payload: Any,
+            status: HTTPStatus = HTTPStatus.OK,
+            *,
+            headers: dict[str, str] | None = None,
+        ) -> None:
             data = json.dumps(payload, default=str).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -193,6 +286,10 @@ def make_handler(
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("X-Frame-Options", "DENY")
             self.send_header("Referrer-Policy", "no-referrer")
+            if public_config is not None:
+                self.send_header("Strict-Transport-Security", "max-age=31536000")
+            for key, value in (headers or {}).items():
+                self.send_header(key, value)
             self.end_headers()
             self.wfile.write(data)
 
@@ -208,16 +305,83 @@ def make_handler(
                 raise TypeError("JSON request body must be an object")
             return cast(dict[str, Any], payload)
 
-        def _trusted_request(self) -> bool:
-            if _trusted_host_header(self.headers.get("Host")):
+        def _trusted_request(self, *, modifying: bool = False) -> bool:
+            raw_host = self.headers.get("Host")
+            if public_config is None:
+                trusted = _trusted_host_header(raw_host)
+                message = "Localhost Host header required"
+            else:
+                try:
+                    hostname = urlsplit(f"//{raw_host or ''}").hostname
+                except ValueError:
+                    hostname = None
+                trusted = hostname is not None and hostname.casefold() == public_config.hostname
+                message = "Unrecognized public Host header"
+                if trusted and modifying:
+                    trusted = self.headers.get("Origin") == public_config.origin.rstrip("/")
+                    message = "Same-origin request required"
+            if trusted:
                 return True
-            self._json({"error": "Localhost Host header required"}, HTTPStatus.FORBIDDEN)
+            self._json({"error": message}, HTTPStatus.FORBIDDEN)
             return False
 
+        def _client_key(self) -> str:
+            forwarded = self.headers.get("X-Forwarded-For", "").split(",", 1)[0].strip()
+            return (forwarded or self.client_address[0])[:128]
+
+        def _admin_authorized(self) -> bool:
+            if public_config is None:
+                return True
+            token = public_config.admin_token
+            supplied = self.headers.get("Authorization", "")
+            return bool(
+                token
+                and supplied.startswith("Bearer ")
+                and hmac.compare_digest(supplied[7:], token)
+            )
+
+        def _run_public_audit(self, job_id: str, case_id: str) -> None:
+            try:
+                with jobs_lock:
+                    jobs[job_id] = {"status": "running"}
+                workbook = root / WORKBOOK_CASES[case_id]
+                result = run_agentic(
+                    workbook,
+                    root / "policies/supplier_rebate_sla_policy.pdf",
+                    artifact_root,
+                    model=model,
+                    model_id=model_id,
+                )
+                review = _agent_review_payload(
+                    result,
+                    artifact_root,
+                    provider=provider,
+                    model_id=model_id,
+                )
+                sessions[result.run_id] = {
+                    "case_id": case_id,
+                    "proposal_hash": str(review["proposal_hash"]),
+                }
+                with jobs_lock:
+                    jobs[job_id] = {"status": "complete", "result": review}
+            except Exception as exc:  # noqa: BLE001 - async boundary must fail closed
+                print(f"[ui] public audit {job_id} failed closed: {type(exc).__name__}: {exc}")
+                with jobs_lock:
+                    jobs[job_id] = {
+                        "status": "failed",
+                        "error": "Audit failed closed; consult the server log with this job ID.",
+                        "job_id": job_id,
+                    }
+            finally:
+                operation_lock.release()
+
         def do_GET(self) -> None:
+            parsed = urlparse(self.path)
+            if parsed.path == "/healthz":
+                self._json({"status": "ok"})
+                return
             if not self._trusted_request():
                 return
-            parsed = urlparse(self.path)
             if parsed.path == "/":
                 data = HTML.encode("utf-8")
                 self.send_response(HTTPStatus.OK)
@@ -231,11 +395,21 @@ def make_handler(
                 self.send_header("X-Content-Type-Options", "nosniff")
                 self.send_header("X-Frame-Options", "DENY")
                 self.send_header("Referrer-Policy", "no-referrer")
+                if public_config is not None:
+                    self.send_header("Strict-Transport-Security", "max-age=31536000")
                 self.end_headers()
                 self.wfile.write(data)
                 return
             if parsed.path == "/api/config":
-                self._json({"provider": provider, "model": model_id, "local_only": True})
+                self._json(
+                    {
+                        "provider": provider,
+                        "model": model_id,
+                        "local_only": public_config is None,
+                        "public_demo": public_config is not None,
+                        "browser_approval_enabled": public_config is None,
+                    }
+                )
                 return
             if parsed.path == "/api/cases":
                 cases = [
@@ -246,6 +420,15 @@ def make_handler(
                 return
             if parsed.path == "/api/summary":
                 self._json(_summary_payload(root))
+                return
+            if parsed.path.startswith("/api/jobs/"):
+                job_id = parsed.path.removeprefix("/api/jobs/")
+                with jobs_lock:
+                    job = jobs.get(job_id)
+                if job is None:
+                    self._json({"error": "Unknown audit job"}, HTTPStatus.NOT_FOUND)
+                else:
+                    self._json(job)
                 return
             if parsed.path.startswith("/download/"):
                 parts = [unquote(part) for part in parsed.path.split("/") if part]
@@ -266,30 +449,71 @@ def make_handler(
                 self.send_header("Content-Length", str(len(data)))
                 self.send_header("Cache-Control", "no-store")
                 self.send_header("X-Content-Type-Options", "nosniff")
+                if public_config is not None:
+                    self.send_header("Strict-Transport-Security", "max-age=31536000")
                 self.end_headers()
                 self.wfile.write(data)
                 return
             self._json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
 
         def do_POST(self) -> None:
-            if not self._trusted_request():
+            if not self._trusted_request(modifying=True):
                 return
             try:
                 payload = self._body()
                 if self.path not in {"/api/audit", "/api/approve"}:
                     self._json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
                     return
-                if not operation_lock.acquire(blocking=False):
-                    self._json(
-                        {"error": "Another local audit or approval is already running"},
-                        HTTPStatus.CONFLICT,
-                    )
-                    return
-                try:
-                    if self.path == "/api/audit":
-                        case_id = str(payload.get("case_id", ""))
-                        if case_id not in WORKBOOK_CASES:
-                            raise ValueError("Unknown benchmark case")
+                if self.path == "/api/audit":
+                    case_id = str(payload.get("case_id", ""))
+                    if case_id not in WORKBOOK_CASES:
+                        raise ValueError("Unknown benchmark case")
+                    if not operation_lock.acquire(blocking=False):
+                        self._json(
+                            {"error": "Another audit or approval is already running"},
+                            HTTPStatus.CONFLICT,
+                        )
+                        return
+                    if public_config is not None:
+                        assert limiter is not None
+                        allowed, retry_after = limiter.allow(self._client_key())
+                        if not allowed:
+                            operation_lock.release()
+                            self._json(
+                                {"error": "Public demo audit limit reached"},
+                                HTTPStatus.TOO_MANY_REQUESTS,
+                                headers={"Retry-After": str(retry_after)},
+                            )
+                            return
+                        job_id = uuid.uuid4().hex
+                        with jobs_lock:
+                            if len(jobs) >= 100:
+                                oldest = next(iter(jobs))
+                                jobs.pop(oldest, None)
+                            jobs[job_id] = {"status": "queued"}
+                        worker = threading.Thread(
+                            target=self._run_public_audit,
+                            args=(job_id, case_id),
+                            daemon=True,
+                            name=f"formulawitness-audit-{job_id[:8]}",
+                        )
+                        try:
+                            worker.start()
+                        except Exception:
+                            with jobs_lock:
+                                jobs.pop(job_id, None)
+                            operation_lock.release()
+                            raise
+                        self._json(
+                            {
+                                "job_id": job_id,
+                                "status": "queued",
+                                "status_url": f"/api/jobs/{job_id}",
+                            },
+                            HTTPStatus.ACCEPTED,
+                        )
+                        return
+                    try:
                         workbook = root / WORKBOOK_CASES[case_id]
                         result = run_agentic(
                             workbook,
@@ -310,7 +534,21 @@ def make_handler(
                         }
                         self._json(review)
                         return
+                    finally:
+                        operation_lock.release()
 
+                if not self._admin_authorized():
+                    self._json(
+                        {"error": "Administrator authorization required"}, HTTPStatus.FORBIDDEN
+                    )
+                    return
+                if not operation_lock.acquire(blocking=False):
+                    self._json(
+                        {"error": "Another audit or approval is already running"},
+                        HTTPStatus.CONFLICT,
+                    )
+                    return
+                try:
                     run_id = str(payload.get("run_id", ""))
                     reviewer = str(payload.get("reviewer", "")).strip()
                     if run_id not in sessions or not reviewer or len(reviewer) > 256:
@@ -341,6 +579,13 @@ def make_handler(
             except (TypeError, ValueError, KeyError, json.JSONDecodeError) as exc:
                 self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             except Exception as exc:  # noqa: BLE001 - HTTP boundary must fail closed
+                if public_config is not None:
+                    print(f"[ui] request failed closed: {type(exc).__name__}: {exc}")
+                    self._json(
+                        {"error": "Operation failed closed; consult the server log."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                    return
                 self._json(
                     {"error": f"Audit failed closed: {type(exc).__name__}: {exc}"},
                     HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -360,14 +605,28 @@ def serve(
     model: ChatModel,
     provider: str,
     model_id: str,
+    public_config: PublicServerConfig | None = None,
+    artifact_root: Path | None = None,
 ) -> None:
-    if not _is_loopback_host(host):
+    if public_config is None and not _is_loopback_host(host):
         raise ValueError("The unauthenticated review UI may bind only to a loopback host")
+    if public_config is not None and host not in {"0.0.0.0", "::"}:
+        raise ValueError("The public demo must bind to all interfaces behind its HTTPS proxy")
     server = ThreadingHTTPServer(
         (host, port),
-        make_handler(root, model=model, provider=provider, model_id=model_id),
+        make_handler(
+            root,
+            model=model,
+            provider=provider,
+            model_id=model_id,
+            public_config=public_config,
+            configured_artifact_root=artifact_root,
+        ),
     )
-    print(f"FormulaWitness review UI: http://{host}:{port}")
+    display_url = (
+        f"http://{host}:{port}" if public_config is None else public_config.origin.rstrip("/")
+    )
+    print(f"FormulaWitness review UI: {display_url}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

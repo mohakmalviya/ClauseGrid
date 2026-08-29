@@ -29,13 +29,20 @@ explicit. `--base-url` rejects embedded credentials, query strings, fragments, a
 URLs. HTTP is allowed only for loopback development. The Anthropic adapter refuses redirects and
 bounds response bodies before JSON decoding.
 
-The local UI binds only to loopback, requires a loopback Host header, accepts a benchmark case ID
-and reviewer label rather than arbitrary uploads, limits JSON request size, serializes expensive
-operations, and allowlists downloadable filenames. It is not a multi-user or internet-facing
-service. Trajectories intentionally retain policy quotes, workbook observations, formulas, and
-model/tool messages under the configured artifact directory. Treat that directory as confidential,
-apply host filesystem access controls, and delete it according to the data owner's retention policy.
-FormulaWitness does not currently encrypt artifacts at rest.
+The default local UI binds only to loopback and requires a loopback Host header. The explicit public
+demo mode must sit behind an HTTPS reverse proxy and match its configured Host and modifying-request
+Origin. It accepts only bundled synthetic benchmark case IDs—never arbitrary uploads—limits JSON
+request size and audit frequency, serializes expensive operations, uses unguessable job IDs, and
+allowlists downloadable filenames. Audits run asynchronously so one long model call does not hold
+the HTTP request open. Public browser approval is disabled; an approval call additionally requires a
+server-side bearer token. Error details stay in server logs rather than public JSON responses.
+
+Public rate limits, jobs, and locks are process-local, so the demo must run as one instance. The
+container runs as an unprivileged user and writes transient artifacts below `/tmp`. Local/private
+trajectories can retain policy quotes, workbook observations, formulas, and model/tool messages;
+treat a configured persistent artifact directory as confidential, apply host filesystem controls,
+and delete it according to the data owner's retention policy. FormulaWitness does not encrypt
+artifacts at rest.
 
 Sealed evaluation invokes the oracle only after each model run and never places reference formulas,
 held-out cases, or oracle output in an agent request.
@@ -52,8 +59,8 @@ as the transaction commit marker. Formula caches are cleared and Excel full reca
 
 The worker is an allowlisted interpreter plus process-local file-capability boundary, not a
 hostile-code kernel sandbox. The repair workers execute fixed FormulaWitness code, not
-workbook-supplied Python. The local UI has no account authentication, tenant isolation, durable job
-queue, or TLS and must remain on loopback. The JSONL hash chain is anchored into the reviewed
+workbook-supplied Python. The public mode has no user accounts, tenant isolation, distributed rate
+limiter, durable queue, or durable artifact store. The JSONL hash chain is anchored into the reviewed
 proposal and approval, but it is not a digital signature or substitute for immutable external log
 storage. On platforms that require protection from a malicious repair implementation itself, run
 workers as a non-root container with only staged inputs mounted, a read-only filesystem, resource

@@ -1,0 +1,85 @@
+# Public demo deployment
+
+FormulaWitness has two server modes. Local mode remains loopback-only and exposes the reviewer gate.
+Public mode is a constrained, synthetic-data demonstration behind an HTTPS proxy; browser approval
+is disabled. It is not a production multi-tenant deployment.
+
+## Render Blueprint
+
+Prerequisites: the private GitHub repository, a Render account that can access it, and an NVIDIA NIM
+API key. Render supports private Git repositories and Docker-based web services; its proxy forwards
+public traffic to the port supplied in `PORT`.
+
+1. Push the repository revision you intend to demo.
+2. In Render, create a **Blueprint**, connect the private GitHub repository, and select
+   `render.yaml`.
+3. Supply `NVIDIA_NIM_API_KEY` when prompted. Do not put it in Git, Docker build arguments, or the
+   image.
+4. Deploy and open the generated `https://...onrender.com` URL.
+5. Check `GET /healthz`, load the UI, select M10, and run one audit. The POST returns `202`; the UI
+   polls an unguessable job URL until the result is complete.
+
+The Blueprint fixes the provider/model to `nvidia-nim` and
+`nvidia/nemotron-3.5-lightning-30b-a3b`. The deployment entry point reads
+`RENDER_EXTERNAL_URL`, binds `0.0.0.0:$PORT`, and stores transient artifacts under
+`/tmp/formulawitness`. Render environment variables are configured at runtime, not embedded into the
+container.
+
+The exact model is the requested demo profile, not a production recommendation. The latest completed
+M10 run ended in a bounded `ABSTAIN` after the hosted model stopped honoring mandatory tool calls.
+Public users may therefore see a safe abstention, and a live audit can take several minutes. Use the
+repeated blind `agent-eval` harness before changing this status.
+
+Official platform references:
+
+- [Render web services](https://render.com/docs/web-services)
+- [Render Docker deployments](https://render.com/docs/docker)
+- [Render environment variables and secrets](https://render.com/docs/configure-environment-variables)
+- [Render default environment variables](https://render.com/docs/environment-variables)
+- [Render deploy and filesystem behavior](https://render.com/docs/deploys)
+
+## Local container verification
+
+Build without passing any credential into the build:
+
+```powershell
+docker build -t formulawitness:demo .
+```
+
+Run the image with runtime environment variables:
+
+```powershell
+docker run --rm -p 10000:10000 `
+  -e NVIDIA_NIM_API_KEY `
+  -e FORMULAWITNESS_PUBLIC_ORIGIN=https://demo.example `
+  -e PORT=10000 `
+  formulawitness:demo
+```
+
+The exact public Host is deliberately enforced, so a local HTTP smoke request must set
+`Host: demo.example`; `/healthz` is the only host-independent endpoint.
+
+## Public-mode controls
+
+- Only the repository's synthetic `WORKBOOK_CASES` and synthetic policy are addressable.
+- One audit/approval may execute at a time; public audits run in background jobs.
+- Defaults allow six audits globally and two per client per rolling hour.
+- Modifying requests require the configured HTTPS Origin.
+- Browser approval is disabled. `/api/approve` additionally requires
+  `Authorization: Bearer $FORMULAWITNESS_ADMIN_TOKEN`; an administrative client must also send the
+  exact configured `Origin` header.
+- Connections have a bounded socket read/write timeout and JSON request bodies are capped at 20 KB.
+- Provider credentials and the administrator token stay server-side.
+- Sealed evaluator vectors and oracle code are excluded from the public image; only the published
+  aggregate legacy scorecard is copied for the UI summary.
+- Public failures return generic text and a job ID; details are logged server-side.
+- The image runs as UID/GID 10001.
+
+## Deliberate operational limits
+
+Run exactly one instance. Jobs, locks, sessions, and rate limits are held in process memory. The
+default `/tmp` artifacts are ephemeral and may disappear on deploy or restart. A durable,
+multi-instance service would require an authenticated identity layer, shared queue, shared rate
+limiter, object storage with retention controls, encrypted audit log, worker isolation, and a
+separate administrative review application. Those are outside the hackathon demo boundary rather
+than silently claimed as complete.

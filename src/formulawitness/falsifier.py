@@ -94,6 +94,10 @@ class FalsifierAgent:
             is_terminal=lambda: self.state.falsifier_verdict is not None,
             terminal_tool_names=("report_falsification",),
             terminal_tool_call_reserve=8,
+            coordination_tool_names=("run_experiment", "report_falsification"),
+            coordination_tool_call_reserve=10,
+            evidence_aware_coordination=True,
+            require_experiment_after_turns=6,
         )
         try:
             loop.run()

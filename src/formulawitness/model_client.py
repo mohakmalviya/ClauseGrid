@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 from .agent_types import (
     AssistantMessage,
     ModelRequest,
+    ModelRequestSettings,
     ModelTurn,
     ModelUsage,
     NamedToolChoice,
@@ -151,12 +152,14 @@ class ModelClient:
         *,
         transport: ModelTransport | None = None,
         retry_policy: RetryPolicy | None = None,
+        request_settings: ModelRequestSettings | None = None,
         sleeper: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.perf_counter,
     ):
         self.config = config
         self._transport = transport or OpenAITransport(config)
         self._retry_policy = retry_policy or RetryPolicy()
+        self.request_settings = request_settings or ModelRequestSettings()
         self._sleeper = sleeper
         self._clock = clock
         self._last_request_started: float | None = None
@@ -234,6 +237,7 @@ class ModelClient:
                 elapsed_ms=elapsed_ms,
                 retry_count=attempt,
             )
+            turn = _serialize_tool_calls(request, turn)
             try:
                 _validate_response_contract(request, turn)
             except ModelProtocolError as exc:
@@ -281,12 +285,6 @@ def _validate_response_contract(request: ModelRequest, turn: ModelTurn) -> None:
     """Enforce tool-choice guarantees even when a compatible endpoint ignores them."""
 
     calls = turn.tool_calls
-    if request.parallel_tool_calls is False and len(calls) > 1:
-        raise ModelProtocolError(
-            "Provider returned parallel tool calls when they were disabled",
-            status_code=None,
-            retry_count=turn.retry_count,
-        )
     if request.tool_choice == "required" and not calls:
         raise ModelProtocolError(
             "Provider did not return a required tool call",
@@ -317,15 +315,32 @@ def _validate_response_contract(request: ModelRequest, turn: ModelTurn) -> None:
         )
 
 
+def _serialize_tool_calls(request: ModelRequest, turn: ModelTurn) -> ModelTurn:
+    """Enforce serial orchestration locally when a compatible provider ignores the flag."""
+
+    if request.parallel_tool_calls or request.tool_choice == "none" or len(turn.tool_calls) <= 1:
+        return turn
+    selected_index = 0
+    if isinstance(request.tool_choice, NamedToolChoice):
+        matching = [
+            index
+            for index, call in enumerate(turn.tool_calls)
+            if call.name == request.tool_choice.name
+        ]
+        if matching:
+            selected_index = matching[0]
+    selected = turn.tool_calls[selected_index]
+    discarded = tuple(call for index, call in enumerate(turn.tool_calls) if index != selected_index)
+    return turn.model_copy(
+        update={
+            "tool_calls": (selected,),
+            "discarded_tool_calls": discarded,
+        }
+    )
+
+
 def _protocol_repair_instruction(request: ModelRequest, turn: ModelTurn) -> str | None:
     """Return a bounded correction for protocol drift that can be retried safely."""
-
-    if request.parallel_tool_calls is False and len(turn.tool_calls) > 1:
-        return (
-            "Your previous response contained multiple function calls even though parallel tool "
-            "calls are disabled. Call exactly one available function now with a valid JSON "
-            "argument object. Do not answer with plain text."
-        )
 
     requires_tool = request.tool_choice == "required" or isinstance(
         request.tool_choice, NamedToolChoice
@@ -443,6 +458,10 @@ def _request_payload(model: str, request: ModelRequest) -> dict[str, Any]:
         "temperature": request.temperature,
         "max_tokens": request.max_tokens,
     }
+    if request.top_p is not None:
+        payload["top_p"] = request.top_p
+    if request.extra_body:
+        payload["extra_body"] = request.extra_body
     if request.seed is not None:
         payload["seed"] = request.seed
     if request.tools:

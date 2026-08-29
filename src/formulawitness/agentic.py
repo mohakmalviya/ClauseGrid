@@ -102,7 +102,9 @@ Never assume sheet names, cell locations, inputs, outputs, meanings, or expected
 claim that parsing proves semantic correctness. Cite exact policy passages and execute discriminating
 boundary/precedence experiments. A staged formula is data only and never edits the workbook. Prefer
 the smallest justified patch. If meaning conflicts, evidence is weak, or risk is broad, call
-request_human. A repair can finish only through submit_repair after the current candidate survives
+request_human only after an executed experiment demonstrates the reason and cite both that
+experiment and exact current-policy evidence. Never call request_human to announce that you intend
+to continue; simply choose the next evidence tool. A repair can finish only through submit_repair after the current candidate survives
 fresh-context falsification. Do not reveal or request hidden chain-of-thought; expose decisions only
 through tool calls, evidence references, and concise rationales.
 
@@ -111,8 +113,14 @@ ids; do not spend calls re-registering every clause. Avoid repeating a rejected 
 Use experiments economically: prioritize semantic joins, precedence, boundaries, and exceptions
 over exhaustive confirmation of every rule. For each waiver or exception, cross its applicable and
 inapplicable states with another independent violation so scope leakage is observable. Batch
-independent discovery calls. Once evidence isolates a defect, stop broad auditing and stage the
-smallest candidate; request human judgment if a focused conclusion cannot be reached safely.
+independent discovery calls only when the provider supports them. After discovering manifests,
+list formulas and read targeted regions instead of requesting the same manifest or full policy page
+again. Once evidence isolates a defect, stop broad auditing and stage the smallest candidate. If a
+faulty outer IF merely masks an otherwise valid calculation, prefer the allowlisted
+formula_transform operation that retains the justified branch rather than regenerating the whole
+formula. Otherwise, when a candidate formula contains quoted Excel text, use stage_candidate's
+new_formula_template field with {DQ} placeholders instead of literal quotes to avoid nested JSON
+escaping failures. Request human judgment if a focused conclusion cannot be reached safely.
 """
 
 SINGLE_AGENT_SYSTEM_PROMPT = """You are the fair FormulaWitness single-agent comparison.
@@ -138,7 +146,7 @@ DEFAULT_AGENT_LIMITS = AgentRuntimeLimits(
     output_token_limit=100_000,
     workbook_execution_limit=30,
     retry_limit=8,
-    elapsed_time_limit_seconds=900.0,
+    elapsed_time_limit_seconds=1_800.0,
 )
 
 
@@ -597,11 +605,12 @@ def run_agentic(
     )
     manager_terminal_reserve = min(8, max(1, limits.tool_call_limit // 4))
     manager_coordination_reserve = min(
-        30,
-        max(manager_terminal_reserve + 1, limits.tool_call_limit // 2),
+        20,
+        max(manager_terminal_reserve + 1, limits.tool_call_limit // 3),
     )
     manager_coordination_tools = (
         (
+            "run_experiment",
             "stage_candidate",
             "falsify_candidate",
             "submit_repair",
@@ -610,6 +619,7 @@ def run_agentic(
         )
         if use_falsifier
         else (
+            "run_experiment",
             "stage_candidate",
             "submit_repair",
             "finish_no_change",
@@ -630,6 +640,8 @@ def run_agentic(
         terminal_tool_call_reserve=manager_terminal_reserve,
         coordination_tool_names=manager_coordination_tools,
         coordination_tool_call_reserve=manager_coordination_reserve,
+        evidence_aware_coordination=True,
+        require_experiment_after_turns=12,
     )
     try:
         manager.run()

@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: formulawitness
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NVIDIA_NIM_API_KEY
+        sync: false
+      - key: FORMULAWITNESS_PROVIDER
+        value: nvidia-nim
+      - key: FORMULAWITNESS_MODEL
+        value: nvidia/nemotron-3.5-lightning-30b-a3b
+      - key: FORMULAWITNESS_MAX_AUDITS_PER_HOUR
+        value: "6"
+      - key: FORMULAWITNESS_MAX_AUDITS_PER_CLIENT_HOUR
+        value: "2"
+      - key: FORMULAWITNESS_ADMIN_TOKEN
+        generateValue: true

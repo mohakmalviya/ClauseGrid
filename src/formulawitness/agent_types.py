@@ -97,6 +97,8 @@ class ModelRequest(AgentRecord):
     tool_choice: ToolChoice = "auto"
     parallel_tool_calls: bool = False
     temperature: float = Field(default=0.0, ge=0.0, le=2.0)
+    top_p: float | None = Field(default=None, gt=0.0, le=1.0)
+    extra_body: dict[str, JsonValue] = Field(default_factory=dict)
     max_tokens: int = Field(default=4096, ge=1, le=131_072)
     attempt_limit: int = Field(default=6, ge=1, le=6)
     seed: int | None = None
@@ -112,6 +114,15 @@ class ModelRequest(AgentRecord):
         if self.tool_choice == "required" and not self.tools:
             raise ValueError("Required tool choice needs at least one declared tool")
         return self
+
+
+class ModelRequestSettings(AgentRecord):
+    """Provider/model-specific inference settings applied by the observable tool loop."""
+
+    temperature: float = Field(default=0.0, ge=0.0, le=2.0)
+    top_p: float | None = Field(default=None, gt=0.0, le=1.0)
+    parallel_tool_calls: bool = True
+    extra_body: dict[str, JsonValue] = Field(default_factory=dict)
 
 
 class ModelUsage(AgentRecord):
@@ -132,6 +143,7 @@ class ModelTurn(AgentRecord):
     model: str = Field(min_length=1)
     content: str | None = None
     tool_calls: tuple[ToolCall, ...] = ()
+    discarded_tool_calls: tuple[ToolCall, ...] = ()
     finish_reason: str | None = None
     usage: ModelUsage = Field(default_factory=ModelUsage)
     elapsed_ms: int = Field(ge=0)

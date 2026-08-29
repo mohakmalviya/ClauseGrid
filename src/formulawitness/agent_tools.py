@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .agent_state import (
     AgentDecision,
@@ -21,6 +21,7 @@ from .agent_state import (
     FalsifierVerdict,
 )
 from .agent_types import ToolCall, ToolSpec
+from .formula import FormulaTransform, transform_formula
 from .models import FormulaOverride
 from .policy_text import PolicyText
 from .runner import execute_experiment
@@ -94,8 +95,81 @@ class RunExperimentArgs(ToolArgs):
     purpose: str = Field(min_length=8, max_length=1_000)
 
 
+class CandidateEditArgs(ToolArgs):
+    sheet: str = Field(min_length=1, max_length=128)
+    cell: str = Field(pattern=r"^[A-Z]{1,3}[1-9]\d*$")
+    old_formula_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    new_formula: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=8_192,
+        description="Exact Excel formula when it can be encoded safely as JSON text.",
+    )
+    new_formula_template: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=8_192,
+        description=(
+            "Alternative Excel formula using {DQ} wherever a literal double quote belongs; "
+            "use this for quoted Excel text and omit new_formula."
+        ),
+    )
+    formula_transform: FormulaTransform | None = Field(
+        default=None,
+        description=(
+            "Allowlisted structural edit derived from the hash-guarded current formula. Use "
+            "unwrap_outer_if_else to remove a faulty outer IF wrapper while retaining its else "
+            "calculation; use unwrap_outer_if_then to retain its then calculation."
+        ),
+    )
+    rationale: str = Field(min_length=8, max_length=2_000)
+    evidence_ids: tuple[str, ...] = Field(min_length=1, max_length=20)
+
+    @model_validator(mode="after")
+    def exactly_one_valid_formula_representation(self) -> CandidateEditArgs:
+        representations = sum(
+            item is not None
+            for item in (self.new_formula, self.new_formula_template, self.formula_transform)
+        )
+        if representations != 1:
+            raise ValueError(
+                "Provide exactly one of new_formula, new_formula_template, or formula_transform"
+            )
+        if self.formula_transform is not None:
+            return self
+        try:
+            self.to_candidate_edit()
+        except ValueError as exc:
+            raise ValueError(
+                "Candidate formula is invalid or truncated. If it contains quoted Excel text, "
+                "retry with new_formula_template and replace every literal double quote with "
+                f"{{DQ}}. Detail: {exc}"
+            ) from None
+        return self
+
+    def to_candidate_edit(self, current_formula: str | None = None) -> CandidateEdit:
+        if self.formula_transform is not None:
+            if current_formula is None:
+                raise ValueError("A structural formula transform requires the current formula")
+            formula = transform_formula(current_formula, self.formula_transform)
+        else:
+            formula = (
+                self.new_formula
+                if self.new_formula is not None
+                else str(self.new_formula_template).replace("{DQ}", '"')
+            )
+        return CandidateEdit(
+            sheet=self.sheet,
+            cell=self.cell,
+            old_formula_sha256=self.old_formula_sha256,
+            new_formula=formula,
+            rationale=self.rationale,
+            evidence_ids=self.evidence_ids,
+        )
+
+
 class StageCandidateArgs(ToolArgs):
-    edits: tuple[CandidateEdit, ...] = Field(min_length=1, max_length=5)
+    edits: tuple[CandidateEditArgs, ...] = Field(min_length=1, max_length=5)
     expected_invariants: tuple[str, ...] = Field(min_length=1, max_length=20)
 
 
@@ -239,6 +313,28 @@ class AgentToolRegistry:
                 error_type=type(exc).__name__,
             )
 
+    def cache_key(self, call: ToolCall) -> str | None:
+        """Return a semantic key only for deterministic read-only tools."""
+
+        if call.name not in {
+            "policy_manifest",
+            "search_policy",
+            "read_policy_page",
+            "workbook_manifest",
+            "read_region",
+            "list_formulas",
+            "inspect_dependencies",
+        }:
+            return None
+        registered = self._tools.get(call.name)
+        if registered is None:
+            return None
+        try:
+            arguments = registered.args_model.model_validate(call.arguments).model_dump(mode="json")
+        except Exception:  # noqa: BLE001 - execute must return invalid calls as observations
+            return None
+        return object_hash({"tool": call.name, "arguments": arguments})
+
     def _add(
         self,
         name: str,
@@ -303,7 +399,7 @@ class AgentToolRegistry:
     def _register_manager_tools(self) -> None:
         self._add(
             "stage_candidate",
-            "Stage a minimal, citation-grounded formula proposal. This never writes a workbook.",
+            "Stage a minimal, citation-grounded formula proposal. This never writes a workbook. Prefer formula_transform=unwrap_outer_if_else when removing a faulty outer IF wrapper; the controller derives the exact result from the hash-guarded current AST. Otherwise, for quoted Excel text omit new_formula and use new_formula_template with {DQ} for each literal double quote.",
             StageCandidateArgs,
             self._stage_candidate,
         )
@@ -332,7 +428,7 @@ class AgentToolRegistry:
         )
         self._add(
             "request_human",
-            "Abstain and request human judgment for ambiguity, conflict, weak evidence, or risk.",
+            "Abstain only for a demonstrated ambiguity, conflict, weak evidence, or residual risk. Must cite current-policy evidence and an executed workbook experiment; never use this tool merely to continue investigating.",
             RequestHumanArgs,
             self._request_human,
         )
@@ -434,6 +530,30 @@ class AgentToolRegistry:
                 "Falsifier experiments require explicit expected observations derived from "
                 "verified policy evidence"
             )
+        prior_manager_experiment = any(
+            evidence.actor == "audit-manager" for evidence in self.state.experiments.values()
+        )
+        if (
+            self.actor == "audit-manager"
+            and prior_manager_experiment
+            and not args.overrides
+            and not args.formula_overrides
+            and not args.expectations
+        ):
+            raise ValueError(
+                "Only one unchanged observational baseline is allowed. Make the next experiment "
+                "discriminating with input/formula overrides or explicit expectations."
+            )
+        requested_signature = self._experiment_signature(args.model_dump(mode="json"))
+        for evidence in self.state.experiments.values():
+            if (
+                evidence.actor == self.actor
+                and self._experiment_signature(evidence.request) == requested_signature
+            ):
+                raise ValueError(
+                    "Duplicate experiment design already exists; change inputs, formula, "
+                    "observations, or expectations instead of renaming it"
+                )
         self._charge_workbook_execution()
         result = execute_experiment(
             self.workbook,
@@ -489,6 +609,13 @@ class AgentToolRegistry:
         )
         self.state.experiments[args.experiment_id] = evidence
         return evidence.model_dump(mode="json")
+
+    @staticmethod
+    def _experiment_signature(request: dict[str, Any]) -> str:
+        semantic = {
+            key: value for key, value in request.items() if key not in {"experiment_id", "purpose"}
+        }
+        return object_hash(semantic)
 
     def _bind_candidate_experiment(
         self, args: RunExperimentArgs, observation: dict[str, Any]
@@ -583,22 +710,25 @@ class AgentToolRegistry:
         ):
             raise ValueError("Candidate limit reached for this comparison mode")
         formulas = list_formulas(self.workbook)
-        for edit in args.edits:
-            self._known_evidence(edit.evidence_ids)
-            self._require_policy_citation(edit.evidence_ids)
-            reference = f"{edit.sheet}!{edit.cell}"
+        edits: list[CandidateEdit] = []
+        for requested_edit in args.edits:
+            self._known_evidence(requested_edit.evidence_ids)
+            self._require_policy_citation(requested_edit.evidence_ids)
+            reference = f"{requested_edit.sheet}!{requested_edit.cell}"
             current = formulas.get(reference)
             if current is None:
                 raise ValueError(f"Candidate target is not an existing formula: {reference}")
             actual_hash = hashlib.sha256(current.encode("utf-8")).hexdigest()
-            if actual_hash != edit.old_formula_sha256:
+            if actual_hash != requested_edit.old_formula_sha256:
                 raise ValueError(f"Old-formula hash guard failed for {reference}")
+            edit = requested_edit.to_candidate_edit(current)
             if current == edit.new_formula:
                 raise ValueError(f"Candidate does not change the formula at {reference}")
+            edits.append(edit)
         proposal = CandidateProposal(
             source_sha256=self.state.source_sha256,
             policy_sha256=self.state.policy_sha256,
-            edits=args.edits,
+            edits=tuple(edits),
             expected_invariants=args.expected_invariants,
         )
         self.state.candidate = proposal
@@ -681,6 +811,22 @@ class AgentToolRegistry:
             for item in args.evidence_ids
             if item in self.state.experiments
         ]
+        if len(cited_experiments) < 3:
+            raise ValueError("No-change requires at least three cited expected-output experiments")
+        intervention_signatures = {
+            object_hash(
+                {
+                    "overrides": item.request.get("overrides", {}),
+                    "formula_overrides": item.request.get("formula_overrides", []),
+                }
+            )
+            for item in cited_experiments
+            if item.request.get("overrides") or item.request.get("formula_overrides")
+        }
+        if len(intervention_signatures) < 2:
+            raise ValueError(
+                "No-change requires at least two distinct input or formula perturbations"
+            )
         comparisons = [
             comparison
             for item in cited_experiments
@@ -689,6 +835,21 @@ class AgentToolRegistry:
         ]
         if not comparisons or not all(item.get("matches") is True for item in comparisons):
             raise ValueError("No-change requires passing explicit expected observations")
+        formula_values: dict[str, set[str]] = {}
+        for item in cited_experiments:
+            observed = item.observation.get("observations", {})
+            formula_hashes = item.observation.get("formula_sha256", {})
+            if not isinstance(observed, dict) or not isinstance(formula_hashes, dict):
+                continue
+            for cell in set(observed) & set(formula_hashes):
+                formula_values.setdefault(cell, set()).add(
+                    json.dumps(observed[cell], sort_keys=True, default=str)
+                )
+        if not any(len(values) >= 2 for values in formula_values.values()):
+            raise ValueError(
+                "No-change requires branch evidence where a formula output changes across "
+                "the cited experiments"
+            )
         decision = AgentDecision(
             decision="NO_CHANGE",
             explanation=args.explanation,
@@ -700,6 +861,12 @@ class AgentToolRegistry:
     def _request_human(self, raw: ToolArgs) -> dict[str, Any]:
         args = RequestHumanArgs.model_validate(raw)
         self._known_evidence(args.evidence_ids)
+        self._require_policy_citation(args.evidence_ids)
+        if not set(args.evidence_ids) & set(self.state.experiments):
+            raise ValueError(
+                "Human escalation must cite an executed workbook experiment; continue "
+                "investigating instead of using request_human as a progress message"
+            )
         decision = AgentDecision(
             decision="ABSTAIN",
             explanation=args.reason,

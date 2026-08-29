@@ -63,3 +63,25 @@
 - Exercised seven currently listed OpenCode free chat models. The strongest run reached 33 workbook
   and policy tool calls, but no tested free model completed candidate staging and fresh-context
   falsification; current failures are recorded rather than promoted as production success.
+
+## Checkpoint 6 - live-controller and public-demo hardening
+
+- Reproduced NVIDIA Lightning failures caused by ignored serial-tool settings, repeated deterministic
+  reads, impossible early actions, ungraded or duplicate experiments, quoted-formula truncation,
+  discovery starvation, repeated inconclusive falsification, and a 15-minute wall-clock cutoff.
+- Added semantic read caching, one-shot tool retirement, bounded evidence compaction, provider-call
+  serialization, structural formula transforms, quote-safe templates, and stricter evidence gates.
+- Added controller phases that force executable manager and falsifier evidence, stop broad discovery
+  with decision time reserved, hide mechanically impossible actions, require revision/new evidence
+  after an inconclusive verdict, and reserve a final fail-closed verdict/decision turn.
+- The latest completed exact Lightning diagnostic registered policy evidence and two experiments,
+  then failed closed when the hosted model returned plain text through every bounded mandatory-tool
+  retry: `ABSTAIN`, 19 manager turns, zero falsifier turns, 752.1 seconds, and no proposed or written
+  patch. This is operational evidence, not a passing accuracy result.
+- Added the `agent-eval` repeated blind comparison harness with exact-hash scoring approval, sealed
+  post-run oracle access, Wilson intervals, fairness metadata, and atomic result publication. No
+  repeated paid/live agent benchmark is claimed yet.
+- Added a constrained public-demo mode, non-root Docker image, runtime-only secrets, asynchronous jobs,
+  same-origin and Host enforcement, authenticated administrator approval, rate limits, transient
+  storage, Render Blueprint, and deployment documentation. Sealed evaluator code/data are excluded
+  from the image.

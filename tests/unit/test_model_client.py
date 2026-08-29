@@ -8,6 +8,7 @@ import pytest
 
 from formulawitness.agent_types import (
     ModelRequest,
+    ModelRequestSettings,
     NamedToolChoice,
     SystemMessage,
     ToolSpec,
@@ -169,6 +170,37 @@ def test_normalizes_tool_call_usage_and_wire_payload() -> None:
     assert payload["model"] == "test-model"
     assert payload["tool_choice"] == "required"
     assert payload["parallel_tool_calls"] is False
+
+
+def test_model_profile_fields_are_forwarded_to_openai_compatible_transport() -> None:
+    transport = ScriptedTransport([response_with_tool_call()])
+    settings = ModelRequestSettings(
+        temperature=1.0,
+        top_p=0.95,
+        parallel_tool_calls=False,
+        extra_body={
+            "chat_template_kwargs": {"enable_thinking": True},
+            "reasoning_budget": 2_048,
+        },
+    )
+    client = ModelClient(config(), transport=transport, request_settings=settings)
+
+    client.complete(
+        request().model_copy(
+            update={
+                "temperature": settings.temperature,
+                "top_p": settings.top_p,
+                "parallel_tool_calls": settings.parallel_tool_calls,
+                "extra_body": settings.extra_body,
+            }
+        )
+    )
+
+    payload = transport.payloads[0]
+    assert payload["temperature"] == 1.0
+    assert payload["top_p"] == 0.95
+    assert payload["parallel_tool_calls"] is False
+    assert payload["extra_body"] == settings.extra_body
 
 
 def test_retries_only_transient_failures_and_honors_retry_after() -> None:
@@ -384,7 +416,7 @@ def test_empty_choice_list_is_retried() -> None:
     assert len(transport.payloads) == 2
 
 
-def test_named_and_nonparallel_tool_contracts_are_enforced() -> None:
+def test_named_contract_is_enforced_and_nonparallel_calls_are_serialized() -> None:
     named_request = request().model_copy(
         update={"tool_choice": NamedToolChoice(name="inspect_region")}
     )
@@ -401,12 +433,21 @@ def test_named_and_nonparallel_tool_contracts_are_enforced() -> None:
         function=SimpleNamespace(name="inspect_region", arguments='{"sheet":"Other"}'),
     )
     duplicate.choices[0].message.tool_calls.append(second)
-    transport = ScriptedTransport([duplicate, response_with_tool_call()])
+    transport = ScriptedTransport([duplicate])
     client = ModelClient(config(), transport=transport)
-    repaired = client.complete(request())
-    assert [call.call_id for call in repaired.tool_calls] == ["call-1"]
-    assert repaired.retry_count == 1
-    assert "multiple function calls" in transport.payloads[1]["messages"][-1]["content"]
+    serialized = client.complete(request())
+    assert [call.call_id for call in serialized.tool_calls] == ["call-1"]
+    assert [call.call_id for call in serialized.discarded_tool_calls] == ["call-2"]
+    assert serialized.retry_count == 0
+    assert len(transport.payloads) == 1
+
+    required = response_with_tool_call()
+    required.choices[0].message.tool_calls[0].function.name = "other_tool"
+    required.choices[0].message.tool_calls.append(second)
+    client = ModelClient(config(), transport=ScriptedTransport([required]))
+    selected_named = client.complete(named_request)
+    assert [call.name for call in selected_named.tool_calls] == ["inspect_region"]
+    assert [call.name for call in selected_named.discarded_tool_calls] == ["other_tool"]
 
     allowed = response_with_tool_call()
     allowed.choices[0].message.tool_calls.append(second)

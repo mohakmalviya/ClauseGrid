@@ -10,14 +10,16 @@ from typing import Literal, Protocol
 
 from .agent_budget import AgentBudgetExceeded, AgentBudgetLedger, AgentBudgetSnapshot
 from .agent_state import CitationEvidence
-from .agent_tools import AgentToolRegistry
+from .agent_tools import AgentToolRegistry, ToolEnvelope
 from .agent_types import (
     AssistantMessage,
     ChatMessage,
     ModelRequest,
+    ModelRequestSettings,
     ModelTurn,
     NamedToolChoice,
     SystemMessage,
+    ToolCall,
     ToolChoice,
     ToolResultMessage,
     ToolSpec,
@@ -53,6 +55,8 @@ class ToolCallingAgent:
         coordination_tool_call_reserve: int = 0,
         max_tokens_per_turn: int = 4_096,
         max_context_chars: int = 40_000,
+        evidence_aware_coordination: bool = False,
+        require_experiment_after_turns: int | None = None,
     ):
         self.actor = actor
         self.model = model
@@ -82,7 +86,23 @@ class ToolCallingAgent:
         if max_context_chars < 10_000:
             raise ValueError("Agent context limit must be at least 10,000 characters")
         self.max_context_chars = max_context_chars
+        settings = getattr(model, "request_settings", ModelRequestSettings())
+        if not isinstance(settings, ModelRequestSettings):
+            raise TypeError("Model request_settings must be ModelRequestSettings")
+        self.request_settings = settings
+        self.evidence_aware_coordination = evidence_aware_coordination
+        if require_experiment_after_turns is not None:
+            if require_experiment_after_turns < 1:
+                raise ValueError("Required-experiment turn threshold must be positive")
+            if "run_experiment" not in available_tools:
+                raise ValueError("Required-experiment mode needs a run_experiment tool")
+        self.require_experiment_after_turns = require_experiment_after_turns
         self._last_input_tokens: int | None = None
+        self._tool_result_cache: dict[str, ToolEnvelope] = {}
+        self._tool_attempt_counts: dict[str, int] = {}
+        self._observation_ledger: dict[str, dict[str, object]] = {}
+        self._completed_one_shot_tools: set[str] = set()
+        self._candidate_attempted = False
         self.messages: list[ChatMessage] = [
             SystemMessage(content=system_prompt),
             UserMessage(content=goal),
@@ -98,19 +118,26 @@ class ToolCallingAgent:
             final_turn = bool(self.terminal_tool_names) and (
                 turns_remaining == 1 or input_budget_terminal or tool_budget_terminal
             )
-            coordination_mode = not final_turn and self._tool_budget_requires_coordination(snapshot)
+            experiment_mode = not final_turn and self._experiment_required(snapshot)
+            coordination_mode = (
+                not final_turn
+                and not experiment_mode
+                and self._tool_budget_requires_coordination(snapshot)
+            )
             tools = self._request_tools(
                 final_turn=final_turn,
                 coordination_mode=coordination_mode,
+                experiment_mode=experiment_mode,
             )
             trailing_messages = self._budget_notice(
                 turns_remaining=turns_remaining,
                 input_budget_terminal=input_budget_terminal,
                 tool_budget_terminal=tool_budget_terminal,
                 coordination_mode=coordination_mode,
+                experiment_mode=experiment_mode,
             )
             tool_choice: ToolChoice = "required"
-            if final_turn and len(tools) == 1:
+            if len(tools) == 1:
                 tool_choice = NamedToolChoice(name=tools[0].name)
             request = ModelRequest(
                 messages=self._bounded_messages(
@@ -122,8 +149,15 @@ class ToolCallingAgent:
                 ),
                 tools=tools,
                 tool_choice=tool_choice,
-                parallel_tool_calls=not final_turn and not coordination_mode,
-                temperature=0.0,
+                parallel_tool_calls=(
+                    self.request_settings.parallel_tool_calls
+                    and not final_turn
+                    and not coordination_mode
+                    and not experiment_mode
+                ),
+                temperature=self.request_settings.temperature,
+                top_p=self.request_settings.top_p,
+                extra_body=self.request_settings.extra_body,
                 max_tokens=min(
                     self.max_tokens_per_turn,
                     max(
@@ -183,6 +217,9 @@ class ToolCallingAgent:
                 {
                     "content": turn.content,
                     "tool_calls": [call.model_dump(mode="json") for call in turn.tool_calls],
+                    "discarded_tool_calls": [
+                        call.model_dump(mode="json") for call in turn.discarded_tool_calls
+                    ],
                     "request_id": turn.request_id,
                     "response_id": turn.response_id,
                 },
@@ -204,18 +241,37 @@ class ToolCallingAgent:
                     )
                 )
                 continue
+            duplicate_notes: list[str] = []
             for call in turn.tool_calls:
                 if self.is_terminal():
                     break
-                self.budget.charge_tool_calls()
+                cache_key = self._cache_key(call)
+                cache_hit = cache_key is not None and cache_key in self._tool_result_cache
+                if not cache_hit:
+                    self.budget.charge_tool_calls()
                 self.trajectory.record_agent_event(
                     self.actor,
                     "TOOL_CALL",
-                    call.model_dump(mode="json"),
+                    call.model_dump(mode="json") | {"cache_hit": cache_hit},
                     model_id=turn.model,
                     prompt_version=self.prompt_version,
                 )
-                envelope = self.registry.execute(call)
+                if cache_hit:
+                    assert cache_key is not None
+                    envelope = self._tool_result_cache[cache_key]
+                    duplicate_notes.append(call.name)
+                else:
+                    self._tool_attempt_counts[call.name] = (
+                        self._tool_attempt_counts.get(call.name, 0) + 1
+                    )
+                    if call.name == "stage_candidate":
+                        self._candidate_attempted = True
+                    envelope = self.registry.execute(call)
+                    if cache_key is not None and envelope.ok:
+                        self._tool_result_cache[cache_key] = envelope
+                        self._register_observation(cache_key, call, envelope)
+                        if call.name in {"policy_manifest", "workbook_manifest"}:
+                            self._completed_one_shot_tools.add(call.name)
                 self.trajectory.record_agent_event(
                     self.actor,
                     "TOOL_RESULT",
@@ -227,6 +283,7 @@ class ToolCallingAgent:
                             "result": envelope.result,
                             "error": envelope.error,
                             "error_type": envelope.error_type,
+                            "cache_hit": cache_hit,
                         },
                     },
                     model_id=turn.model,
@@ -237,6 +294,17 @@ class ToolCallingAgent:
                         tool_call_id=call.call_id,
                         name=call.name,
                         content=envelope.to_model_json(),
+                    )
+                )
+            if duplicate_notes and not self.is_terminal():
+                repeated = ", ".join(sorted(set(duplicate_notes)))
+                self.messages.append(
+                    UserMessage(
+                        content=(
+                            "Controller note: an exact duplicate read was served from cache and "
+                            f"did not expand evidence ({repeated}). Choose a different or narrower "
+                            "evidence action next."
+                        )
                     )
                 )
 
@@ -365,15 +433,101 @@ class ToolCallingAgent:
         *,
         final_turn: bool,
         coordination_mode: bool = False,
+        experiment_mode: bool = False,
     ) -> tuple[ToolSpec, ...]:
+        if experiment_mode:
+            tools = tuple(tool for tool in self.registry.specs if tool.name == "run_experiment")
+            if len(tools) != 1:
+                raise RuntimeError("Agent experiment phase has no unique run_experiment tool")
+            return tools
+        candidate_phase_names = self._candidate_phase_tool_names()
+        if not final_turn and candidate_phase_names is not None:
+            if self._experiment_attempt_limit_reached():
+                candidate_phase_names.discard("run_experiment")
+            tools = tuple(
+                tool for tool in self.registry.specs if tool.name in candidate_phase_names
+            )
+            if not tools:
+                raise RuntimeError("Agent candidate phase has no allowed tool")
+            return tools
+        if not final_turn and self._candidate_retry_required():
+            tools = tuple(tool for tool in self.registry.specs if tool.name == "stage_candidate")
+            if len(tools) != 1:
+                raise RuntimeError("Agent candidate retry phase has no unique stage_candidate tool")
+            return tools
         if not final_turn and not coordination_mode:
-            return self.registry.specs
+            unavailable = self._completed_one_shot_tools | self._unavailable_progress_tools()
+            if self._experiment_attempt_limit_reached():
+                unavailable.add("run_experiment")
+            return tuple(
+                tool
+                for tool in self.registry.specs
+                if tool.name not in unavailable
+            )
         allowed = set(self.terminal_tool_names if final_turn else self.coordination_tool_names)
+        if not final_turn:
+            allowed.difference_update(self._unavailable_progress_tools())
+            if self._experiment_attempt_limit_reached():
+                allowed.discard("run_experiment")
         tools = tuple(tool for tool in self.registry.specs if tool.name in allowed)
         if not tools:
             phase = "terminal" if final_turn else "coordination"
             raise RuntimeError(f"Agent {phase} phase has no allowed tool")
         return tools
+
+    def _experiment_attempt_limit_reached(self) -> bool:
+        limit = 8 if self.actor == "audit-manager" else 4
+        return self._tool_attempt_counts.get("run_experiment", 0) >= limit
+
+    def _unavailable_progress_tools(self) -> set[str]:
+        """Hide manager actions whose mechanical preconditions do not yet exist."""
+
+        if self.actor != "audit-manager":
+            return set()
+        state = getattr(self.registry, "state", None)
+        if state is None or getattr(state, "candidate", None) is not None:
+            return set()
+        unavailable = {"falsify_candidate", "submit_repair"}
+        citations = getattr(state, "citations", {})
+        manager_experiments = [
+            evidence
+            for evidence in getattr(state, "experiments", {}).values()
+            if getattr(evidence, "actor", None) == "audit-manager"
+        ]
+        if not citations or not manager_experiments:
+            unavailable.update({"stage_candidate", "request_human"})
+        if not citations or len(manager_experiments) < 3:
+            unavailable.add("finish_no_change")
+        return unavailable
+
+    def _candidate_phase_tool_names(self) -> set[str] | None:
+        """Advance staged manager candidates through mandatory independent falsification."""
+
+        available = {tool.name for tool in self.registry.specs}
+        if "falsify_candidate" not in available:
+            return None
+        state = getattr(self.registry, "state", None)
+        if getattr(state, "candidate", None) is None:
+            return None
+        verdict = getattr(state, "falsifier_verdict", None)
+        if verdict is None:
+            return {"falsify_candidate"}
+        if verdict.status == "SURVIVED":
+            return {"submit_repair"}
+        if verdict.status == "BROKEN":
+            return {"run_experiment", "stage_candidate", "request_human"}
+        return {"run_experiment", "stage_candidate", "request_human"}
+
+    def _candidate_retry_required(self) -> bool:
+        if not self._candidate_attempted:
+            return False
+        state = getattr(self.registry, "state", None)
+        return bool(
+            state is not None
+            and getattr(state, "candidate", None) is None
+            and getattr(state, "citations", {})
+            and getattr(state, "experiments", {})
+        )
 
     def _budget_notice(
         self,
@@ -382,12 +536,14 @@ class ToolCallingAgent:
         input_budget_terminal: bool = False,
         tool_budget_terminal: bool = False,
         coordination_mode: bool = False,
+        experiment_mode: bool = False,
     ) -> tuple[ChatMessage, ...]:
         if (
             (not self.terminal_tool_names or turns_remaining > 2)
             and not input_budget_terminal
             and not tool_budget_terminal
             and not coordination_mode
+            and not experiment_mode
         ):
             return ()
         names = ", ".join(self.terminal_tool_names)
@@ -398,13 +554,22 @@ class ToolCallingAgent:
                 f"available ({names}); call one now. If the evidence is insufficient, choose the "
                 "fail-closed terminal outcome rather than attempting more investigation."
             )
+        elif experiment_mode:
+            content = (
+                "The controller has observed enough discovery turns without executable workbook "
+                "evidence. Run one discriminating sandbox experiment now. Choose input overrides, "
+                "observations, and explicit expectations from the policy/workbook evidence already "
+                "registered; do not perform another manifest, formula-list, or region read."
+            )
         elif coordination_mode:
             names = ", ".join(self.coordination_tool_names)
             content = (
                 "The controller has closed broad discovery to preserve the specialist and "
                 "decision budget. Only coordination actions are available: "
-                f"{names}. Stage the strongest evidence-backed candidate and invoke its "
-                "falsifier, or finish/request human judgment when evidence is insufficient."
+                f"{names}. Run a targeted discriminating experiment when a material branch is "
+                "still untested; otherwise stage the strongest evidence-backed candidate and "
+                "invoke its falsifier, or finish/request human judgment when evidence is "
+                "insufficient."
             )
         else:
             content = (
@@ -467,6 +632,7 @@ class ToolCallingAgent:
             ],
             "candidate": None,
             "falsifier_verdict": None,
+            "workbook_observations": self._bounded_observation_ledger(),
         }
         candidate = getattr(state, "candidate", None)
         if candidate is not None:
@@ -494,6 +660,32 @@ class ToolCallingAgent:
             + json.dumps(ledger, sort_keys=True, separators=(",", ":"))
         )
 
+    def _bounded_observation_ledger(self, *, max_chars: int = 14_000) -> list[dict[str, object]]:
+        """Retain the newest useful reads without letting the compacting ledger overflow context."""
+
+        selected: list[dict[str, object]] = []
+        used = 2
+        for entry in reversed(self._observation_ledger.values()):
+            encoded = json.dumps(entry, sort_keys=True, separators=(",", ":"), default=str)
+            entry_size = len(encoded) + 1
+            if selected and used + entry_size > max_chars:
+                break
+            if entry_size > max_chars:
+                selected.append(
+                    {
+                        "tool": entry.get("tool"),
+                        "arguments": entry.get("arguments"),
+                        "result_sha256": hashlib.sha256(encoded.encode("utf-8")).hexdigest(),
+                        "result_preview": encoded[: max(0, max_chars - 512)],
+                        "truncated": True,
+                    }
+                )
+                break
+            selected.append(entry)
+            used += entry_size
+        selected.reverse()
+        return selected
+
     def _input_budget_requires_terminal(self, snapshot: AgentBudgetSnapshot) -> bool:
         """Reserve a final action before the next growing context would consume the token budget."""
 
@@ -515,7 +707,102 @@ class ToolCallingAgent:
         if not self.coordination_tool_names:
             return False
         remaining = int(snapshot["tool_call_limit"] or 0) - int(snapshot["tool_calls_used"] or 0)
-        return remaining <= self.coordination_tool_call_reserve
+        state = getattr(self.registry, "state", None)
+        actor_experiments = [
+            evidence
+            for evidence in getattr(state, "experiments", {}).values()
+            if getattr(evidence, "actor", None) == self.actor
+        ]
+        if self.evidence_aware_coordination:
+            has_experiment = bool(actor_experiments)
+            if self.actor == "audit-manager":
+                actor_turn_limit = int(snapshot["manager_turn_limit"] or 0)
+                minimum_turn_reserve = 12
+            else:
+                actor_turn_limit = int(snapshot["falsifier_turn_limit"] or 0)
+                minimum_turn_reserve = 6
+            evidence_turn_reserve = max(
+                minimum_turn_reserve,
+                math.ceil(actor_turn_limit * 0.6),
+            )
+            if has_experiment and self._turns_remaining(snapshot) <= evidence_turn_reserve:
+                return True
+        if self.evidence_aware_coordination and self.actor == "audit-manager" and (
+            getattr(state, "candidate", None) is not None
+            or getattr(state, "falsifier_verdict", None) is not None
+        ):
+            return True
+        if remaining > self.coordination_tool_call_reserve:
+            return False
+        if not self.evidence_aware_coordination:
+            return True
+        has_experiment = bool(actor_experiments)
+        has_candidate = getattr(state, "candidate", None) is not None
+        if has_experiment or has_candidate:
+            return True
+        return remaining <= self.terminal_tool_call_reserve + 2
+
+    def _experiment_required(self, snapshot: AgentBudgetSnapshot) -> bool:
+        threshold = self.require_experiment_after_turns
+        if threshold is None or self._experiment_attempt_limit_reached():
+            return False
+        state = getattr(self.registry, "state", None)
+        if state is None:
+            return False
+        candidate = getattr(state, "candidate", None)
+        if self.actor == "audit-manager" and candidate is not None:
+            return False
+        if self.actor == "falsifier" and candidate is None:
+            return False
+        if getattr(state, "experiments", {}):
+            return False
+        citations = getattr(state, "citations", {})
+        if not citations:
+            return False
+        if self.actor == "audit-manager":
+            turns_used = int(snapshot["manager_turns_used"] or 0)
+        else:
+            turns_used = int(snapshot["falsifier_turns_used"] or 0)
+        return turns_used >= threshold
+
+    def _cache_key(self, call: ToolCall) -> str | None:
+        key_builder = getattr(self.registry, "cache_key", None)
+        if not callable(key_builder):
+            return None
+        key = key_builder(call)
+        return key if isinstance(key, str) else None
+
+    def _register_observation(
+        self,
+        key: str,
+        call: ToolCall,
+        envelope: ToolEnvelope,
+    ) -> None:
+        result = envelope.result
+        summary: object = result
+        if call.name == "read_region" and isinstance(result, list):
+            meaningful = [
+                item
+                for item in result
+                if isinstance(item, dict)
+                and (item.get("formula") is not None or item.get("value") is not None)
+            ]
+            summary = meaningful[:80]
+        entry: dict[str, object] = {
+            "tool": call.name,
+            "arguments": call.arguments,
+            "result": summary,
+        }
+        encoded = json.dumps(entry, sort_keys=True, default=str)
+        if len(encoded) > 12_000:
+            entry = {
+                "tool": call.name,
+                "arguments": call.arguments,
+                "result_sha256": hashlib.sha256(encoded.encode("utf-8")).hexdigest(),
+                "result_preview": encoded[:10_000],
+                "truncated": True,
+            }
+        self._observation_ledger[key] = entry
 
     def _request_context_limit(
         self,

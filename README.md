@@ -39,7 +39,7 @@ reported` unless the provider supplies it.
 .\scripts\eval.ps1
 $env:NVIDIA_NIM_API_KEY = '<set outside the repository>'
 .\.venv\Scripts\formulawitness.exe serve `
-  --provider nvidia-nim --model openai/gpt-oss-120b `
+  --provider nvidia-nim --model nvidia/nemotron-3.5-lightning-30b-a3b `
   --allow-external-processing
 ```
 
@@ -63,7 +63,8 @@ Model-directed proposal and approval commands:
 ```powershell
 $env:NVIDIA_NIM_API_KEY = '<set outside the repository>'
 .\.venv\Scripts\formulawitness.exe agent workbooks\mutants\M10_supplier_rebate.xlsx `
-  --provider nvidia-nim --model openai/gpt-oss-120b --allow-external-processing
+  --provider nvidia-nim --model nvidia/nemotron-3.5-lightning-30b-a3b `
+  --allow-external-processing
 .\.venv\Scripts\formulawitness.exe agent-baseline workbooks\mutants\M10_supplier_rebate.xlsx `
   --provider nvidia-nim --model openai/gpt-oss-120b --allow-external-processing
 $env:OPENCODE_API_KEY = '<set outside the repository>'
@@ -87,15 +88,34 @@ explicit because the free catalog and availability can change; query OpenCode's 
 before running. FormulaWitness reads only `OPENCODE_API_KEY` from the process environment. See
 [model providers](docs/PROVIDERS.md) for the currently verified free-model compatibility results.
 
+## Publish the synthetic public demo
+
+The repository includes a non-root Docker image, an environment-only deployment entry point, and a
+Render Blueprint. The public mode accepts only bundled synthetic benchmark case IDs, runs one audit
+at a time in a background job, applies global and per-client request limits, enforces the configured
+HTTPS Host/Origin, and never sends a provider or administrator credential to the browser. Browser
+approval is disabled; the public site demonstrates investigation and falsification, not anonymous
+write authorization.
+
+1. Push the private repository to GitHub and create a Render Blueprint from `render.yaml`.
+2. Enter `NVIDIA_NIM_API_KEY` as the Blueprint's secret when Render asks for it.
+3. Deploy. Render supplies `RENDER_EXTERNAL_URL`; the container binds to Render's `PORT` on
+   `0.0.0.0` and exposes `/healthz`.
+
+The service is intentionally single-instance and stores run artifacts in `/tmp`; jobs and downloads
+do not survive a restart. This is an internet-visible hackathon demonstration, not a production
+multi-tenant service. Exact commands, controls, and operational limits are in
+[deployment](docs/DEPLOYMENT.md).
+
 ## What makes it agentic
 
 The `agent` command runs a real model-controlled loop:
 
 1. The audit manager chooses workbook discovery, policy retrieval, dependency, and sandbox tools with input-dependent arguments.
 2. Raw model responses, tool calls, observations, errors, retries, usage, and state transitions are stored in a tamper-evident JSONL trajectory.
-3. Tool observations can change the next action. The live NIM smoke run includes a malformed falsifier experiment followed by a corrected call and successful sandbox execution.
+3. Tool observations and validation failures change the next action. The controller caches repeated reads, forces executable evidence after bounded discovery, and reserves decision/verdict turns so malformed actions cannot consume the entire run.
 4. The manager can revise a broken candidate, finish, abstain, or request a human. Python does not select a fixed investigation sequence.
-5. A staged proposal launches a separate falsifier with fresh context and read/sandbox-only tools. Only `SURVIVED` can unlock `submit_repair`.
+5. A staged proposal launches a separate falsifier with fresh context and read/sandbox-only tools. It must run expectation-graded, candidate-sensitive experiments before a conclusive verdict; only `SURVIVED` can unlock `submit_repair`.
 6. The model never receives an apply or approval tool. Reviewer approval is a separate hash-bound command followed by deterministic replay on a copy.
 
 `agent-baseline` is the fair one-model comparison: the same provider, discovery tools, sandbox, and limits, but one candidate, one candidate validation, and no falsifier. The old `baseline`, `advanced`, and `eval` commands are retained and explicitly labeled legacy deterministic workflows.
@@ -124,4 +144,4 @@ tests/          Unit, integration, security, and evaluation tests
 docs/           Architecture, reproduction, limitations, demo, and disclosure
 ```
 
-More detail: [Submission report](docs/SUBMISSION_REPORT.md), [Improvement changelog](docs/IMPROVEMENT_CHANGELOG.md), [Architecture](docs/ARCHITECTURE.md), [Model providers](docs/PROVIDERS.md), [Reproduction](docs/REPRODUCE.md), [Metric](docs/METRIC.md), [Security](docs/SECURITY.md), and [five-minute demo](docs/DEMO_SCRIPT.md).
+More detail: [Submission report](docs/SUBMISSION_REPORT.md), [Improvement changelog](docs/IMPROVEMENT_CHANGELOG.md), [Architecture](docs/ARCHITECTURE.md), [Model providers](docs/PROVIDERS.md), [Reproduction](docs/REPRODUCE.md), [Metric](docs/METRIC.md), [Security](docs/SECURITY.md), [deployment](docs/DEPLOYMENT.md), and [five-minute demo](docs/DEMO_SCRIPT.md).

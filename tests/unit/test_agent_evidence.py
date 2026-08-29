@@ -52,6 +52,64 @@ def test_model_experiment_view_compacts_redundant_evidence_without_mutating_it()
     assert result["observation"]["dependencies"] == {"A1": ["B1", "C1"]}
 
 
+def test_only_one_unchanged_manager_baseline_is_accepted() -> None:
+    manager, _, state, _, _ = _registries()
+    first = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "observational-baseline",
+            "sheet": "RebateCalc",
+            "overrides": {},
+            "observations": ["P6"],
+            "purpose": "Register the current multiplier as one observational baseline.",
+        },
+    )
+    assert first.ok
+
+    repeated = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "unchanged-repeat",
+            "sheet": "RebateCalc",
+            "overrides": {},
+            "observations": ["Q6"],
+            "purpose": "Attempt another unchanged observation without a hypothesis.",
+        },
+    )
+    assert not repeated.ok and "Only one unchanged observational baseline" in str(repeated.error)
+    assert "unchanged-repeat" not in state.experiments
+
+    discriminating = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "input-perturbation",
+            "sheet": "RebateCalc",
+            "overrides": {"H6": 0.9},
+            "observations": ["P6"],
+            "purpose": "Perturb one policy input to test causal multiplier behavior.",
+        },
+    )
+    assert discriminating.ok
+
+    renamed_duplicate = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "renamed-input-perturbation",
+            "sheet": "RebateCalc",
+            "overrides": {"H6": 0.9},
+            "observations": ["P6"],
+            "purpose": "Rename the same design without changing its causal intervention.",
+        },
+    )
+    assert not renamed_duplicate.ok and "Duplicate experiment design" in str(
+        renamed_duplicate.error
+    )
+
+
 def _registries() -> tuple[AgentToolRegistry, AgentToolRegistry, AgentRunState, str, str]:
     policy = PolicyText(POLICY)
     state = AgentRunState(
@@ -246,6 +304,152 @@ def test_repair_decision_requires_policy_and_current_falsifier_evidence() -> Non
         },
     )
     assert accepted.ok
+
+
+def test_human_escalation_requires_policy_and_executed_workbook_evidence() -> None:
+    manager, _, _, citation_id, _ = _registries()
+
+    no_evidence = _call(
+        manager,
+        "request_human",
+        {
+            "reason": "More investigation is needed before reaching a decision.",
+            "evidence_ids": [],
+        },
+    )
+    assert not no_evidence.ok and "policy citation" in str(no_evidence.error)
+
+    policy_only = _call(
+        manager,
+        "request_human",
+        {
+            "reason": "The policy evidence needs to be compared with workbook behavior.",
+            "evidence_ids": [citation_id],
+        },
+    )
+    assert not policy_only.ok and "executed workbook experiment" in str(policy_only.error)
+
+    experiment = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "human-escalation-observation",
+            "sheet": "RebateCalc",
+            "overrides": {},
+            "observations": ["P6"],
+            "purpose": "Register current workbook behavior before escalating ambiguity.",
+        },
+    )
+    assert experiment.ok
+    accepted = _call(
+        manager,
+        "request_human",
+        {
+            "reason": "The executed result leaves a material policy ambiguity for a reviewer.",
+            "evidence_ids": [citation_id, "human-escalation-observation"],
+        },
+    )
+    assert accepted.ok
+
+
+def test_candidate_quote_template_reconstructs_and_validates_excel_formula() -> None:
+    manager, _, state, citation_id, old_hash = _registries()
+    corrected = list_formulas(REFERENCE)["RebateCalc!P6"]
+
+    staged = _call(
+        manager,
+        "stage_candidate",
+        {
+            "edits": [
+                {
+                    "sheet": "RebateCalc",
+                    "cell": "P6",
+                    "old_formula_sha256": old_hash,
+                    "new_formula_template": corrected.replace('"', "{DQ}"),
+                    "rationale": "Use a JSON-safe representation of quoted Excel conditions.",
+                    "evidence_ids": [citation_id],
+                }
+            ],
+            "expected_invariants": ["Quoted Excel literals are reconstructed exactly"],
+        },
+    )
+
+    assert staged.ok
+    assert state.candidate is not None
+    assert state.candidate.edits[0].new_formula == corrected
+
+
+def test_candidate_structural_transform_derives_formula_from_guarded_source() -> None:
+    manager, _, state, citation_id, old_hash = _registries()
+
+    staged = _call(
+        manager,
+        "stage_candidate",
+        {
+            "edits": [
+                {
+                    "sheet": "RebateCalc",
+                    "cell": "P6",
+                    "old_formula_sha256": old_hash,
+                    "formula_transform": "unwrap_outer_if_else",
+                    "rationale": "Remove the faulty wrapper while preserving its else calculation.",
+                    "evidence_ids": [citation_id],
+                }
+            ],
+            "expected_invariants": ["The retained calculation remains parser-valid"],
+        },
+    )
+
+    assert staged.ok
+    assert state.candidate is not None
+    candidate = state.candidate.edits[0].new_formula
+    assert candidate.startswith("=IF(AND(")
+    assert 'K6<>"Y"' in candidate
+
+
+def test_no_change_requires_multiple_passing_branch_perturbations() -> None:
+    manager, _, state, citation_id, _ = _registries()
+    cases = (
+        ("ordinary-both", {"H6": 0.94, "I6": 0.03, "J6": 0, "K6": "N"}, 0.6),
+        ("ordinary-one", {"H6": 0.94, "I6": 0.01, "J6": 0, "K6": "N"}, 0.75),
+        ("ordinary-none", {"H6": 0.98, "I6": 0.01, "J6": 0, "K6": "N"}, 1.0),
+    )
+    for experiment_id, overrides, expected in cases:
+        result = _call(
+            manager,
+            "run_experiment",
+            {
+                "experiment_id": experiment_id,
+                "sheet": "RebateCalc",
+                "overrides": overrides,
+                "observations": ["P6"],
+                "expectations": [{"cell": "P6", "expected": expected}],
+                "purpose": "Exercise one distinct ordinary SLA policy branch.",
+            },
+        )
+        assert result.ok
+
+    insufficient = _call(
+        manager,
+        "finish_no_change",
+        {
+            "explanation": "One passing row cannot justify preserving the workbook.",
+            "evidence_ids": [citation_id, "ordinary-both"],
+        },
+    )
+    assert not insufficient.ok and "at least three" in str(insufficient.error)
+    assert state.decision is None
+
+    accepted = _call(
+        manager,
+        "finish_no_change",
+        {
+            "explanation": "Three expected-output perturbations exercise changing formula branches.",
+            "evidence_ids": [citation_id, *(item[0] for item in cases)],
+        },
+    )
+    assert accepted.ok
+    assert state.decision is not None and state.decision.decision == "NO_CHANGE"
 
 
 class InvalidTerminalVerdictModel:

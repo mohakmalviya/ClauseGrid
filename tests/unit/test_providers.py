@@ -84,3 +84,27 @@ def test_opencode_uses_official_zen_chat_base(monkeypatch: pytest.MonkeyPatch) -
         assert client.config.model == "big-pickle"
     finally:
         client.close()
+
+
+def test_nvidia_lightning_uses_its_documented_agent_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("NVIDIA_NIM_API_KEY", "provider-secret")
+
+    client, canonical = providers.build_model_client(
+        provider="nvidia-nim",
+        model=providers.NVIDIA_LIGHTNING_MODEL,
+        base_url=None,
+        api_key_env=None,
+    )
+    try:
+        assert canonical == "nvidia-nim"
+        assert client.request_settings.temperature == 1.0
+        assert client.request_settings.top_p == 0.95
+        assert client.request_settings.parallel_tool_calls is False
+        assert client.request_settings.extra_body == {
+            "chat_template_kwargs": {"enable_thinking": True},
+            "reasoning_budget": 2_048,
+        }
+    finally:
+        client.close()

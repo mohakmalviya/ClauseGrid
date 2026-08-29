@@ -37,7 +37,9 @@ formulawitness agent workbooks\mutants\M10_supplier_rebate.xlsx `
 
 $env:NVIDIA_NIM_API_KEY = '<credential>'
 formulawitness agent workbooks\mutants\M10_supplier_rebate.xlsx `
-  --provider nvidia-nim --model '<nim-model-id>' --allow-external-processing
+  --provider nvidia-nim `
+  --model 'nvidia/nemotron-3.5-lightning-30b-a3b' `
+  --allow-external-processing
 
 $env:OPENCODE_API_KEY = '<credential>'
 formulawitness agent workbooks\mutants\M10_supplier_rebate.xlsx `
@@ -63,3 +65,11 @@ latest compatibility probe, `big-pickle`, `hy3-free`, `ling-3.0-flash-fin-free`,
 `nemotron-3.5-lightning-free` honored a mandatory function call. Catalog presence alone is not
 validation; each model still needs repeated blind end-to-end evaluation because tool behavior,
 availability, context limits, and quality differ by model.
+
+The checked-in public-demo profile uses NVIDIA's exact
+`nvidia/nemotron-3.5-lightning-30b-a3b` identifier with its published `temperature=1`, `top_p=0.95`,
+and thinking-enabled chat template. FormulaWitness bounds the reasoning budget at 2,048 tokens per
+turn and serializes provider-returned parallel calls locally because the hosted endpoint has ignored
+`parallel_tool_calls=false` in observed runs. See the
+[official NVIDIA model page](https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b).
+This profile is a deployment choice, not proof of repeated blind accuracy.

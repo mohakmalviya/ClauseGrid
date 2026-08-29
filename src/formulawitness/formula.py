@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Any
+from typing import Any, Literal
 
 
 class FormulaError(ValueError):
@@ -180,6 +180,55 @@ class Parser:
             self.take(")")
             return value
         raise FormulaError(f"Unexpected token {token.value!r}")
+
+
+FormulaTransform = Literal["unwrap_outer_if_then", "unwrap_outer_if_else"]
+
+
+def transform_formula(formula: str, operation: FormulaTransform) -> str:
+    """Apply one allowlisted structural edit to a parsed, existing formula."""
+
+    ast = Parser(formula).parse()
+    if ast[0] != "call" or ast[1] != "IF" or len(ast[2]) != 3:
+        raise FormulaError("Structural unwrap requires an outer IF with three arguments")
+    branch = ast[2][1] if operation == "unwrap_outer_if_then" else ast[2][2]
+    transformed = "=" + _render_ast(branch)
+    Parser(transformed).parse()
+    return transformed
+
+
+def _render_ast(ast: Any) -> str:
+    kind = ast[0]
+    if kind == "literal":
+        value = ast[1]
+        if isinstance(value, Decimal):
+            if value == value.to_integral_value():
+                return str(int(value))
+            return format(value.normalize(), "f")
+        if isinstance(value, str):
+            return '"' + value.replace('"', '""') + '"'
+        raise FormulaError(f"Unsupported literal for formula rendering: {value!r}")
+    if kind == "cell":
+        return _render_reference(ast[1])
+    if kind == "range":
+        return f"{_render_reference(ast[1])}:{_render_reference(ast[2], inherit_sheet=True)}"
+    if kind == "unary":
+        return f"{ast[1]}({_render_ast(ast[2])})"
+    if kind == "binary":
+        return f"({_render_ast(ast[2])}{ast[1]}{_render_ast(ast[3])})"
+    if kind == "call":
+        return f"{ast[1]}({','.join(_render_ast(item) for item in ast[2])})"
+    raise FormulaError(f"Unsupported AST node for formula rendering: {kind}")
+
+
+def _render_reference(reference: str, *, inherit_sheet: bool = False) -> str:
+    if "!" not in reference:
+        return reference
+    sheet, cell = reference.split("!", 1)
+    if inherit_sheet:
+        return cell
+    rendered_sheet = f"'{sheet}'" if " " in sheet else sheet
+    return f"{rendered_sheet}!{cell}"
 
 
 def _number(value: Any) -> Decimal:

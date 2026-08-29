@@ -5,10 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from .agent_types import ModelRequestSettings
 from .anthropic_transport import AnthropicTransport
 from .model_client import ModelClient, ModelTransport, OpenAICompatibleConfig, RetryPolicy
 
 TransportKind = Literal["openai-compatible", "anthropic"]
+
+NVIDIA_LIGHTNING_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b"
 
 
 @dataclass(frozen=True)
@@ -78,6 +81,7 @@ def build_model_client(
     client = ModelClient(
         config,
         transport=transport,
+        request_settings=_request_settings(preset.canonical_name, model),
         retry_policy=RetryPolicy(
             max_attempts=4,
             base_delay_seconds=5.0,
@@ -85,3 +89,19 @@ def build_model_client(
         ),
     )
     return client, preset.canonical_name
+
+
+def _request_settings(provider: str, model: str) -> ModelRequestSettings:
+    """Apply documented model settings without changing other provider/model pairs."""
+
+    if provider == "nvidia-nim" and model == NVIDIA_LIGHTNING_MODEL:
+        return ModelRequestSettings(
+            temperature=1.0,
+            top_p=0.95,
+            parallel_tool_calls=False,
+            extra_body={
+                "chat_template_kwargs": {"enable_thinking": True},
+                "reasoning_budget": 2_048,
+            },
+        )
+    return ModelRequestSettings()

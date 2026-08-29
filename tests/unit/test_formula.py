@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from evals.sealed.oracle import evaluate_policy
-from formulawitness.formula import evaluate_cells, excel_serial
+from formulawitness.formula import evaluate_cells, excel_serial, transform_formula
 from formulawitness.ooxml import calculation_cells
 from formulawitness.policy import (
     CORE_OUTPUTS,
@@ -98,3 +98,15 @@ def test_iso_date_overrides_are_policy_neutral_and_not_address_specific() -> Non
     )
 
     assert outputs["Z17"] == 2
+
+
+def test_structural_formula_transform_unwraps_hash_guardable_outer_if() -> None:
+    source = '=IF(K6="Y",1,IF(AND(J6>=1,K6<>"Y"),0,IF(H6<0.95,0.75,1)))'
+
+    transformed = transform_formula(source, "unwrap_outer_if_else")
+    values = {"H6": 0.9, "J6": 1, "K6": "Y"}
+    actual, _ = evaluate_cells(values, {"P6": transformed})
+
+    assert transformed.startswith("=IF(AND(")
+    assert 'K6<>"Y"' in transformed
+    assert actual["P6"] == 0.75

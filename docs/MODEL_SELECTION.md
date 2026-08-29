@@ -20,7 +20,7 @@ tools, and resource limits. NVIDIA NIM did not report monetary cost.
 | `openai/gpt-oss-120b` | `REPAIR`, proposal only | Found the P6 waiver-scope defect, proposed the minimal formula change, and completed the falsifier loop in 121.3 s | Validated reference |
 | `openai/gpt-oss-20b` | `NO_CHANGE` | Used 26 manager turns and 10 experiments but accepted the defective waiver semantics | Eliminated for correctness |
 | `moonshotai/kimi-k3` | `ABSTAIN` | Identified the exact P6 defect, then exhausted retries on HTTP 429 before proposing or falsifying a repair | Promising, endpoint-unreliable |
-| `nvidia/nemotron-3.5-lightning-30b-a3b` | `ABSTAIN` | Requested a human because it claimed it could not read the workbook although workbook tools were available | Eliminated for task/tool judgment |
+| `nvidia/nemotron-3.5-lightning-30b-a3b` | `ABSTAIN` | After controller hardening, the latest completed run registered policy citations and two experiments, then returned plain text through all bounded retries while a tool call was mandatory (19 manager turns, 752.1 s). An earlier diagnostic staged the correct P6 hypothesis but crossed the former 15-minute wall guard before falsification. | Transport-compatible; still unreliable for this task |
 | `nvidia/nemotron-3-ultra-550b-a55b` | `ABSTAIN` | Repeatedly returned JSON-looking plans as plain content and reached 30 turns with no experiment | Eliminated for tool-protocol reliability |
 | `poolside/laguna-xs-2.1` | `ABSTAIN` | Repeated `workbook_manifest` 30 times and performed no experiment | Eliminated for looping |
 | `minimaxai/minimax-m3` | `ABSTAIN` | Multiple attempts either looped through verification tools or hit endpoint rate limits before a complete repair | Eliminated for current runtime |
@@ -42,7 +42,9 @@ Choose lexicographically, not by a blended popularity score:
 
 At this checkpoint, GPT-OSS 120B has completed the M10 demonstration. A single successful run does
 not establish a production winner. A final recommendation requires repeated runs on the frozen,
-blind mutant suite. Until then, the model remains an explicit runtime choice.
+blind mutant suite. The public Blueprint currently uses the explicitly requested NVIDIA Lightning
+profile, but that deployment choice is not a claim that it outperformed the validated GPT-OSS smoke.
+Until repeated blind evidence exists, the model remains an explicit runtime choice.
 
 ## OpenCode Zen free-model compatibility
 
