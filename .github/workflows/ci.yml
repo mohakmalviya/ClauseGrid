@@ -1,0 +1,47 @@
+name: verify
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install locked project dependencies
+        run: python -m pip install -r requirements-lock.txt
+      - name: Install project in editable mode
+        run: python -m pip install --no-deps -e .
+      - name: Check formatting
+        run: python -m ruff format --check .
+      - name: Lint
+        run: python -m ruff check .
+      - name: Type check
+        run: python -m mypy
+      - name: Test
+        run: python -m pytest -q
+      - name: Validate benchmark mutations
+        run: python scripts/validate_benchmark.py --root . --output artifacts/benchmark-validation.json
+      - name: Reproduce frozen comparison
+        run: python -m formulawitness eval --output evals/results.json
+      - name: Verify submitted comparison is reproducible
+        shell: python
+        run: |
+          from pathlib import Path
+          generated = Path("evals/results.json").read_bytes()
+          submitted = Path("artifacts/submission/evaluation-results.json").read_bytes()
+          if generated != submitted:
+              raise SystemExit("Submitted evaluation result differs from a fresh run")

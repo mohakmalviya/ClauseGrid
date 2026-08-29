@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.test-tmp/
 .mypy_cache/
 .ruff_cache/
 .coverage
@@ -34,6 +35,9 @@ artifacts/tmp/
 artifacts/runs/
 artifacts/demo/
 artifacts/ui/
+artifacts/live-nim/
+artifacts/model-tournament/
+artifacts/mimo-rerun/
 workbooks/generated/
 workbooks/build-manifest.json
 

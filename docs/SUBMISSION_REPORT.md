@@ -1,5 +1,10 @@
 # Hackathon Submission Report
 
+> **Status correction:** the 33.3%-versus-100% table below evaluates the legacy deterministic
+> workflows. It is retained as regression evidence and must not be described as model-agent
+> performance. The current model-directed manager/falsifier has a successful live NIM smoke but has
+> not yet been scored on a frozen blind agent benchmark. Model API cost is not reported by NIM.
+
 ## Problem and intended user
 
 Finance, procurement, and supplier-operations reviewers approve settlements whose governing
@@ -29,7 +34,7 @@ percentage points without increasing false repairs. Clean controls and H01 are r
 | Challenging case H01 | 0% (0/1) | **100% (1/1)** | **+100 pp** |
 | Automated wall-clock, M10 median of 5 | 0.331 s | 0.451 s | +0.121 s |
 | Human time per task | Not measured | Not measured | No claim |
-| Model/API cost per task | $0.00 | $0.00 | $0.00 |
+| Model/API cost per task | $0.00 (legacy) | $0.00 (legacy) | $0.00 (legacy) |
 
 The runtime row is an end-to-end local measurement on the recorded Windows/Python environment;
 it is not a latency guarantee. FormulaWitness spends about 0.12 additional seconds on M10 to
@@ -42,6 +47,16 @@ reproducible samples and environment are in
 
 Complete per-case correctness evidence is in `evals/results.json` and the submitted copy at
 `artifacts/submission/evaluation-results.json`.
+
+## Model-agent implementation checkpoint
+
+The current `agent` command is a model-controlled audit manager with generic discovery/retrieval/
+sandbox tools and an independent fresh-context falsifier. A live `openai/gpt-oss-120b` NIM run on
+M10 produced a proposal-only P6 repair after 17 manager turns, 10 falsifier turns, 27 tool calls,
+and six sandbox executions. The run included a falsifier tool-schema failure followed by a corrected
+model call and successful experiment, demonstrating observation-driven replanning. This is a smoke
+test, not a correctness rate. The `agent-baseline` command provides the one-candidate/no-falsifier
+comparison required for future blind repeated evaluation.
 
 ## Challenging case and what it revealed
 

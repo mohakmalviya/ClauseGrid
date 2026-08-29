@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from formulawitness.trace import Trajectory, verify_trajectory
+from formulawitness.trace import Trajectory, redact_secrets, verify_trajectory
 
 
 def test_trajectory_hash_chain_detects_tampering(tmp_path: Path) -> None:
@@ -71,3 +71,35 @@ def test_trajectory_hash_chain_covers_runtime_metadata_and_resume(tmp_path: Path
         verify_trajectory(path)
     with pytest.raises(ValueError, match="hash mismatch"):
         Trajectory(path, "run-1", resume=True)
+
+
+def test_agent_trace_preserves_observable_cycle_and_redacts_credentials(tmp_path: Path) -> None:
+    path = tmp_path / "trajectory.jsonl"
+    trace = Trajectory(path, "agent-run")
+    trace.record_agent_event(
+        "audit-manager",
+        "TOOL_CALL",
+        {
+            "tool_call": {"name": "list_sheets", "arguments": {}},
+            "authorization": "Bearer should-never-appear",
+            "observation": "Authorization: Bearer another-secret",
+        },
+        model_id="test-model",
+        prompt_version="manager-v1",
+        usage={"input_tokens": 10, "output_tokens": 4},
+    )
+
+    event = json.loads(path.read_text(encoding="utf-8"))
+    assert event["schema_version"] == 3
+    assert event["payload"]["tool_call"]["name"] == "list_sheets"
+    assert event["payload"]["authorization"] == "[REDACTED]"
+    assert "should-never-appear" not in path.read_text(encoding="utf-8")
+    assert "another-secret" not in path.read_text(encoding="utf-8")
+    assert verify_trajectory(path)["event_count"] == 1
+
+
+def test_redact_secrets_does_not_remove_token_usage() -> None:
+    assert redact_secrets({"output_tokens": 7, "api_key": "secret"}) == {
+        "output_tokens": 7,
+        "api_key": "[REDACTED]",
+    }

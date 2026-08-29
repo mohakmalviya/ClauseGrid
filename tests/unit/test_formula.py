@@ -88,3 +88,13 @@ def test_ordered_lookup_reads_qualified_range() -> None:
         "TIERSCHEDULE!B7",
         "TIERSCHEDULE!B8",
     ]
+
+
+def test_iso_date_overrides_are_policy_neutral_and_not_address_specific() -> None:
+    outputs, _ = evaluate_cells(
+        {},
+        {"Z17": "=Y11-X23"},
+        {"X23": "2026-01-01", "Y11": "2026-01-03"},
+    )
+
+    assert outputs["Z17"] == 2

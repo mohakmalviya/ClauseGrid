@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -10,12 +12,19 @@ from .models import AuditResult, Patch, Rule, TestCase
 
 
 def write_json(path: Path, payload: Any) -> None:
+    """Atomically replace one JSON artifact without exposing partially written bytes."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True, default=str) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    pending = path.with_name(f".{path.name}.pending-{uuid.uuid4().hex}")
+    try:
+        with pending.open("x", encoding="utf-8", newline="\n") as stream:
+            stream.write(json.dumps(payload, indent=2, sort_keys=True, default=str) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(pending, path)
+    finally:
+        if pending.exists():
+            pending.unlink()
 
 
 def portable_audit_payload(result: AuditResult) -> dict[str, Any]:

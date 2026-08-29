@@ -9,6 +9,9 @@ description = "Agentic policy assurance for operational Excel workbooks"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "httpx>=0.28,<1",
+  "openai>=2.0,<3",
+  "pydantic>=2.10,<3",
   "pypdf>=5.0,<7",
 ]
 

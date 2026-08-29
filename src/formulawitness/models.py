@@ -89,6 +89,26 @@ class ExecutionResult:
     elapsed_ms: int
 
 
+@dataclass(frozen=True)
+class FormulaOverride:
+    """One guarded formula substitution used only inside a sandbox experiment."""
+
+    cell: str
+    old_formula_sha256: str
+    new_formula: str
+
+
+@dataclass(frozen=True)
+class SandboxExperimentResult:
+    workbook_sha256: str
+    sheet: str
+    observations: dict[str, JsonValue]
+    dependencies: dict[str, list[str]]
+    formula_sha256: dict[str, str]
+    applied_formula_overrides: tuple[str, ...]
+    elapsed_ms: int
+
+
 def relative_path(path: Path, root: Path) -> str:
     try:
         return path.resolve().relative_to(root.resolve()).as_posix()

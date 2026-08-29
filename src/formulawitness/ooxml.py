@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import re
 import zipfile
 from collections.abc import Iterable, Sequence
@@ -37,13 +38,40 @@ def inspect_safety(path: Path, max_uncompressed: int = 25_000_000) -> dict[str, 
         raise WorkbookRejected("Only ordinary .xlsx workbooks are accepted")
     if not path.is_file():
         raise WorkbookRejected(f"Workbook not found: {path}")
-    with zipfile.ZipFile(path) as archive:
+    if path.stat().st_size > max_uncompressed:
+        raise WorkbookRejected("Workbook package exceeds the compressed-size limit")
+    package = path.read_bytes()
+    package_sha256 = hashlib.sha256(package).hexdigest()
+    try:
+        archive_context = zipfile.ZipFile(io.BytesIO(package))
+    except zipfile.BadZipFile as exc:
+        raise WorkbookRejected("Workbook is not a valid OOXML ZIP package") from exc
+    with archive_context as archive:
         infos = archive.infolist()
         if len(infos) > 1000 or sum(info.file_size for info in infos) > max_uncompressed:
             raise WorkbookRejected("Workbook package exceeds the safety limit")
+        canonical_names = [info.filename.replace("\\", "/").casefold() for info in infos]
+        if len(set(canonical_names)) != len(canonical_names):
+            raise WorkbookRejected("Workbook package contains duplicate part names")
+        for info in infos:
+            normalized = info.filename.replace("\\", "/")
+            if normalized.startswith("/") or ".." in normalized.split("/"):
+                raise WorkbookRejected("Workbook package contains an unsafe part path")
+            if info.flag_bits & 0x1:
+                raise WorkbookRejected("Encrypted workbook package parts are unsupported")
+            if info.file_size > 1_000_000 and info.compress_size * 200 < info.file_size:
+                raise WorkbookRejected("Workbook package contains an excessive compression ratio")
         names = {info.filename.lower() for info in infos}
+        required = {
+            "[content_types].xml",
+            "_rels/.rels",
+            "xl/workbook.xml",
+            "xl/_rels/workbook.xml.rels",
+        }
         forbidden = (
             "vbaproject.bin",
+            "xl/macrosheets/",
+            "xl/dialogsheets/",
             "xl/externallinks/",
             "xl/embeddings/",
             "xl/activex/",
@@ -59,9 +87,37 @@ def inspect_safety(path: Path, max_uncompressed: int = 25_000_000) -> dict[str, 
                 for relationship in root:
                     if relationship.attrib.get("TargetMode", "").lower() == "external":
                         raise WorkbookRejected("External relationships are not accepted")
-        formulas = workbook_formula_map(path)
+        if not required <= names:
+            raise WorkbookRejected("Workbook package is missing required OOXML parts")
+        content_types = ET.fromstring(archive.read("[Content_Types].xml"))
+        unsafe_content_types = {
+            str(item.attrib.get("ContentType", "")).casefold()
+            for item in content_types
+            if any(
+                marker in str(item.attrib.get("ContentType", "")).casefold()
+                for marker in ("macroenabled", "vbaproject", "oleobject", "activex")
+            )
+        }
+        if unsafe_content_types:
+            raise WorkbookRejected("Workbook declares an unsupported active content type")
+        package_relationships = ET.fromstring(archive.read("_rels/.rels"))
+        office_documents = [
+            relationship
+            for relationship in package_relationships
+            if relationship.attrib.get("Type", "").endswith("/officeDocument")
+        ]
+        if (
+            len(office_documents) != 1
+            or office_documents[0].attrib.get("Target", "").lstrip("/") != "xl/workbook.xml"
+        ):
+            raise WorkbookRejected("Workbook package has an invalid office-document relationship")
+        workbook_root = ET.fromstring(archive.read("xl/workbook.xml"))
+        if workbook_root.find("x:definedNames", NS) is not None:
+            raise WorkbookRejected("Defined names are outside the supported workbook profile")
+        _sheet_paths(archive)
+        formulas = _archive_formula_map(archive)
         unsafe_function = re.compile(
-            r"\b(?:INDIRECT|OFFSET|NOW|TODAY|RAND|RANDBETWEEN|WEBSERVICE|RTD|HYPERLINK|FILTERXML|STOCKHISTORY)\s*\(",
+            r"\b(?:CALL|EVALUATE|EXEC|REGISTER\.ID|INDIRECT|OFFSET|NOW|TODAY|RAND|RANDBETWEEN|WEBSERVICE|RTD|HYPERLINK|FILTERXML|STOCKHISTORY)\s*\(",
             re.IGNORECASE,
         )
         external_formula = re.compile(
@@ -76,21 +132,79 @@ def inspect_safety(path: Path, max_uncompressed: int = 25_000_000) -> dict[str, 
             raise WorkbookRejected(
                 f"Volatile, DDE, or network-capable formulas are unsupported: {', '.join(unsafe)}"
             )
-    return {"sha256": sha256_file(path), "entries": len(infos), "formula_count": len(formulas)}
+    return {
+        "sha256": package_sha256,
+        "entries": len(infos),
+        "formula_count": len(formulas),
+    }
 
 
 def _sheet_paths(archive: zipfile.ZipFile) -> dict[str, str]:
     workbook = ET.fromstring(archive.read("xl/workbook.xml"))
     relationships = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
-    targets = {rel.attrib["Id"]: rel.attrib["Target"].lstrip("/") for rel in relationships}
+    relationship_rows = {rel.attrib["Id"]: rel.attrib for rel in relationships}
+    if len(relationship_rows) != len(list(relationships)):
+        raise WorkbookRejected("Workbook contains duplicate relationship identifiers")
     result: dict[str, str] = {}
+    canonical_names: set[str] = set()
+    canonical_targets: set[str] = set()
     sheets = workbook.find("x:sheets", NS)
     if sheets is None:
         raise WorkbookRejected("Workbook sheet manifest is missing")
     for sheet in sheets:
-        target = targets[sheet.attrib[f"{{{REL}}}id"]]
-        result[sheet.attrib["name"]] = target if target.startswith("xl/") else f"xl/{target}"
+        name = sheet.attrib.get("name", "")
+        if not name or name.casefold() in canonical_names:
+            raise WorkbookRejected(
+                "Workbook sheet names must be non-empty and case-insensitively unique"
+            )
+        canonical_names.add(name.casefold())
+        relationship_id = sheet.attrib.get(f"{{{REL}}}id")
+        relationship = relationship_rows.get(str(relationship_id))
+        if relationship is None:
+            raise WorkbookRejected(f"Worksheet relationship is missing: {name}")
+        if not relationship.get("Type", "").endswith("/worksheet"):
+            raise WorkbookRejected(f"Unsupported sheet relationship type: {name}")
+        target = relationship["Target"].lstrip("/")
+        resolved = target if target.startswith("xl/") else f"xl/{target}"
+        if resolved not in archive.namelist():
+            raise WorkbookRejected(f"Worksheet part is missing: {name}")
+        if resolved.casefold() in canonical_targets:
+            raise WorkbookRejected("Multiple sheet names reference the same worksheet part")
+        canonical_targets.add(resolved.casefold())
+        result[name] = resolved
     return result
+
+
+def _archive_formula_map(archive: zipfile.ZipFile) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for sheet_name, target in _sheet_paths(archive).items():
+        root = ET.fromstring(archive.read(target))
+        seen_cells: set[str] = set()
+        for cell in root.findall(".//x:c", NS):
+            address = cell.attrib.get("r", "").upper()
+            if not address or address in seen_cells:
+                raise WorkbookRejected(
+                    f"Worksheet contains a duplicate or missing cell address: {sheet_name}"
+                )
+            seen_cells.add(address)
+            formula = cell.find("x:f", NS)
+            if formula is None:
+                continue
+            if formula.attrib:
+                raise WorkbookRejected(
+                    f"Shared, array, or data-table formulas are unsupported: {sheet_name}!{address}"
+                )
+            if formula.text is None:
+                raise WorkbookRejected(f"Formula text is missing: {sheet_name}!{address}")
+            result[f"{sheet_name}!{address}"] = "=" + formula.text
+    return result
+
+
+def workbook_sheet_names(path: Path) -> tuple[str, ...]:
+    """Return workbook sheet names in package order without loading workbook code."""
+
+    with zipfile.ZipFile(path) as archive:
+        return tuple(_sheet_paths(archive))
 
 
 def _shared_strings(archive: zipfile.ZipFile) -> list[str]:
@@ -111,17 +225,29 @@ def sheet_cells(path: Path, sheet_name: str) -> tuple[dict[str, Any], dict[str, 
         formulas: dict[str, str] = {}
         for cell in root.findall(".//x:c", NS):
             address = cell.attrib.get("r", "").upper()
+            if not address or address in values:
+                raise WorkbookRejected("Worksheet contains a duplicate or missing cell address")
             formula = cell.find("x:f", NS)
             value = cell.find("x:v", NS)
+            if formula is not None and formula.attrib:
+                raise WorkbookRejected("Shared, array, and data-table formulas are unsupported")
             if formula is not None and formula.text is not None:
                 formulas[address] = "=" + formula.text
+            if cell.attrib.get("t") == "inlineStr":
+                inline = cell.find("x:is", NS)
+                values[address] = (
+                    None
+                    if inline is None
+                    else "".join(node.text or "" for node in inline.iter(f"{{{MAIN}}}t"))
+                )
+                continue
             if value is None or value.text is None:
                 values[address] = None
                 continue
             kind = cell.attrib.get("t")
             if kind == "s":
                 values[address] = strings[int(value.text)]
-            elif kind in {"str", "inlineStr"}:
+            elif kind == "str":
                 values[address] = value.text
             elif kind == "b":
                 values[address] = value.text == "1"
@@ -154,16 +280,8 @@ def formula_map(path: Path, sheet_name: str = "RebateCalc") -> dict[str, str]:
 def workbook_formula_map(path: Path) -> dict[str, str]:
     """Return every formula in every original workbook sheet."""
 
-    result: dict[str, str] = {}
     with zipfile.ZipFile(path) as archive:
-        for sheet_name, target in _sheet_paths(archive).items():
-            root = ET.fromstring(archive.read(target))
-            for cell in root.findall(".//x:c", NS):
-                formula = cell.find("x:f", NS)
-                if formula is not None and formula.text is not None:
-                    address = cell.attrib.get("r", "").upper()
-                    result[f"{sheet_name}!{address}"] = "=" + formula.text
-    return result
+        return _archive_formula_map(archive)
 
 
 def _inline_cell(address: str, value: Any, style: int | None = None) -> ET.Element:
@@ -238,23 +356,49 @@ def patch_workbook(
     counterexample_rows: list[list[Any]],
     report_rows: list[list[Any]],
 ) -> None:
-    """Apply validated formula patches and add evidence sheets to a copied package."""
+    """Apply guarded formula patches and add evidence sheets to a copied package.
+
+    Patch keys may be fully qualified as ``Sheet!A1``. Unqualified keys retain the
+    legacy behavior and target ``RebateCalc``.
+    """
+
     inspect_safety(source)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(source) as input_zip:
         names = input_zip.namelist()
         sheet_paths = _sheet_paths(input_zip)
-        calc_path = sheet_paths["RebateCalc"]
-        calc_root = ET.fromstring(input_zip.read(calc_path))
-        cells = {cell.attrib.get("r", "").upper(): cell for cell in calc_root.findall(".//x:c", NS)}
-        for address, (expected_old, new_formula) in patches.items():
-            cell = cells.get(address.upper())
+        canonical_sheets = {name.casefold(): name for name in sheet_paths}
+        modified_roots: dict[str, ET.Element] = {}
+        patched_references: set[str] = set()
+        for reference, (expected_old, new_formula) in patches.items():
+            if "!" in reference:
+                requested_sheet, address = reference.rsplit("!", 1)
+            else:
+                requested_sheet, address = "RebateCalc", reference
+            sheet_name = canonical_sheets.get(requested_sheet.casefold())
+            if sheet_name is None:
+                raise WorkbookRejected(f"Patch sheet missing: {requested_sheet}")
+            address = address.replace("$", "").upper()
+            if re.fullmatch(r"[A-Z]{1,3}[1-9]\d*", address) is None:
+                raise WorkbookRejected(f"Invalid patch target: {reference}")
+            qualified_reference = f"{sheet_name}!{address}"
+            if qualified_reference in patched_references:
+                raise WorkbookRejected(f"Duplicate patch target: {qualified_reference}")
+            patched_references.add(qualified_reference)
+            sheet_path = sheet_paths[sheet_name]
+            sheet_root = modified_roots.setdefault(
+                sheet_path, ET.fromstring(input_zip.read(sheet_path))
+            )
+            cells = {
+                cell.attrib.get("r", "").upper(): cell for cell in sheet_root.findall(".//x:c", NS)
+            }
+            cell = cells.get(address)
             if cell is None:
-                raise WorkbookRejected(f"Patch target missing: {address}")
+                raise WorkbookRejected(f"Patch target missing: {qualified_reference}")
             formula_node = cell.find("x:f", NS)
             current = "=" + (formula_node.text or "") if formula_node is not None else ""
             if current != expected_old:
-                raise WorkbookRejected(f"Old-formula guard failed for {address}")
+                raise WorkbookRejected(f"Old-formula guard failed for {qualified_reference}")
             assert formula_node is not None
             formula_node.text = new_formula.removeprefix("=")
             cached = cell.find("x:v", NS)
@@ -264,10 +408,42 @@ def patch_workbook(
         workbook_root = ET.fromstring(input_zip.read("xl/workbook.xml"))
         rels_root = ET.fromstring(input_zip.read("xl/_rels/workbook.xml.rels"))
         content_root = ET.fromstring(input_zip.read("[Content_Types].xml"))
+        for relationship in list(rels_root):
+            if relationship.attrib.get("Type", "").endswith("/calcChain"):
+                rels_root.remove(relationship)
+        for override in list(content_root):
+            if override.attrib.get("PartName", "").casefold() == "/xl/calcchain.xml":
+                content_root.remove(override)
         sheets_node = workbook_root.find("x:sheets", NS)
         assert sheets_node is not None
+        existing_sheet_names = {sheet.attrib.get("name", "").casefold() for sheet in sheets_node}
+        reserved_names = {"counterexamples", "formulawitness_report"}
+        if existing_sheet_names & reserved_names:
+            raise WorkbookRejected("Workbook already contains a reserved evidence sheet")
+
+        # Formula caches can otherwise expose values calculated from the old candidate.
+        for sheet_path in sheet_paths.values():
+            sheet_root = modified_roots.setdefault(
+                sheet_path, ET.fromstring(input_zip.read(sheet_path))
+            )
+            for cell in sheet_root.findall(".//x:c", NS):
+                if cell.find("x:f", NS) is not None:
+                    cached = cell.find("x:v", NS)
+                    if cached is not None:
+                        cell.remove(cached)
+
+        calc_properties = workbook_root.find("x:calcPr", NS)
+        if calc_properties is None:
+            calc_properties = ET.SubElement(workbook_root, f"{{{MAIN}}}calcPr")
+        calc_properties.attrib.update(
+            {"calcMode": "auto", "fullCalcOnLoad": "1", "forceFullCalc": "1"}
+        )
         next_sheet_id = max(int(sheet.attrib["sheetId"]) for sheet in sheets_node) + 1
-        existing_targets = {rel.attrib["Target"].lstrip("/") for rel in rels_root}
+        existing_targets = {
+            (target if target.startswith("xl/") else f"xl/{target}")
+            for target in (rel.attrib["Target"].lstrip("/") for rel in rels_root)
+        }
+        existing_relationship_ids = {rel.attrib["Id"] for rel in rels_root}
         sheet_number = 1
         while (
             f"xl/worksheets/sheet{sheet_number}.xml" in existing_targets
@@ -280,7 +456,12 @@ def patch_workbook(
             ("Counterexamples", counterexample_rows, [12, 24, 24, 12, 20, 52, 34, 34]),
             ("FormulaWitness_Report", report_rows, [30, 84]),
         ):
-            rid = f"rIdFormulaWitness{sheet_number}"
+            rid_index = sheet_number
+            rid = f"rIdFormulaWitness{rid_index}"
+            while rid in existing_relationship_ids:
+                rid_index += 1
+                rid = f"rIdFormulaWitness{rid_index}"
+            existing_relationship_ids.add(rid)
             target = f"xl/worksheets/sheet{sheet_number}.xml"
             ET.SubElement(
                 sheets_node,
@@ -309,11 +490,14 @@ def patch_workbook(
             sheet_number += 1
 
         replacements = {
-            calc_path: ET.tostring(
-                calc_root,
-                encoding="utf-8",
-                xml_declaration=True,
-            ),
+            **{
+                sheet_path: ET.tostring(
+                    sheet_root,
+                    encoding="utf-8",
+                    xml_declaration=True,
+                )
+                for sheet_path, sheet_root in modified_roots.items()
+            },
             "xl/workbook.xml": ET.tostring(
                 workbook_root,
                 encoding="utf-8",
@@ -325,6 +509,8 @@ def patch_workbook(
         }
         with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED) as output_zip:
             for info in input_zip.infolist():
+                if info.filename.casefold() == "xl/calcchain.xml":
+                    continue
                 payload = replacements.pop(info.filename, None)
                 output_zip.writestr(
                     deepcopy(info), payload if payload is not None else input_zip.read(info)

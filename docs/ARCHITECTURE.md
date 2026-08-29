@@ -1,62 +1,89 @@
 # Architecture
 
-## System flow
+## Model-directed system flow
 
 ```text
-Policy PDF ──> cited rule agent ──> approved typed rules ──> counterexample planner
-                                                        │
-Workbook ──> safety gate ──> isolated allowlist worker ─┴─> observed witnesses
-                                                        │
-                     dependency graph + spectrum localizer
-                                                        │
-                     constrained minimal patch candidates
-                                                        │
-                      human hash-bound approval gate
-                                                        │
-             repaired copy + evidence pack ──> sealed evaluator
+workbook + policy
+       |
+       v
+deterministic safety gate
+       |
+       v
+Audit Manager (model-controlled loop) <------------------------------+
+  | policy retrieval + exact citations                               |
+  | workbook discovery + dependency inspection                       |
+  | sandbox experiments + candidate staging                          |
+  +----> fresh-context Falsifier ---- counterexample / verdict -------+
+       |
+       +----> repair proposal / no change / abstain / human request
+       |
+       v
+separate reviewer hash approval
+       |
+       v
+guarded patch to copy -> formula-scope validation -> experiment replay
 ```
 
-No repair component imports the hidden oracle. Visible expected results come from policy-compiled formulas; final scoring comes from a separate hand-coded `Decimal` and calendar-date implementation.
+Python fixes no investigation sequence. The model selects tools, arguments, retries, candidate
+revisions, specialist invocation, and terminal action. Python validates schemas, executes narrow
+tools, enforces budgets, and prevents irreversible model actions.
 
-## Components
+## Runtime components
 
-- `policy.py`: extracts 11 exact source spans from the PDF, verifies offsets/hashes, records ambiguity state, parses a typed executable rule IR, and compiles candidate formulas from that IR without reading a pristine workbook.
-- `ooxml.py`: rejects active/external content, reads cells/formulas without Excel, enforces old-formula guards, and applies copy-on-write patches.
-- `formula.py`: recursive-descent parser and evaluator for a documented nonvolatile subset. Unknown syntax raises `FormulaError`.
-- `worker.py` / `runner.py`: evaluates all visible cases in a fresh subprocess and temporary working directory with a minimal environment. A process-local file-capability guard permits only staged public inputs and the run output directory. The workbook cannot invoke Python, shell, filesystem, or networking APIs because only parsed allowlisted AST nodes execute.
-- `advanced.py`: counterexample-guided typed workflow, dependency/spectrum localization, greedy minimal patch search, and approval binding.
-- `baseline.py`: direct one-pass policy/formula audit used as the fair comparison.
-- `evaluation.py`: copies only the workbook and policy into a fresh evaluation directory, launches each repair workflow under the file-capability guard, destroys that directory after scoring, then performs one-shot sealed replay in the parent evaluator.
-- `evals/sealed/cases.py` and `evals/sealed/oracle.py`: evaluator-side held-out vectors and independently authored `Decimal`/date semantics; neither is included in the installed repair package.
-- `ui.py`: local review application with cited rules, witnesses, formula diff, approval, and downloads.
+- `model_client.py`: provider-neutral OpenAI-compatible client. Credentials come only from a named
+  environment variable. It implements bounded retry, request pacing, timeout, normalized tool calls,
+  usage accounting, and secret-safe errors.
+- `agent_loop.py`: feeds each model-selected tool observation back to the same actor until a terminal
+  tool, budget, or error stops the run.
+- `agent_tools.py`: run-scoped typed tools for policy retrieval, workbook discovery, dependency
+  inspection, sandbox experiments, candidate staging, falsification, submission, no-change, and
+  human escalation. Tools never accept filesystem paths.
+- `falsifier.py`: independent fresh context with read/sandbox tools and no stage, submit, approval,
+  or apply capability. `BROKEN` requires an executed counterexample; conclusive verdicts require
+  executed evidence.
+- `agentic.py`: deterministic safety gate, state/artifact persistence, proposal-only execution, fair
+  single-agent mode, separate approval, copy-on-write publication, changed-formula validation, and
+  replay of the candidate experiments on the copied workbook.
+- `policy_text.py`: policy-only PDF retrieval with exact mechanically verified citations. It does not
+  import the frozen supplier rule compiler.
+- `workbook_tools.py`: template-neutral manifest, region, formula, and dependency inspection.
+- `experiment_worker.py`: separate no-network formula process receiving explicit sheet/cell inputs,
+  observations, and hash-guarded candidate formulas. It imports no policy, benchmark, or evaluator.
+- `trace.py`: schema-v3 raw observable model/tool/observation events in a tamper-evident hash chain.
+  It stores no hidden chain-of-thought and redacts credential fields and bearer values.
+- `agent_budget.py`: fail-closed manager/falsifier turns, model calls, tool calls, tokens, workbook
+  executions, retries, elapsed time, and optional reported-cost limits.
 
-## Dependency/spectrum localization
+## Authority boundary
 
-For each output mismatch, FormulaWitness calculates the backward formula dependency cone. Each candidate cell records failing coverage, passing coverage, affected outputs, direct mismatch count, and Ochiai suspiciousness:
+The model can read bounded evidence, run a formula candidate in the sandbox, and stage typed data.
+It cannot access paths, shell, Python execution, environment variables, arbitrary networking,
+evaluator files, approval, or workbook-write tools. The API client runs in the controller process;
+the workbook worker receives a minimal environment without API credentials.
 
-```text
-failed_covered / sqrt(total_failed × (failed_covered + passed_covered))
-```
+`approve-agent` requires a reviewer identity and the hash of the exact persisted proposal. It
+revalidates source/policy hashes and old formulas, patches a pending copy, proves that only authorized
+formula targets changed, replays the candidate experiments, and only then publishes
+`repaired.xlsx`. The source is never modified.
 
-The score is evidence, not certainty. Candidate generation remains restricted to formulas compiled from cited, unambiguous policy IR. The compiler receives extracted rules and parses lookup bounds/rates, SLA thresholds/multipliers, proration, cap, rounding, and decision precedence; it never reads the pristine workbook. The repair stage accepts only a candidate that increases visible-case passes and stays within the patch-cell budget.
+## Comparison modes
 
-## Approval binding
+- `agent-baseline`: same model, policy/workbook discovery tools, sandbox, budgets, and guardrails;
+  one candidate, one candidate validation, no falsifier, and no second candidate.
+- `agent`: manager plus independent falsifier feedback and candidate revision.
+- `baseline`, `advanced`, and `eval`: retained legacy deterministic workflows. Their frozen
+  33.3%-versus-100% benchmark is regression evidence for the deterministic layer, not agent evidence.
 
-The approval hash covers:
+## Evaluation boundary
 
-- source workbook SHA-256;
-- extracted-rule bundle hash;
-- visible case-manifest hash;
-- exact formula-diff hash;
-- reviewer identity and decision;
-- repaired workbook SHA-256.
+The agentic runtime does not import `policy.py`, `public_benchmark.py`, `benchmark.py`,
+`evaluation.py`, `evals.*`, mutation descriptions, sealed cases, or reference formulas. A fair agent
+claim still requires a frozen blind set of unseen workbook-policy pairs, at least five trials per
+task, the single-agent comparison, falsifier ablation, and independent scoring. The successful live
+NIM smoke is implementation evidence, not a benchmark score.
 
-The patcher also checks the exact old formula immediately before writing. A changed input or stale proposal therefore cannot silently reuse approval.
+## Known scope
 
-## Why the runtime is deterministic
-
-The named agents are specialized state-machine roles with explicit instructions and narrow tools, not calls to an external language-model API. That is intentional for this assurance domain: policy ambiguity is escalated to a human, while formula execution, candidate search, minimality, approval binding, and scoring remain reproducible. Baseline and advanced workflows therefore use the same `deterministic-offline-v1` decision model, zero model tokens, and the same execution ceiling. OpenAI Codex is disclosed as the coding agent used to build the project.
-
-## Isolation claim
-
-FormulaWitness does not claim to emulate every Excel feature or provide a kernel-level sandbox on every operating system. It provides a smaller, auditable boundary: untrusted workbook content is data; a separate worker parses a strict formula grammar; no workbook-supplied code is loaded; unsupported content fails closed. The runner can additionally be placed in a container with networking disabled for deployment.
+FormulaWitness executes a documented nonvolatile formula subset rather than Excel itself. Macros,
+external links, embedded objects, connections, volatile/network formulas, unsupported syntax,
+ambiguous policy meaning, stale hashes, broad changes, and exhausted budgets fail closed.

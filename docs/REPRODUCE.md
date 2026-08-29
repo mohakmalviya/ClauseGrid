@@ -1,6 +1,6 @@
 # Reproduction guide
 
-## Clean setup
+## Setup
 
 From the repository root with Python 3.11 or newer:
 
@@ -8,7 +8,7 @@ From the repository root with Python 3.11 or newer:
 .\scripts\setup.ps1
 ```
 
-Equivalent cross-platform commands:
+Equivalent commands:
 
 ```text
 python -m venv .venv
@@ -17,68 +17,94 @@ python -m venv .venv
 ```
 
 On Windows, replace `.venv/bin/python` with `.venv\Scripts\python.exe`.
-Workbook regeneration is not required for evaluation; its Codex-bundled authoring dependency is documented in `docs/BUILD_DEPENDENCIES.md`.
 
-The exact Python distribution versions are pinned in `requirements-lock.txt`. On the measured Windows host with Python 3.12 and cached package downloads, clean setup took about 70 seconds and the complete verification command took about 50 seconds; network and machine speed will change those figures. Baseline, advanced, demo, and evaluation runs make no model or network calls, so their model/API cost is **$0**.
-
-Reproduce the separate five-run M10 wall-clock measurement with:
-
-```powershell
-.\.venv\Scripts\python.exe scripts\measure_runtime.py --repetitions 5
-```
-
-The committed measurement is `artifacts/submission/performance-results.json`. It reports automated runtime and $0 model/API cost. Human time is intentionally marked `not_measured`; see `docs/HUMAN_TIME_STUDY.md` for the required participant-study protocol.
-
-## Verify the implementation
+## Deterministic regression gate
 
 ```powershell
 .\scripts\verify.ps1
 ```
 
-This runs formatting, lint, strict type checks, all unit/integration/security/evaluation tests, the frozen mutation-kill audit, and the scored benchmark. Expected headline result:
+This runs formatting, lint, strict typing, all tests, mutation validation, and the frozen legacy
+benchmark. Its 33.3% baseline and 100% advanced result belongs only to the legacy deterministic
+workflows.
 
-```text
-baseline_e2e_srr: 33.333333333333336
-advanced_e2e_srr: 100.0
-improvement_pp: 66.66666666666666
-advanced_clean_preservation: 100.0
-```
+## Model-directed audit
 
-## Reproduce the flagship artifact
+Set the credential outside the repository. Do not put it in a command argument or committed file.
 
 ```powershell
-.\scripts\demo.ps1
+$env:NVIDIA_NIM_API_KEY = '<credential>'
+.\.venv\Scripts\python.exe -m formulawitness agent `
+  workbooks\mutants\M10_supplier_rebate.xlsx `
+  --policy policies\supplier_rebate_sla_policy.pdf `
+  --provider nvidia-nim `
+  --model openai/gpt-oss-120b `
+  --allow-external-processing `
+  --artifacts artifacts\runs
 ```
 
-Output is written under `artifacts/demo/advanced-<run-hash>/`. The deterministic run ID changes when the source workbook, extracted-rule bundle, visible-case manifest, or workflow version changes.
+The command stops at a proposal. It does not write a repaired workbook. Inspect `proposal.json`,
+`formula-diff.json`, `agent-state.json`, `report.json`, and `trajectory.jsonl`. Verify the hash chain:
 
-## Run the interface
+To evaluate MiMo V2.5 through an authenticated CommandCode Go/native account:
 
 ```powershell
-.\scripts\serve.ps1
+$env:COMMAND_CODE_API_KEY = '<credential>'
+.\.venv\Scripts\python.exe -m formulawitness agent `
+  workbooks\mutants\M10_supplier_rebate.xlsx `
+  --provider commandcode-go `
+  --model xiaomi/mimo-v2.5 `
+  --allow-external-processing `
+  --artifacts artifacts\runs
 ```
 
-Visit `http://127.0.0.1:8765`. M10 is selected by default.
+This path uses FormulaWitness's manager, falsifier, tools, budgets, and trace. It does not launch the
+CommandCode coding CLI or grant an external coding harness workspace access.
 
-## Workbook authoring and visual QA
-
-The committed `.xlsx` fixtures are ready to use. They were authored with the workspace `@oai/artifact-tool` builder in `scripts/build_workbooks.mjs`, then imported and rendered with `scripts/verify_workbooks.mjs`. The source policy was created by `scripts/build_policy_pdf.py` and visually inspected page by page.
-
-Desktop Excel is optional. The final repaired workbook was separately opened, fully recalculated, saved, and reopened in Excel with macros disabled; it contained all six expected sheets and returned `S6=7500`, `T6=PAYABLE`.
-
-Verify the submitted trajectory hash chains without rerunning either agent:
+OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM, and a custom OpenAI-compatible gateway use
+the same agent commands. See [model providers](PROVIDERS.md) for exact credential variables and
+examples. CommandCode/MiMo is a temporary compatibility path, not the default architecture.
 
 ```powershell
-.\.venv\Scripts\python.exe -m formulawitness verify-trajectory trajectories\baseline-m10.jsonl
-.\.venv\Scripts\python.exe -m formulawitness verify-trajectory trajectories\advanced-m10.jsonl
+.\.venv\Scripts\python.exe -m formulawitness verify-trajectory `
+  artifacts\runs\RUN_ID\trajectory.jsonl
 ```
 
-## Reproducibility controls
+After review, calculate the canonical proposal hash with the same `object_hash` implementation, then
+apply that exact proposal:
 
-- Synthetic data only.
-- No runtime network calls or model API.
-- Fixed visible cases and fixed secret seed for held-out interior points.
-- Nonvolatile formula subset and Excel 1900 date serials.
-- `Decimal` with half-up final rounding in the hidden oracle.
-- Stable source, rule, case, patch, and trajectory hashes.
-- Deterministic workflow; repeated runs are unnecessary under the challenge rule that asks repetition only for nondeterministic systems.
+```powershell
+.\.venv\Scripts\python.exe -m formulawitness approve-agent RUN_ID `
+  workbooks\mutants\M10_supplier_rebate.xlsx `
+  --policy policies\supplier_rebate_sla_policy.pdf `
+  --artifacts artifacts\runs `
+  --proposal-hash REVIEWED_HASH `
+  --reviewer reviewer@example.test
+```
+
+## Fair single-agent comparison
+
+Use the same endpoint, model, workbook, policy, and limits:
+
+```powershell
+.\.venv\Scripts\python.exe -m formulawitness agent-baseline `
+  workbooks\mutants\M10_supplier_rebate.xlsx `
+  --provider nvidia-nim `
+  --model openai/gpt-oss-120b `
+  --allow-external-processing
+```
+
+This mode permits one candidate and one sandbox candidate validation, with no falsifier or retry to
+a second candidate. One run is not a performance result. A scored claim requires a frozen blind task
+set and at least five independent trials per task.
+
+## Credential and cost disclosure
+
+The controller needs network access for the configured model endpoint; workbook workers do not.
+Every non-loopback endpoint requires the explicit `--allow-external-processing` flag. The CLI rejects
+the command before reading its credential environment variable when consent is absent. A loopback
+development endpoint may omit the flag. Provider credentials remain server-side and are never sent
+in browser request payloads.
+Trajectories record model id, token usage, request timing, retries, and stop reason. They do not store
+the API key or hidden reasoning. NVIDIA NIM did not report monetary cost in the tested response, so
+cost is `Not reported`, not `$0`.

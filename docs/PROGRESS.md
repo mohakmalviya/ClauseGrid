@@ -25,10 +25,37 @@
 
 ## Checkpoint 3 - verification and submission pack
 
-- Thirty-four automated tests, lint, formatting, strict typing, mutation validation, and benchmark acceptance all pass.
+- The complete automated test count is reported by the current verification run; lint, formatting,
+  strict typing, mutation validation, and benchmark acceptance are all gated by `scripts/verify.ps1`.
 - The repaired M10 workbook imports through the strict artifact reader and opens/recalculates with the four source sheets plus Counterexamples and FormulaWitness_Report intact.
 - Added one-command setup, demo, evaluation, server, and verification scripts plus the complete documentation and tool disclosure.
 - Created a local submission evidence pack and JSONL trajectories.
 - Upgraded submitted trajectories with readable agent instructions, tool responses, feedback, retry counts, and hash-chain verification.
 - Added a PDF-aligned submission report, stage-by-stage evidence changelog, honest human-time disclosure and study protocol, reproducible five-run task timing, H01 analysis, and an evidence-backed evaluation panel in the UI.
 - The private GitHub remote exists on `main`; a fresh remote clone installs cleanly and passes the complete verification gate. Later evidence hardening is committed and pushed only after the same checks pass.
+
+## Checkpoint 4 - genuine model runtime
+
+- Reclassified the original baseline/advanced implementation as legacy deterministic workflows; its frozen scores are not agent scores.
+- Added a provider-neutral OpenAI-compatible client, environment-only NIM credential handling, bounded retry/rate pacing, typed messages/tools, and secret-safe errors.
+- Added template-neutral workbook discovery, policy-only citation retrieval, generic sandbox experiments, model/runtime budgets, and raw schema-v3 hash-chained traces.
+- Added a model-controlled audit manager and fresh-context falsifier. Only a surviving candidate can be submitted; neither actor can approve or write a workbook.
+- Added the fair `agent-baseline` comparison with the same model/tools/limits, one candidate, one candidate validation, and no falsifier.
+- Added separate hash-bound human approval, changed-formula scope validation, and post-copy replay of candidate evidence.
+- Live NIM smoke with `openai/gpt-oss-120b` completed with a proposal-only P6 repair after 17 manager turns, 10 falsifier turns, 27 tool calls, and six sandbox executions. This is implementation evidence, not a benchmark score; provider cost was not reported.
+
+## Checkpoint 5 - provider-neutral runtime
+
+- Added explicit OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM, custom OpenAI-compatible,
+  and temporary CommandCode/MiMo provider choices with provider-specific environment variables.
+- Added native Anthropic Messages translation for system messages, typed tools, tool history,
+  tool results, usage, IDs, stop reasons, bounded responses, and non-retention of reasoning blocks.
+- Kept the exact model ID explicit and documented that each provider/model pair requires its own
+  compatibility and blind end-to-end evaluation.
+- Added protocol-preserving context compaction, a bounded registered-evidence ledger, investigation/
+  coordination/terminal tool-call reserves, and bounded recovery when a provider returns plain text
+  despite a mandatory tool request.
+- MiMo run `agent-702385dc5cee-771cae24` completed an M10 proposal-only `REPAIR`: 8 manager turns,
+  14 falsifier turns, 36 tool calls, 7 sandbox executions, and five passing candidate-bound
+  falsifier experiments. The 120-event trajectory verifies. This is single-run evidence, not a
+  repeated model benchmark or production-readiness claim.

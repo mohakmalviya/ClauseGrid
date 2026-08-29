@@ -2,6 +2,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $pythonExe = Join-Path $repoRoot '.venv\Scripts\python.exe'
 $ruffExe = Join-Path $repoRoot '.venv\Scripts\ruff.exe'
+$pytestTemp = Join-Path ([System.IO.Path]::GetTempPath()) ("formulawitness-pytest-" + [guid]::NewGuid().ToString('N'))
 if (-not (Test-Path -LiteralPath $pythonExe)) { throw 'Run scripts\setup.ps1 first.' }
 Push-Location $repoRoot
 try {
@@ -11,7 +12,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Ruff lint failed.' }
     & $pythonExe -m mypy
     if ($LASTEXITCODE -ne 0) { throw 'Mypy failed.' }
-    & $pythonExe -m pytest -q
+    # OneDrive may hold directory handles long enough to break pytest's base-temp cleanup.
+    & $pythonExe -m pytest -q --basetemp $pytestTemp -p no:cacheprovider
     if ($LASTEXITCODE -ne 0) { throw 'Pytest failed.' }
     & $pythonExe 'scripts\validate_benchmark.py' --root . --output 'artifacts\benchmark-validation.json'
     if ($LASTEXITCODE -ne 0) { throw 'Benchmark mutation validation failed.' }

@@ -22,6 +22,7 @@ TOKEN_RE = re.compile(
     r"(?P<ident>[A-Za-z_][A-Za-z0-9_.]*)|"
     r"(?P<op><=|>=|<>|[=<>+\-*/^(),:]))"
 )
+ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 CELL_RE = re.compile(r"^\$?([A-Za-z]{1,3})\$?(\d+)$")
 QUALIFIED_CELL_RE = re.compile(
     r"^(?:(?P<sheet>[A-Za-z_][A-Za-z0-9_. ]*)!)?(?P<column>[A-Z]{1,3})(?P<row>\d+)$"
@@ -334,7 +335,11 @@ def evaluate_cells(
     values = {key.upper(): value for key, value in raw_values.items()}
     for key, value in (overrides or {}).items():
         cell = key.upper()
-        values[cell] = excel_serial(value) if cell in {"B6", "C6", "D6"} else value
+        values[cell] = (
+            excel_serial(value)
+            if isinstance(value, str) and ISO_DATE_RE.fullmatch(value)
+            else value
+        )
     memo: dict[str, Any] = {}
     active: set[str] = set()
     dependencies = {cell.upper(): referenced_cells(formula) for cell, formula in formulas.items()}

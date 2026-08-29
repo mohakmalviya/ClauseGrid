@@ -285,9 +285,9 @@ should visibly demonstrate:
 Different inputs should produce meaningfully different valid trajectories. If every task follows the
 same tool sequence, the system still looks scripted.
 
-## 10. Current FormulaWitness audit
+## 10. Historical audit and implementation status
 
-The present runtime is a deterministic workflow, not a genuine model-directed agent system:
+The pre-rebuild runtime was a deterministic workflow, not a genuine model-directed agent system:
 
 - `advanced.py` fixes the stage order in Python;
 - `policy.py` contains the expected `RULE_SPECS`, cell targets, clarifiers, and formula compiler;
@@ -300,8 +300,12 @@ approval binding, sealed evaluator, mutation suite, and reproducible artifacts. 
 should become the deterministic tool and evaluation layer for the real agent rather than being
 discarded or relabelled.
 
-FormulaWitness may claim a genuine runtime agent only after it passes the definition and blind
-evaluation in this playbook.
+The current `agent` runtime now satisfies the mechanical definition: a configured model selects
+input-dependent tools and arguments, observes results/errors, invokes a fresh-context falsifier,
+can revise candidates, and selects finish/abstain/human actions. Raw model/tool/observation events,
+budgets, and approval separation are implemented. The `agent-baseline` command provides the fair
+one-candidate/no-falsifier comparison. This permits a genuine runtime-agent claim, but not a winning
+or performance claim: blind repeated evaluation on unseen workbook-policy pairs remains required.
 
 ## Primary sources
 
