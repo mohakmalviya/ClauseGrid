@@ -11,9 +11,13 @@
 
 ## Engineering
 
+- Treat `docs/AGENT_ENGINEERING_PLAYBOOK.md` as the authoritative architecture and evaluation standard for runtime agents.
 - Use Python 3.11 or newer and typed interfaces.
 - Prefer deterministic code for workbook execution, validation, scoring, and artifact generation.
 - Use agents only for decisions that require interpretation, hypothesis formation, experiment selection, localization, or repair proposal.
+- Call a runtime component an agent only when a model controls an input-dependent loop: it chooses tools and arguments, observes results, updates its plan or hypothesis, and decides whether to retry, finish, abstain, or request human judgment. A fixed Python path remains a workflow regardless of role names.
+- Do not give runtime agents benchmark-specific cell maps, gold formulas, sealed cases, mutation descriptions, or precomputed repairs.
+- Prove agenticity with raw model/tool/observation traces and blind, repeated evaluation on unseen workbook-policy pairs. Include a single-agent baseline and an ablation for every claimed multi-agent improvement.
 - Keep baseline and advanced comparisons fair: same cases, model, tools, budget, and limits unless a difference is explicitly disclosed.
 - Add or update tests with every behavior change.
 - Run formatting, linting, type checking, unit tests, integration tests, and the frozen evaluation before claiming completion.
