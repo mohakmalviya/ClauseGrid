@@ -26,6 +26,11 @@ layer. The native adapter translates system messages, tool schemas, assistant to
 results, then normalizes response IDs, tool calls, usage, and stop reasons back into the common
 runtime contract. Provider reasoning blocks are not retained.
 
+DeepSeek V4 models default to thinking mode, while their Chat Completions thinking mode rejects the
+forced named tool selections used at ClauseGrid's safety boundaries. The `deepseek` preset therefore
+uses DeepSeek V4 non-thinking mode, which supports those mandatory calls without requiring hidden
+reasoning content to be stored or replayed.
+
 Model IDs are intentionally not hard-coded because providers add, rename, and retire models. Supply
 an exact model ID available to the selected account:
 

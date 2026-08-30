@@ -136,6 +136,46 @@ def test_nvidia_lightning_uses_its_documented_agent_profile(
         client.close()
 
 
+def test_deepseek_v4_disables_thinking_for_forced_named_tools(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "provider-secret")
+
+    client, canonical = providers.build_model_client(
+        provider="deepseek",
+        model="deepseek-v4-flash",
+        base_url=None,
+        api_key_env=None,
+    )
+    try:
+        assert canonical == "deepseek"
+        assert client.request_settings.temperature == 0.0
+        assert client.request_settings.parallel_tool_calls is False
+        assert client.request_settings.extra_body == {
+            "thinking": {"type": "disabled"}
+        }
+    finally:
+        client.close()
+
+
+def test_deepseek_non_v4_models_keep_provider_neutral_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "provider-secret")
+
+    client, _canonical = providers.build_model_client(
+        provider="deepseek",
+        model="deepseek-chat",
+        base_url=None,
+        api_key_env=None,
+    )
+    try:
+        assert client.request_settings.extra_body == {}
+        assert client.request_settings.parallel_tool_calls is True
+    finally:
+        client.close()
+
+
 def test_qubrid_default_uses_catalog_profile(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("QUBRID_API_KEY", "provider-secret")
 

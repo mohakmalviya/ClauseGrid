@@ -18,6 +18,7 @@ tools, and resource limits. NVIDIA NIM did not report monetary cost.
 | Model | Full-pipeline result | Evidence from trajectory | Status |
 |---|---|---|---|
 | `openai/gpt-oss-120b` | `REPAIR`, proposal only | Found the P6 waiver-scope defect, proposed the minimal formula change, and completed the falsifier loop in 121.3 s | Validated reference |
+| `deepseek-v4-flash` through DeepSeek | `REPAIR`, proposal only | Found the P6 waiver-scope defect, proposed the correct minimal P6 formula, and received a fresh-context falsifier `SURVIVED` verdict across three candidate-focused experiments in 78.2 s | Validated M10 smoke; repeat blind trials still required |
 | `deepseek-ai/DeepSeek-V3.2` through Qubrid | `ABSTAIN` in two full M10 runs | Passed named and required tool probes. The first run ended on one stale undeclared tool call; after bounded protocol recovery was added, the second recognized the P6 waiver-scope defect but repeatedly targeted nonexistent cells, exhausted 30 manager turns, and never staged a candidate. | Fast and transport-compatible; not task-qualified |
 | `openai/gpt-oss-120b` through Qubrid | Tool gate failed | Six live request variants returned reasoning that a function should be called but an empty `tool_calls` array; the alternate Qubrid endpoint returned unstable prose/JSON content rather than a standard tool call. | Qubrid route eliminated despite the same model succeeding through NVIDIA NIM |
 | `openai/gpt-oss-20b` | `NO_CHANGE` | Used 26 manager turns and 10 experiments but accepted the defective waiver semantics | Eliminated for correctness |
@@ -50,6 +51,22 @@ not establish a production winner. A final recommendation requires repeated runs
 blind mutant suite. The public Blueprint currently uses Qubrid DeepSeek V3.2 as an integration
 default, but that deployment choice is not a claim that it outperformed the validated GPT-OSS smoke.
 Until repeated blind evidence exists, the model remains an explicit runtime choice.
+
+## DeepSeek V4 official API validation (2026-08-30)
+
+The authenticated DeepSeek catalog exposed `deepseek-v4-flash`, `deepseek-v4-pro`, and
+`deepseek-v4-flash-vision-exp`. V4 thinking mode is enabled by default and rejects the named
+`tool_choice` required by ClauseGrid's terminal safety actions. Following DeepSeek's documented
+thinking-mode switch, the provider preset now sends `thinking.type=disabled` for V4 models. A live
+forced named-tool request then returned the exact requested function and arguments.
+
+The blind M10 run through the official DeepSeek endpoint completed in 78.2 seconds using 40 model
+calls, 32 tool calls, and ten workbook executions. It proposed only `RebateCalc!P6`, removed the
+incorrect waiver short-circuit, and independently exercised waiver-plus-SLA-failure,
+waiver-without-SLA-failure, and unwaived-critical branches. All observations matched the policy,
+the falsifier returned `SURVIVED` with no counterexamples, the trajectory's 140-event hash chain
+verified, and no workbook was written without human approval. This is one successful M10 smoke,
+not evidence of reliability across the frozen mutant suite.
 
 ## Qubrid GPT-OSS and DeepSeek compatibility
 

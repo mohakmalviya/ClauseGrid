@@ -155,3 +155,17 @@
   existing scripts and deployments remain usable during migration.
 - Added unit coverage for every preset, native Anthropic selection, generic-secret isolation,
   custom endpoints, and deployment argument construction.
+
+## Checkpoint 11 - official DeepSeek V4 compatibility and M10 validation
+
+- Queried the authenticated DeepSeek catalog without persisting the credential; the account exposed
+  `deepseek-v4-flash`, `deepseek-v4-pro`, and `deepseek-v4-flash-vision-exp`.
+- Reproduced DeepSeek V4's rejection of forced named tools while default thinking mode was enabled,
+  then added a provider/model-specific non-thinking profile that preserves ClauseGrid's mandatory
+  tool boundary without storing or replaying hidden reasoning.
+- Completed a blind official-endpoint M10 run with `deepseek-v4-flash` in 78.2 seconds. The manager
+  proposed the correct minimal `RebateCalc!P6` repair and the fresh-context falsifier returned
+  `SURVIVED` after three candidate-focused experiments with no counterexample.
+- Verified the 140-event trajectory hash chain, source preservation, proposal-only approval boundary,
+  the full 248-test suite, Ruff, and mypy. This remains a single-task smoke rather than a production
+  reliability claim.
