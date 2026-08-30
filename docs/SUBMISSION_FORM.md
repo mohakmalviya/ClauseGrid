@@ -2,41 +2,54 @@
 
 ## Title
 
-ClauseGrid - Policy-Aware Spreadsheet Assurance with Falsifying AI Agents
+ClauseGrid - AI Agents That Check Spreadsheet Formulas Against Policy Rules
 
 ## Description
 
-Finance, procurement, operations, compliance, and audit teams often depend on spreadsheets whose
-real rules live in policy PDFs. A workbook can open normally and return a plausible number while its
-formula applies the wrong threshold, exception, date rule, cap, or rounding order. Normal formula
-linting cannot prove that the spreadsheet follows the written policy, and asking a general AI chat
-to compare the files produces a new interpretation on every run.
+Finance, procurement, compliance, and audit teams often use spreadsheets to calculate payments and
+make business decisions. The problem is that the actual rules are usually written in a policy PDF.
+A spreadsheet can open and calculate without any Excel error while still using the wrong threshold,
+exception, date rule, cap, or rounding order. Finding this by hand means comparing policy text with
+formulas one rule at a time.
 
-ClauseGrid turns reviewed policy meaning into a versioned Policy Pack containing exact citations,
-approved examples, boundary cases, regression tests, workbook mappings, and tamper-evident hashes.
-For unfamiliar evidence, an audit-manager agent chooses policy searches, workbook inspections,
-dependency checks, and sandbox experiments. A fresh-context falsifier agent then tries to break the
-proposed repair with counterexamples. The agents may investigate and propose, but they cannot
-approve or apply a change. Qualified people approve the policy meaning, and deterministic code owns
+ClauseGrid checks what a spreadsheet formula actually does against an approved Policy Pack. A
+Policy Pack stores the relevant policy citations, examples, boundary cases, regression tests,
+workbook cell mappings, and hashes. This gives the team one reviewed definition of correct behaviour
+that can be used again instead of asking an AI model to reinterpret the policy on every audit.
+
+When ClauseGrid sees a new or unfamiliar workbook, an audit-manager AI agent reads the relevant
+policy pages and workbook formulas, checks dependencies, and runs sandbox experiments. It can then
+propose a small formula correction. A fresh-context falsifier agent receives the proposal separately
+and tries to break it with counterexamples. Neither agent can approve the proposal or change the
+source workbook. A qualified human reviews the evidence, while deterministic verification produces
 the recurring PASS, FAIL, or INCONCLUSIVE result.
 
-The public demo shows the key differentiator on the M10 supplier-rebate workbook. Its formula is
-valid Excel but incorrectly lets a critical-incident waiver bypass ordinary SLA penalties.
-ClauseGrid replays 27 approved checks with zero model calls, catches the retained waiver-scope
-regression, identifies the affected policy rules, and preserves the source file.
+The public demo uses an M10 supplier-rebate workbook. One formula treats a critical-incident waiver
+as if it also removes normal SLA penalties, even though the policy says it does not. The formula is
+valid Excel, so normal syntax checks do not catch the problem. ClauseGrid runs 27 approved tests with
+zero model calls. It finds the failing waiver case, points to the affected policy rules and cells,
+and leaves the original workbook unchanged.
 
-We evaluated the deterministic workflow on the same frozen cases as a simple baseline: 12
-single-formula mutants, three clean controls, one hard multi-error workbook, and 48 sealed inputs per
-workbook. The baseline repaired 4 of 12 mutants (33.3%); ClauseGrid repaired 12 of 12 (100%),
-preserved all three clean controls, and solved the hard case. These figures measure the deterministic
-repair layer, not general model accuracy. The submitted schema-v3 agent trajectory is reported
-separately: a live manager/falsifier run found the M10 waiver-scope defect, staged the minimal P6
-repair, and survived five independent falsifier experiments. Its 132-event hash chain verifies.
+We tested the baseline and the final deterministic workflow on the same frozen test set. It contains
+12 workbooks with one formula error, three clean workbooks, one harder workbook with several errors,
+and 48 sealed test inputs for each workbook. The simple baseline repaired 4 of 12 faulty workbooks,
+or 33.3 percent. ClauseGrid repaired 12 of 12, kept all three clean workbooks unchanged, and solved
+the hard case. These numbers test the deterministic repair layer. They do not claim that every AI
+model will be 100 percent accurate.
 
-The main lesson is that a spreadsheet returning a number is not evidence that it implements the
-policy. Reliable assurance needs a complete witness chain: cited rule, discriminating input,
-observed divergence, minimal proposal, counterexample challenge, accountable approval, and
-independent replay.
+The AI-agent evidence is reported separately. In the submitted schema-v3 trajectory, a real
+audit-manager and falsifier run found the M10 error, proposed a one-cell repair in P6, and passed five
+falsifier experiments. The trajectory contains 132 hash-linked events, so another person can verify
+that the recorded tool calls and results were not changed.
+
+Claude or another general AI model can read a policy and suggest a formula. ClauseGrid keeps that AI
+analysis inside a controlled process. Once people approve the Policy Pack, deterministic code checks
+the same meaning in the same way every time. AI agents help investigate new cases, but they do not
+decide company policy.
+
+The main lesson is simple: a spreadsheet returning a number does not prove that it follows the
+policy. ClauseGrid connects each result to the policy citation, test input, observed output, proposed
+change, human review, and reproducible evidence.
 
 Live demo: https://clausegrid.onrender.com
 
@@ -49,7 +62,6 @@ final video. Confirm that the link opens in a signed-out browser before submitti
 
 ## Source code upload
 
-Upload `ClauseGrid-submission.zip`. It contains the source, agent instructions, synthetic policy and
-workbooks, frozen evaluation evidence, improvement changelog, reproduction guide, and representative
-agent trajectories. It does not contain `.git`, virtual environments, caches, temporary runs, or API
-keys.
+Upload `ClauseGrid-submission.zip`. It includes the source code, AI-agent instructions, test policy
+and workbooks, fixed evaluation results, improvement changelog, setup steps, and sample agent runs.
+It does not include `.git`, virtual environments, caches, temporary runs, or API keys.
