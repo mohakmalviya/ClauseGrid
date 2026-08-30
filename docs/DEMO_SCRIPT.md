@@ -1,73 +1,106 @@
-# Five-minute model-agent demo script
+# ClauseGrid submission video script
+
+Target length: 4 minutes 40 seconds. The hackathon limit is five minutes.
 
 ## Before recording
 
-Configure the selected provider only in the server process. Use a provider/model pair that has
-already completed this exact manager/falsifier workflow; for the current validated reference:
+Open these items before recording so the video stays fast:
 
-```powershell
-$env:QUBRID_API_KEY = '<set outside the repository>'
-.\.venv\Scripts\clausegrid.exe serve `
-  --provider qubrid --model 'deepseek-ai/DeepSeek-V3.2' `
-  --allow-external-processing
-```
+1. `https://clausegrid.onrender.com`
+2. policy page 3 in `policies/supplier_rebate_sla_policy.pdf`
+3. `artifacts/submission/agent-m10/report.json`
+4. `artifacts/submission/agent-m10/README.md`
+5. `docs/IMPROVEMENT_CHANGELOG.md`
 
-Open `http://127.0.0.1:8765`, start M10, and wait for the complete manager/falsifier run. Leave the
-result visible before recording so provider latency does not consume the five-minute video. The UI
-refuses a non-loopback bind and never receives the credential, endpoint, or model choice from the
-browser. The explicit external-processing flag is validated before the server reads the provider
-credential.
+Use the public synthetic M10 case. Do not show an API key, Render environment variables, private
+files, browser history, or notifications. Record at 1080p with browser zoom at 100 percent.
 
-## 0:00–0:35 — Real-world failure
+## 0:00-0:35 - Problem and user
 
-Open M10 in Excel. The workbook opens and produces plausible settlement values, but its critical
-waiver incorrectly bypasses an ordinary SLA penalty. Formula linting cannot prove whether that
-exception matches the written policy.
+Say:
 
-## 0:35–1:25 — Show genuine agent control
+> Finance and procurement teams often receive an Excel workbook that calculates a settlement while
+> the real business rules live in a policy PDF. The workbook can open normally and return a
+> believable number even when one formula applies an exception too broadly. Manual review is slow
+> and ordinary formula linting cannot prove that the calculation follows the policy.
 
-Show the configured provider/model label and the completed UI run. Explain that the audit manager,
-not a fixed Python sequence, chose which workbook regions, formulas, policy passages, dependency
-cones, and experiments to inspect. Open `trajectory.jsonl` and show successive model response,
-tool-call, and tool-observation events without exposing hidden chain-of-thought.
+Show policy page 3 and point to RB-201 through RB-203. Then show that M10 contains a valid-looking
+formula in `RebateCalc!P6`.
 
-## 1:25–2:25 — Policy evidence and experiments
+## 0:35-1:05 - Baseline
 
-Show the mechanically registered page/character citations. Then show the manager's sandbox
-experiments, including their explicit input overrides, observed cells, candidate formula hashes, and
-observed values. Emphasize that the evaluator runs a documented formula subset in a separate
-credential-free process; workbook code, macros, and network refreshes are never executed.
+Say:
 
-## 2:25–3:15 — Independent falsification
+> Our simple baseline searches for obvious formula patterns and attempts one direct repair. On the
+> frozen 12-mutant evaluation it repaired 4 cases, or 33.3 percent. It misses scope, precedence, and
+> interacting-rule defects because syntax alone does not establish policy meaning.
 
-Show the fresh-context falsifier verdict and its own experiment IDs. If the first proposal was
-broken, show how the counterexample changed the manager's next candidate. A repair remains locked
-unless the current exact proposal reaches `SURVIVED`; `BROKEN` or `INCONCLUSIVE` forces revision or
-human escalation.
+Briefly show the baseline row in ClauseGrid's evidence section or `docs/SUBMISSION_REPORT.md`.
 
-## 3:15–4:05 — Exact proposal and human authority
+## 1:05-2:00 - Run the realistic check
 
-Show the before/after formula, source SHA-256, and proposal hash. Explain that the model has no apply
-or approval tool. Enter the local reviewer label and approve. ClauseGrid revalidates the source,
-policy, old-formula guard, persisted proposal, and sandbox evidence before publishing
-`repaired.xlsx`; the original remains byte-for-byte unchanged.
+On the public site select **Verify a known workbook**, choose M10, and click **Run approved checks**.
 
-## 4:05–4:40 — Reproducible evidence pack
+Say:
 
-Download `proposal.json`, `agent-state.json`, `formula-diff.json`, `report.json`, `approval.json`,
-`trajectory.jsonl`, and the repaired workbook. Run the trajectory verifier:
+> ClauseGrid loads the frozen Policy Pack, calculates expected outcomes with an independent rule
+> engine, executes the workbook separately, and compares all approved boundary and regression
+> cases. This recurring check uses zero model calls and never edits the source workbook.
 
-```powershell
-.\.venv\Scripts\clausegrid.exe verify-trajectory `
-  artifacts\ui\RUN_ID\trajectory.jsonl
-```
+Show the `FAIL`, `26/27 approved tests passed`, the mismatched P6/R6/S6 values, affected rules
+RB-201 through RB-203, and the Policy Pack, test-suite, and evidence hashes.
 
-## 4:40–5:00 — Honest result and limitation
+## 2:00-3:10 - Show the actual agents
 
-Point to the panel labeled **Legacy deterministic regression evidence** and state explicitly that its
-33.3%-versus-100% score validates the deterministic layer, not the model agents. Report the selected
-model's separately measured repeated agent result only after that benchmark exists. End with the main
-limitation: ambiguous or conflicting real policy must produce abstention and qualified human
-judgment, not an invented oracle.
+Open `artifacts/submission/agent-m10/report.json` and its README.
 
-**A spreadsheet returning a number is not evidence that it implements the policy.**
+Say:
+
+> For a new workbook or unfamiliar policy, ClauseGrid uses agents only for investigation. The audit
+> manager chooses what policy pages, formula regions, dependencies, and sandbox experiments to
+> inspect. It isolated the P6 waiver-scope defect and proposed one formula change. A separate
+> fresh-context falsifier then ran five candidate-sensitive experiments across boundary and waiver
+> combinations. The proposal survived all five.
+
+Show the recorded counts: 18 manager turns, 8 falsifier turns, 33 tool calls, 9 workbook
+executions, 132 trajectory events, and the final trajectory hash. Show one citation, one manager
+experiment, and one falsifier experiment. Do not scroll through the whole JSONL file.
+
+## 3:10-3:50 - Explain the difference from a general AI chat
+
+Return to the website and open **Why ClauseGrid**.
+
+Say:
+
+> Claude or another model can perform the initial analysis, and it could even be the investigator
+> inside ClauseGrid. The difference is what happens after that. Qualified people approve concrete
+> examples once. ClauseGrid freezes those rules and tests, and deterministic code repeats the same
+> checks. The model cannot silently redefine correct, approve its own proposal, or edit the source.
+
+Show the three blocks: AI proposes, people approve, code verifies.
+
+## 3:50-4:25 - Measured improvement and changelog
+
+Say:
+
+> On the same frozen cases, the final deterministic workflow repaired 12 of 12 mutants, preserved
+> all three clean workbooks, and solved the hard three-error case. That is a 66.7 percentage-point
+> improvement over the baseline. These numbers evaluate the deterministic repair layer, not general
+> model accuracy. The submitted model-agent run is reported separately.
+
+Open the improvement changelog and point to the removed benchmark-specific substitution experiment.
+
+Say:
+
+> We removed an early shortcut that recognized benchmark construction patterns because a high score
+> is meaningless if the solution can see how the test was generated.
+
+## 4:25-4:40 - Limitation and close
+
+Say:
+
+> If the policy is ambiguous or conflicting, ClauseGrid abstains and asks a qualified reviewer. It
+> does not invent an oracle. Our main lesson is simple: a spreadsheet returning a number is not
+> evidence that it implements the policy. ClauseGrid makes that evidence reproducible.
+
+End on the ClauseGrid hero with the live URL visible.

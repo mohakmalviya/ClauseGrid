@@ -39,5 +39,7 @@ the hash chain. It does not request or store hidden chain-of-thought. Credential
 bearer values are redacted.
 
 The older committed `trajectories/*.jsonl` files belong to the legacy deterministic workflow and
-must not be presented as model-agent traces. A fresh model run writes its trajectory under the
+must not be presented as model-agent traces. The representative current model-agent evidence is
+`artifacts/submission/agent-m10/trajectory.jsonl`. It is a verified schema-v3 trace containing both
+the audit-manager and fresh-context falsifier roles. A new run writes its trajectory under the
 selected artifact root.

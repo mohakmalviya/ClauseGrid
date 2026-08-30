@@ -1,0 +1,16 @@
+{
+  "changed_cell_count": 1,
+  "changes": [
+    {
+      "after": "=IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1)))",
+      "before": "=IF(K6=\"Y\",1,IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1))))",
+      "cell": "RebateCalc!P6",
+      "rationale": "Fix SLA multiplier formula per RB-201 and RB-203. Original formula incorrectly returned 1 when waiver=Y regardless of ordinary SLA penalties. Correct logic: critical incident without waiver returns 0; all other cases (including waived critical incident) evaluate ordinary SLA conditions (0.6 for both breaches, 0.75 for one breach, 1 otherwise). Evidence: experiment sla_critical_waiver_test showed actual=1 when expected=0.6 for critical incident with waiver=Y and both SLA conditions breached.",
+      "rule_ids": [
+        "sla_critical_waiver_test",
+        "citation-fe2cc4efd79b"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

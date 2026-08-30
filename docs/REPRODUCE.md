@@ -38,13 +38,25 @@ $env:QUBRID_API_KEY = '<credential>'
   workbooks\mutants\M10_supplier_rebate.xlsx `
   --policy policies\supplier_rebate_sla_policy.pdf `
   --provider qubrid `
-  --model 'deepseek-ai/DeepSeek-V3.2' `
+  --model 'deepseek-ai/DeepSeek-V4-Flash' `
   --allow-external-processing `
   --artifacts artifacts\runs
 ```
 
 The command stops at a proposal. It does not write a repaired workbook. Inspect `proposal.json`,
-`formula-diff.json`, `agent-state.json`, `report.json`, and `trajectory.jsonl`. Verify the hash chain:
+`formula-diff.json`, `agent-state.json`, `report.json`, and `trajectory.jsonl`.
+
+The public provider catalog and model behavior can change, so a new live run is not expected to
+reproduce the exact same wording, latency, or proposal. The submitted representative run is fixed
+evidence and can be verified without an API key:
+
+```powershell
+.\.venv\Scripts\clausegrid.exe verify-trajectory `
+  artifacts\submission\agent-m10\trajectory.jsonl
+```
+
+Expected: run ID `agent-08005c743165-58615c78`, 132 events, and final hash
+`f93bfcfdb7a3d89a85c6356bcf9fe2ce04f12d1121f5aca4a188b35175a00c6b`.
 
 To evaluate a currently available OpenCode Zen free model:
 

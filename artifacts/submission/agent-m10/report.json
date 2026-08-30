@@ -1,0 +1,630 @@
+{
+  "approval_hash": null,
+  "artifact_dir": ".",
+  "budget": {
+    "elapsed_time_limit_seconds": 420.0,
+    "elapsed_time_seconds": 233.71800000000076,
+    "falsifier_turn_limit": 10,
+    "falsifier_turns_used": 8,
+    "input_token_limit": 260000,
+    "input_tokens_used": 184795,
+    "manager_turn_limit": 20,
+    "manager_turns_used": 18,
+    "model_call_limit": 36,
+    "model_calls_used": 27,
+    "output_token_limit": 40000,
+    "output_tokens_used": 6633,
+    "reported_cost_limit_usd": null,
+    "reported_cost_usd": null,
+    "retries_used": 1,
+    "retry_limit": 4,
+    "tool_call_limit": 44,
+    "tool_calls_used": 33,
+    "workbook_execution_limit": 20,
+    "workbook_executions_used": 9
+  },
+  "decision": "REPAIR",
+  "method": "formulawitness-agentic-manager-falsifier-v1",
+  "output_workbook": null,
+  "patches": [
+    {
+      "cell": "RebateCalc!P6",
+      "new_formula": "=IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1)))",
+      "old_formula": "=IF(K6=\"Y\",1,IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1))))",
+      "rationale": "Fix SLA multiplier formula per RB-201 and RB-203. Original formula incorrectly returned 1 when waiver=Y regardless of ordinary SLA penalties. Correct logic: critical incident without waiver returns 0; all other cases (including waived critical incident) evaluate ordinary SLA conditions (0.6 for both breaches, 0.75 for one breach, 1 otherwise). Evidence: experiment sla_critical_waiver_test showed actual=1 when expected=0.6 for critical incident with waiver=Y and both SLA conditions breached.",
+      "rule_ids": [
+        "sla_critical_waiver_test",
+        "citation-fe2cc4efd79b"
+      ]
+    }
+  ],
+  "rules_sha256": "d52ea5da91e3f63a8d0173eb0e23961879cd68161a2032e4d4aac7e5e6113235",
+  "run_id": "agent-08005c743165-58615c78",
+  "source_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762",
+  "source_workbook": "M10_supplier_rebate.xlsx",
+  "suspicious_cells": [],
+  "tests": [
+    {
+      "actor": "audit-manager",
+      "candidate_edit_ids": [],
+      "candidate_sensitive_observations": [],
+      "experiment_id": "sla_critical_waiver_test",
+      "observation": {
+        "applied_formula_overrides": [],
+        "comparisons": [
+          {
+            "actual": 1,
+            "cell": "P6",
+            "expected": 0.6,
+            "matches": false,
+            "tolerance": 0.001
+          }
+        ],
+        "dependencies": {
+          "P6": [
+            "H6",
+            "I6",
+            "J6",
+            "K6"
+          ]
+        },
+        "elapsed_ms": 18,
+        "formula_sha256": {
+          "P6": "b717bcb90e789a74cbd579f883fb729813637fcc1ccaed0cb2c6ea5ee8c0fe32"
+        },
+        "observations": {
+          "P6": 1
+        },
+        "sheet": "RebateCalc",
+        "workbook_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762"
+      },
+      "proposal_id": null,
+      "request": {
+        "expectations": [
+          {
+            "cell": "P6",
+            "expected": 0.6,
+            "tolerance": 0.001
+          }
+        ],
+        "experiment_id": "sla_critical_waiver_test",
+        "formula_overrides": [],
+        "observations": [
+          "P6"
+        ],
+        "overrides": {
+          "H6": 0.94,
+          "I6": 0.03,
+          "J6": 1,
+          "K6": "Y"
+        },
+        "purpose": "Test SLA multiplier when critical incident exists with waiver=Y. Per RB-201/RB-203, waiver should only waive critical exclusion, not ordinary penalties. If critical incident exists (J6>=1) and waiver=Y, should check ordinary SLA conditions (delivery/quality) rather than defaulting to 1.",
+        "sheet": "RebateCalc"
+      }
+    },
+    {
+      "actor": "audit-manager",
+      "candidate_edit_ids": [],
+      "candidate_sensitive_observations": [],
+      "experiment_id": "sla_no_critical_penalty_test",
+      "observation": {
+        "applied_formula_overrides": [],
+        "comparisons": [
+          {
+            "actual": 0.6,
+            "cell": "P6",
+            "expected": 0.6,
+            "matches": true,
+            "tolerance": 0.001
+          }
+        ],
+        "dependencies": {
+          "P6": [
+            "H6",
+            "I6",
+            "J6",
+            "K6"
+          ]
+        },
+        "elapsed_ms": 17,
+        "formula_sha256": {
+          "P6": "b717bcb90e789a74cbd579f883fb729813637fcc1ccaed0cb2c6ea5ee8c0fe32"
+        },
+        "observations": {
+          "P6": 0.6
+        },
+        "sheet": "RebateCalc",
+        "workbook_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762"
+      },
+      "proposal_id": null,
+      "request": {
+        "expectations": [
+          {
+            "cell": "P6",
+            "expected": 0.6,
+            "tolerance": 0.001
+          }
+        ],
+        "experiment_id": "sla_no_critical_penalty_test",
+        "formula_overrides": [],
+        "observations": [
+          "P6"
+        ],
+        "overrides": {
+          "H6": 0.94,
+          "I6": 0.03,
+          "J6": 0,
+          "K6": "N"
+        },
+        "purpose": "Verify SLA multiplier correctly returns 0.6 when no critical incident but both ordinary SLA conditions are breached (delivery < 95% AND defect > 2%).",
+        "sheet": "RebateCalc"
+      }
+    },
+    {
+      "actor": "audit-manager",
+      "candidate_edit_ids": [],
+      "candidate_sensitive_observations": [],
+      "experiment_id": "sla_critical_waiver_no_penalty_test",
+      "observation": {
+        "applied_formula_overrides": [],
+        "comparisons": [
+          {
+            "actual": 1,
+            "cell": "P6",
+            "expected": 1,
+            "matches": true,
+            "tolerance": 0.001
+          }
+        ],
+        "dependencies": {
+          "P6": [
+            "H6",
+            "I6",
+            "J6",
+            "K6"
+          ]
+        },
+        "elapsed_ms": 16,
+        "formula_sha256": {
+          "P6": "b717bcb90e789a74cbd579f883fb729813637fcc1ccaed0cb2c6ea5ee8c0fe32"
+        },
+        "observations": {
+          "P6": 1
+        },
+        "sheet": "RebateCalc",
+        "workbook_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762"
+      },
+      "proposal_id": null,
+      "request": {
+        "expectations": [
+          {
+            "cell": "P6",
+            "expected": 1,
+            "tolerance": 0.001
+          }
+        ],
+        "experiment_id": "sla_critical_waiver_no_penalty_test",
+        "formula_overrides": [],
+        "observations": [
+          "P6"
+        ],
+        "overrides": {
+          "H6": 0.96,
+          "I6": 0.01,
+          "J6": 1,
+          "K6": "Y"
+        },
+        "purpose": "Test SLA multiplier when critical incident with waiver=Y but no ordinary SLA penalties (delivery >= 95% AND defect <= 2%). Should return 1.",
+        "sheet": "RebateCalc"
+      }
+    },
+    {
+      "actor": "audit-manager",
+      "candidate_edit_ids": [],
+      "candidate_sensitive_observations": [],
+      "experiment_id": "sla_critical_no_waiver_test",
+      "observation": {
+        "applied_formula_overrides": [],
+        "comparisons": [
+          {
+            "actual": 0,
+            "cell": "P6",
+            "expected": 0,
+            "matches": true,
+            "tolerance": 0.001
+          }
+        ],
+        "dependencies": {
+          "P6": [
+            "H6",
+            "I6",
+            "J6",
+            "K6"
+          ]
+        },
+        "elapsed_ms": 17,
+        "formula_sha256": {
+          "P6": "b717bcb90e789a74cbd579f883fb729813637fcc1ccaed0cb2c6ea5ee8c0fe32"
+        },
+        "observations": {
+          "P6": 0
+        },
+        "sheet": "RebateCalc",
+        "workbook_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762"
+      },
+      "proposal_id": null,
+      "request": {
+        "expectations": [
+          {
+            "cell": "P6",
+            "expected": 0,
+            "tolerance": 0.001
+          }
+        ],
+        "experiment_id": "sla_critical_no_waiver_test",
+        "formula_overrides": [],
+        "observations": [
+          "P6"
+        ],
+        "overrides": {
+          "H6": 0.94,
+          "I6": 0.03,
+          "J6": 1,
+          "K6": "N"
+        },
+        "purpose": "Test SLA multiplier when critical incident exists without waiver. Per RB-201, should return 0 (critical exclusion applies).",
+        "sheet": "RebateCalc"
+      }
+    },
+    {
+      "actor": "falsifier",
+      "candidate_edit_ids": [
+        "edit-4f1173a9b3153b93"
+      ],
+      "candidate_sensitive_observations": [
+        "P6"
+      ],
+      "experiment_id": "critical_waiver_one_breach_test",
+      "observation": {
+        "applied_formula_overrides": [
+          "P6"
+        ],
+        "comparisons": [
+          {
+            "actual": 0.75,
+            "cell": "P6",
+            "expected": 0.75,
+            "matches": true,
+            "tolerance": 0.001
+          }
+        ],
+        "dependencies": {
+          "P6": [
+            "H6",
+            "I6",
+            "J6",
+            "K6"
+          ]
+        },
+        "elapsed_ms": 16,
+        "formula_sha256": {
+          "P6": "dc5ef6c3f136befe06f2bda79abb3d215e2c2095b4c5b4ba5106e322ec7ecb92"
+        },
+        "observations": {
+          "P6": 0.75
+        },
+        "sheet": "RebateCalc",
+        "workbook_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762"
+      },
+      "proposal_id": "proposal-29bdb60c0aaa202d",
+      "request": {
+        "expectations": [
+          {
+            "cell": "P6",
+            "expected": 0.75,
+            "tolerance": 0.001
+          }
+        ],
+        "experiment_id": "critical_waiver_one_breach_test",
+        "formula_overrides": [
+          {
+            "cell": "P6",
+            "new_formula": "=IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1)))",
+            "old_formula_sha256": "b717bcb90e789a74cbd579f883fb729813637fcc1ccaed0cb2c6ea5ee8c0fe32"
+          }
+        ],
+        "observations": [
+          "P6"
+        ],
+        "overrides": {
+          "H6": 0.94,
+          "I6": 0.02,
+          "J6": 1,
+          "K6": "Y"
+        },
+        "purpose": "Test SLA multiplier when critical incident with waiver=Y and exactly one ordinary SLA condition breached (delivery<95%, defect=2%). Per RB-202/RB-203, should return 0.75 (waiver only waives critical exclusion, not ordinary penalties; exactly one breach = 0.75).",
+        "sheet": "RebateCalc"
+      }
+    },
+    {
+      "actor": "falsifier",
+      "candidate_edit_ids": [
+        "edit-4f1173a9b3153b93"
+      ],
+      "candidate_sensitive_observations": [
+        "P6"
+      ],
+      "experiment_id": "critical_waiver_no_breach_boundary",
+      "observation": {
+        "applied_formula_overrides": [
+          "P6"
+        ],
+        "comparisons": [
+          {
+            "actual": 1,
+            "cell": "P6",
+            "expected": 1,
+            "matches": true,
+            "tolerance": 0.001
+          }
+        ],
+        "dependencies": {
+          "P6": [
+            "H6",
+            "I6",
+            "J6",
+            "K6"
+          ]
+        },
+        "elapsed_ms": 16,
+        "formula_sha256": {
+          "P6": "dc5ef6c3f136befe06f2bda79abb3d215e2c2095b4c5b4ba5106e322ec7ecb92"
+        },
+        "observations": {
+          "P6": 1
+        },
+        "sheet": "RebateCalc",
+        "workbook_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762"
+      },
+      "proposal_id": "proposal-29bdb60c0aaa202d",
+      "request": {
+        "expectations": [
+          {
+            "cell": "P6",
+            "expected": 1,
+            "tolerance": 0.001
+          }
+        ],
+        "experiment_id": "critical_waiver_no_breach_boundary",
+        "formula_overrides": [
+          {
+            "cell": "P6",
+            "new_formula": "=IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1)))",
+            "old_formula_sha256": "b717bcb90e789a74cbd579f883fb729813637fcc1ccaed0cb2c6ea5ee8c0fe32"
+          }
+        ],
+        "observations": [
+          "P6"
+        ],
+        "overrides": {
+          "H6": 0.95,
+          "I6": 0.02,
+          "J6": 1,
+          "K6": "Y"
+        },
+        "purpose": "Test SLA multiplier at boundary: critical incident with waiver=Y, delivery=95% (not breached per RB-202 boundary), defect=2% (not breached). Should return 1 (no ordinary penalties apply).",
+        "sheet": "RebateCalc"
+      }
+    },
+    {
+      "actor": "falsifier",
+      "candidate_edit_ids": [
+        "edit-4f1173a9b3153b93"
+      ],
+      "candidate_sensitive_observations": [
+        "P6"
+      ],
+      "experiment_id": "critical_waiver_both_breaches",
+      "observation": {
+        "applied_formula_overrides": [
+          "P6"
+        ],
+        "comparisons": [
+          {
+            "actual": 0.6,
+            "cell": "P6",
+            "expected": 0.6,
+            "matches": true,
+            "tolerance": 0.001
+          }
+        ],
+        "dependencies": {
+          "P6": [
+            "H6",
+            "I6",
+            "J6",
+            "K6"
+          ]
+        },
+        "elapsed_ms": 16,
+        "formula_sha256": {
+          "P6": "dc5ef6c3f136befe06f2bda79abb3d215e2c2095b4c5b4ba5106e322ec7ecb92"
+        },
+        "observations": {
+          "P6": 0.6
+        },
+        "sheet": "RebateCalc",
+        "workbook_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762"
+      },
+      "proposal_id": "proposal-29bdb60c0aaa202d",
+      "request": {
+        "expectations": [
+          {
+            "cell": "P6",
+            "expected": 0.6,
+            "tolerance": 0.001
+          }
+        ],
+        "experiment_id": "critical_waiver_both_breaches",
+        "formula_overrides": [
+          {
+            "cell": "P6",
+            "new_formula": "=IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1)))",
+            "old_formula_sha256": "b717bcb90e789a74cbd579f883fb729813637fcc1ccaed0cb2c6ea5ee8c0fe32"
+          }
+        ],
+        "observations": [
+          "P6"
+        ],
+        "overrides": {
+          "H6": 0.94,
+          "I6": 0.03,
+          "J6": 1,
+          "K6": "Y"
+        },
+        "purpose": "Test SLA multiplier when critical incident with waiver=Y and both ordinary SLA conditions breached (delivery<95% AND defect>2%). Per RB-202/RB-203, should return 0.6 (waiver only waives critical exclusion, not ordinary penalties; both breaches = 0.6).",
+        "sheet": "RebateCalc"
+      }
+    },
+    {
+      "actor": "falsifier",
+      "candidate_edit_ids": [
+        "edit-4f1173a9b3153b93"
+      ],
+      "candidate_sensitive_observations": [
+        "P6"
+      ],
+      "experiment_id": "no_critical_one_breach",
+      "observation": {
+        "applied_formula_overrides": [
+          "P6"
+        ],
+        "comparisons": [
+          {
+            "actual": 0.75,
+            "cell": "P6",
+            "expected": 0.75,
+            "matches": true,
+            "tolerance": 0.001
+          }
+        ],
+        "dependencies": {
+          "P6": [
+            "H6",
+            "I6",
+            "J6",
+            "K6"
+          ]
+        },
+        "elapsed_ms": 17,
+        "formula_sha256": {
+          "P6": "dc5ef6c3f136befe06f2bda79abb3d215e2c2095b4c5b4ba5106e322ec7ecb92"
+        },
+        "observations": {
+          "P6": 0.75
+        },
+        "sheet": "RebateCalc",
+        "workbook_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762"
+      },
+      "proposal_id": "proposal-29bdb60c0aaa202d",
+      "request": {
+        "expectations": [
+          {
+            "cell": "P6",
+            "expected": 0.75,
+            "tolerance": 0.001
+          }
+        ],
+        "experiment_id": "no_critical_one_breach",
+        "formula_overrides": [
+          {
+            "cell": "P6",
+            "new_formula": "=IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1)))",
+            "old_formula_sha256": "b717bcb90e789a74cbd579f883fb729813637fcc1ccaed0cb2c6ea5ee8c0fe32"
+          }
+        ],
+        "observations": [
+          "P6"
+        ],
+        "overrides": {
+          "H6": 0.94,
+          "I6": 0.01,
+          "J6": 0,
+          "K6": "N"
+        },
+        "purpose": "Test SLA multiplier when no critical incident and exactly one ordinary SLA condition breached (delivery<95%, defect<=2%). Per RB-202, should return 0.75.",
+        "sheet": "RebateCalc"
+      }
+    },
+    {
+      "actor": "falsifier",
+      "candidate_edit_ids": [
+        "edit-4f1173a9b3153b93"
+      ],
+      "candidate_sensitive_observations": [
+        "P6"
+      ],
+      "experiment_id": "no_critical_no_breach",
+      "observation": {
+        "applied_formula_overrides": [
+          "P6"
+        ],
+        "comparisons": [
+          {
+            "actual": 1,
+            "cell": "P6",
+            "expected": 1,
+            "matches": true,
+            "tolerance": 0.001
+          }
+        ],
+        "dependencies": {
+          "P6": [
+            "H6",
+            "I6",
+            "J6",
+            "K6"
+          ]
+        },
+        "elapsed_ms": 16,
+        "formula_sha256": {
+          "P6": "dc5ef6c3f136befe06f2bda79abb3d215e2c2095b4c5b4ba5106e322ec7ecb92"
+        },
+        "observations": {
+          "P6": 1
+        },
+        "sheet": "RebateCalc",
+        "workbook_sha256": "d3485903dc07d662e1373ac59993b19ec54ff733ae2de411450acefea8af8762"
+      },
+      "proposal_id": "proposal-29bdb60c0aaa202d",
+      "request": {
+        "expectations": [
+          {
+            "cell": "P6",
+            "expected": 1,
+            "tolerance": 0.001
+          }
+        ],
+        "experiment_id": "no_critical_no_breach",
+        "formula_overrides": [
+          {
+            "cell": "P6",
+            "new_formula": "=IF(AND(J6>=1,K6<>\"Y\"),0,IF(AND(H6<0.95,I6>0.02),0.6,IF(OR(H6<0.95,I6>0.02),0.75,1)))",
+            "old_formula_sha256": "b717bcb90e789a74cbd579f883fb729813637fcc1ccaed0cb2c6ea5ee8c0fe32"
+          }
+        ],
+        "observations": [
+          "P6"
+        ],
+        "overrides": {
+          "H6": 0.95,
+          "I6": 0.02,
+          "J6": 0,
+          "K6": "N"
+        },
+        "purpose": "Test SLA multiplier when no critical incident and no ordinary SLA breaches (delivery>=95%, defect<=2%). Per RB-202, should return 1.",
+        "sheet": "RebateCalc"
+      }
+    }
+  ]
+}

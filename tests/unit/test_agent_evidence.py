@@ -676,9 +676,7 @@ def test_candidate_replay_replaces_target_trial_and_preserves_unrelated_formula(
 
     assert staged.ok
     assert staged.result is not None
-    assert staged.result["replayed_manager_expectations"] == [
-        "candidate-with-unrelated-proration"
-    ]
+    assert staged.result["replayed_manager_expectations"] == ["candidate-with-unrelated-proration"]
     assert state.candidate is not None
 
 
@@ -782,9 +780,55 @@ def test_invalid_final_falsifier_verdict_falls_back_to_inconclusive(tmp_path: Pa
     verdict = falsifier.run(state.candidate)
 
     assert verdict.status == "INCONCLUSIVE"
-    assert "falsifier_turns" in verdict.remaining_risks[0]
+    assert verdict.remaining_risks == (
+        "No valid independent verdict was produced within the configured safety budget.",
+    )
+    assert "11.0>10.0" not in verdict.remaining_risks[0]
+    assert verdict.explanation.endswith("has not been authorized.")
     assert len(model.requests) == 1
     assert [tool.name for tool in model.requests[0].tools] == ["report_falsification"]
+
+
+def test_falsifier_reserves_two_terminal_turns_then_falls_back_cleanly(
+    tmp_path: Path,
+) -> None:
+    manager, _, state, citation_id, old_hash = _registries()
+    assert _stage(manager, citation_id, old_hash, "=1").ok
+    assert state.candidate is not None
+    model = InvalidTerminalVerdictModel()
+    limits = AgentRuntimeLimits(
+        manager_turn_limit=0,
+        falsifier_turn_limit=2,
+        model_call_limit=2,
+        tool_call_limit=2,
+        input_token_limit=1_000,
+        output_token_limit=1_000,
+        workbook_execution_limit=0,
+        retry_limit=0,
+        elapsed_time_limit_seconds=30.0,
+    )
+    budget = AgentBudgetLedger(limits)
+    falsifier = FalsifierAgent(
+        model=model,
+        workbook=MUTANT,
+        policy=PolicyText(POLICY),
+        state=state,
+        budget=budget,
+        trajectory=Trajectory(tmp_path / "trajectory.jsonl", "two-turn-fallback"),
+    )
+
+    verdict = falsifier.run(state.candidate)
+
+    assert verdict.status == "INCONCLUSIVE"
+    assert budget.snapshot()["falsifier_turns_used"] == 2
+    assert len(model.requests) == 2
+    assert all(
+        [tool.name for tool in request.tools] == ["report_falsification"]
+        for request in model.requests
+    )
+    trace = (tmp_path / "trajectory.jsonl").read_text(encoding="utf-8")
+    assert '"event_type": "TERMINAL_FALLBACK"' in trace
+    assert "Agent budget exceeded" not in trace
 
 
 def test_falsifier_receives_manager_experiments_for_edited_cells(tmp_path: Path) -> None:

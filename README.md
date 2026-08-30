@@ -93,12 +93,12 @@ Node.js, Microsoft Excel, Docker, and an API key are **not** required for the fi
 ### 1. Download the project
 
 ```text
-git clone <repository-url>
+git clone https://github.com/mohakmalviya/ClauseGrid.git
 cd ClauseGrid
 ```
 
-Replace `<repository-url>` with the GitHub URL you were given. A private repository requires a
-GitHub account with access.
+The repository is private during judging, so the GitHub account cloning it must have access. The
+uploaded submission ZIP contains the same source tree and does not require GitHub access.
 
 ### 2A. Install on Windows
 
@@ -323,7 +323,7 @@ pytest
 clausegrid eval
 ```
 
-The current release passed 302 automated tests. Its frozen deterministic benchmark detects all 12
+The current release passed 307 automated tests. Its frozen deterministic benchmark detects all 12
 single-formula mutants, preserves all three clean controls, and detects the hard multi-error case.
 
 ## Benchmark results

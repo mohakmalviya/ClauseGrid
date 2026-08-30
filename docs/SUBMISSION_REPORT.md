@@ -2,8 +2,8 @@
 
 > **Status correction:** the 33.3%-versus-100% table below evaluates the legacy deterministic
 > workflows. It is retained as regression evidence and must not be described as model-agent
-> performance. The current model-directed manager/falsifier has a successful live NIM smoke but has
-> not yet been scored on a frozen blind agent benchmark. Model API cost is not reported by NIM.
+> performance. The current model-directed manager/falsifier has successful live proposal evidence
+> but has not yet been scored on a frozen blind agent benchmark. Model API cost was not reported.
 
 ## Problem and intended user
 
@@ -50,13 +50,14 @@ Complete per-case correctness evidence is in `evals/results.json` and the submit
 
 ## Model-agent implementation checkpoint
 
-The current `agent` command is a model-controlled audit manager with generic discovery/retrieval/
-sandbox tools and an independent fresh-context falsifier. A live `openai/gpt-oss-120b` NIM run on
-M10 produced a proposal-only P6 repair after 17 manager turns, 10 falsifier turns, 27 tool calls,
-and six sandbox executions. The run included a falsifier tool-schema failure followed by a corrected
-model call and successful experiment, demonstrating observation-driven replanning. This is a smoke
-test, not a correctness rate. The `agent-baseline` command provides the one-candidate/no-falsifier
-comparison required for future blind repeated evaluation.
+The current `agent` command is a model-controlled audit manager with generic discovery, retrieval,
+and sandbox tools plus an independent fresh-context falsifier. The representative submitted M10 run
+produced a proposal-only P6 repair after 18 manager turns, 8 falsifier turns, 33 tool calls, and 9
+sandbox executions. The manager identified the waiver-scope defect and the falsifier challenged the
+candidate with five independent experiments before returning `SURVIVED`. The complete 132-event
+schema-v3 trajectory is in `artifacts/submission/agent-m10/trajectory.jsonl`; its hash chain verifies.
+This is execution evidence, not a model correctness rate. The `agent-baseline` command provides the
+one-candidate/no-falsifier comparison required for future blind repeated evaluation.
 
 ## Challenging case and what it revealed
 
@@ -93,7 +94,7 @@ no pre-existing ClauseGrid application code or private dataset was used.
 | Complete code and improvement changelog | repository, `README.md`, agent instructions, changelog | complete |
 | Clean-environment reproduction guide | `docs/REPRODUCE.md`, pinned lock, verified remote clone | complete |
 | Solution video, maximum five minutes | `docs/DEMO_SCRIPT.md` | **recording/upload still required from the entrant** |
-| Representative agent trajectories | `trajectories/*.jsonl`, hash-chain verifier | complete |
+| Representative agent trajectories | `artifacts/submission/agent-m10/trajectory.jsonl`, legacy traces, hash-chain verifier | complete |
 
 The code must not be described as fully submitted until the entrant records the video and supplies
 the video link in the hackathon form.

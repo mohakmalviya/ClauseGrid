@@ -92,6 +92,10 @@ class FalsifierAgent:
             model_id="pending-provider-response",
             prompt_version=FALSIFIER_PROMPT_VERSION,
         )
+
+        def finish_safely(_: str) -> None:
+            self.state.falsifier_verdict = self._inconclusive_budget_verdict(candidate)
+
         loop = ToolCallingAgent(
             actor="falsifier",
             model=self.model,
@@ -103,6 +107,8 @@ class FalsifierAgent:
             prompt_version=FALSIFIER_PROMPT_VERSION,
             is_terminal=lambda: self.state.falsifier_verdict is not None,
             terminal_tool_names=("report_falsification",),
+            terminal_turn_reserve=2,
+            terminal_fallback=finish_safely,
             terminal_tool_call_reserve=8,
             coordination_tool_names=("run_experiment", "report_falsification"),
             coordination_tool_call_reserve=10,
@@ -114,15 +120,8 @@ class FalsifierAgent:
         )
         try:
             loop.run()
-        except AgentBudgetExceeded as exc:
-            self.state.falsifier_verdict = FalsifierVerdict(
-                status="INCONCLUSIVE",
-                proposal_id=candidate.proposal_id,
-                experiment_ids=(),
-                counterexamples=(),
-                remaining_risks=(str(exc),),
-                explanation="Falsification stopped at a configured safety budget.",
-            )
+        except AgentBudgetExceeded:
+            self.state.falsifier_verdict = self._inconclusive_budget_verdict(candidate)
         assert self.state.falsifier_verdict is not None
         self.trajectory.record_agent_event(
             "falsifier",
@@ -132,6 +131,31 @@ class FalsifierAgent:
             prompt_version=FALSIFIER_PROMPT_VERSION,
         )
         return self.state.falsifier_verdict
+
+    def _inconclusive_budget_verdict(
+        self,
+        candidate: CandidateProposal,
+    ) -> FalsifierVerdict:
+        experiment_ids = tuple(
+            sorted(
+                experiment_id
+                for experiment_id, evidence in self.state.experiments.items()
+                if evidence.actor == "falsifier" and evidence.proposal_id == candidate.proposal_id
+            )
+        )
+        return FalsifierVerdict(
+            status="INCONCLUSIVE",
+            proposal_id=candidate.proposal_id,
+            experiment_ids=experiment_ids,
+            counterexamples=(),
+            remaining_risks=(
+                "No valid independent verdict was produced within the configured safety budget.",
+            ),
+            explanation=(
+                "Independent falsification ended safely without a valid terminal verdict. "
+                "The proposed workbook change has not been authorized."
+            ),
+        )
 
     def _supporting_evidence(self, candidate: CandidateProposal) -> list[dict[str, Any]]:
         evidence_ids = sorted(
