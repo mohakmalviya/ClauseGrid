@@ -56,3 +56,11 @@ otherwise fabricate certainty. See [FAILURE_MODE.md](FAILURE_MODE.md).
 **A spreadsheet returning a number is not evidence that it implements the policy.** The evidence
 is the full witness chain: cited rule, discriminating input, observed divergence, dependency path,
 minimal patch, accountable approval, and independent replay.
+
+## Zero-price provider retest — 2026-08-30
+
+Retested all three models that Qubrid currently reports at zero input and output price. GLM-4.7
+Flash and GLM-4.6V Flash failed closed on repeated provider rate limits; GLM-4.5 Flash spent 690.7
+seconds exploring four experiments before returning malformed tool JSON. None staged a candidate or
+reached the falsifier. The result was rejected for deployment: cost alone is not a useful model
+selection criterion when the full correctness and reproducibility contract does not complete.

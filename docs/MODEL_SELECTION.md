@@ -84,6 +84,22 @@ policy, field meanings, and current formula also produced an incorrect repair. T
 does not support using this model as a judged or production default merely because its token price is
 zero.
 
+## Qubrid zero-price model retest (2026-08-30)
+
+The authenticated Qubrid catalog reported exactly three models with both input and output pricing
+set to zero. Each model received the same forced named-tool probe and the same blind M10
+manager/falsifier audit. A probe pass was treated only as an admission gate, not as task success.
+
+| Model | Forced-tool gate | Blind M10 result | Operational conclusion |
+|---|---|---|---|
+| `zai-org/GLM-4.7-Flash` | Passed in 4.8 s | Safely abstained after 73.0 s; 13 model calls and seven tool calls, then repeated upstream HTTP 429 responses before any experiment or candidate | Free endpoint is overloaded and did not complete the investigation |
+| `zai-org/GLM-4.5-Flash` | Passed in 59.4 s | Safely abstained after 690.7 s; 18 model calls, 15 tool calls, and four experiments, then malformed tool JSON; no candidate or falsifier run | Too slow and structurally unreliable for the public demo |
+| `zai-org/GLM-4.6V-Flash` | First probe returned HTTP 429; retry passed in 4.0 s | Safely abstained after 254.8 s; 22 model calls, 12 tool calls, one experiment, and all eight retry credits consumed by HTTP 429 responses; no candidate | Tool-compatible when available, but endpoint reliability and task focus are insufficient |
+
+None reached candidate staging or independent falsification, so zero token price does not make any
+of them a valid ClauseGrid default. The public deployment remains unchanged pending a free model
+that completes the end-to-end contract.
+
 ## OpenCode Zen free-model compatibility
 
 The OpenCode catalog is dynamic. An authenticated forced-tool probe against the live catalog found
