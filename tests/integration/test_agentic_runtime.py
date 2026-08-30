@@ -284,6 +284,7 @@ class SingleAgentScript:
 
 def test_model_directed_loop_revises_after_falsifier_counterexample(tmp_path: Path) -> None:
     model = InvestigatorFalsifierScript()
+    progress_events: list[dict[str, object]] = []
     source_hash = hashlib.sha256(MUTANT.read_bytes()).hexdigest()
     limits = AgentRuntimeLimits(
         manager_turn_limit=10,
@@ -305,9 +306,27 @@ def test_model_directed_loop_revises_after_falsifier_counterexample(tmp_path: Pa
         model_id="scripted-agent-test",
         limits=limits,
         run_id="agent-behavior-test",
+        progress_callback=progress_events.append,
     )
 
     assert result.decision == "REPAIR"
+    first_call = next(
+        index
+        for index, event in enumerate(progress_events)
+        if event.get("event") == "tool_call" and event.get("tool") == "read_policy_page"
+    )
+    first_result = next(
+        index
+        for index, event in enumerate(progress_events)
+        if event.get("event") == "tool_result" and event.get("tool") == "read_policy_page"
+    )
+    assert first_call < first_result
+    assert any(
+        event.get("event") == "tool_call"
+        and event.get("actor") == "falsifier"
+        and event.get("tool") == "run_experiment"
+        for event in progress_events
+    )
     discovery_requests = [
         request
         for request in model.manager_requests

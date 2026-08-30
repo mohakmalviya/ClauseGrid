@@ -282,3 +282,21 @@
 - Browser checks ran the first-screen M10 path and confirmed the expected 26/27 result with exact
   cell evidence, exercised both tab systems by keyboard, walked to the result explanation, and
   verified mode restoration. The focused UI suite passes 32 tests; the complete suite passes 306.
+
+## Checkpoint 18 - live agent activity and readable repair review
+
+- Published a bounded live activity history for the manager and fresh-context falsifier. The UI
+  shows when a safe tool starts, completes, or is rejected, plus its role, turn, and elapsed time.
+  It collapses each call and result into one row and keeps only the ten latest visible actions.
+- Kept the public stream deliberately narrow: it never includes tool arguments, observations,
+  prompts, hidden reasoning, provider names, or model IDs. The full private trajectory remains the
+  review artifact for authorized operators.
+- Replaced the large raw decision paragraph with readable sentence groups and separate, horizontally
+  scrollable Excel formula blocks. All model text still enters the page through `textContent`.
+- Aligned the completed-run controls, status panel, stage strip, formula comparison, and mobile
+  layout, then centered completed results at a readable maximum width.
+- Scripted integration proves `tool_call` is published before `tool_result`; focused browser checks
+  rendered the live feed and structured result. The complete suite passes 311 tests.
+- The full `scripts/verify.ps1` gate passes formatting, linting, strict typing, all 311 tests,
+  mutation validation, both trajectory hash checks, and the unchanged frozen evaluation of 33.3%
+  baseline versus 100% advanced E2E-SRR.

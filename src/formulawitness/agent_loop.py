@@ -251,8 +251,10 @@ class ToolCallingAgent:
             )
             self.messages.append(turn.as_assistant_message())
             if not turn.tool_calls:
-                if final_turn and turns_remaining <= 1 and self._finish_with_fallback(
-                    "final_model_response_had_no_tool_call"
+                if (
+                    final_turn
+                    and turns_remaining <= 1
+                    and self._finish_with_fallback("final_model_response_had_no_tool_call")
                 ):
                     return
                 self.messages.append(
@@ -280,6 +282,7 @@ class ToolCallingAgent:
                     model_id=turn.model,
                     prompt_version=self.prompt_version,
                 )
+                self._notify_progress("tool_call", tool=call.name)
                 if cache_hit:
                     assert cache_key is not None
                     envelope = self._tool_result_cache[cache_key]
