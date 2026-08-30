@@ -1,8 +1,9 @@
 # Public demo deployment
 
 ClauseGrid has two server modes. Local mode remains loopback-only and exposes the reviewer gate.
-Public mode is a constrained, synthetic-data demonstration behind an HTTPS proxy; browser approval
-is disabled. It is not a production multi-tenant deployment.
+Public mode is a constrained demonstration behind an HTTPS proxy; browser approval is disabled.
+The Render profile enables temporary `.xlsx`/`.pdf` uploads for public, synthetic, or explicitly
+approved data. It is not a production multi-tenant deployment.
 
 ## Render Blueprint
 
@@ -16,8 +17,8 @@ services; its proxy forwards public traffic to the port supplied in `PORT`.
 3. Supply the selected provider's key value as `CLAUSEGRID_API_KEY` when prompted. Do not put it in
    Git, Docker build arguments, or the image.
 4. Deploy and open the generated `https://...onrender.com` URL.
-5. Check `GET /healthz`, load the UI, select M10, and run one audit. The POST returns `202`; the UI
-   polls an unguessable job URL until the result is complete.
+5. Check `GET /healthz`, load the UI, select M10 or upload a compatible workbook/policy pair, and run
+   one audit. The POST returns `202`; the UI polls an unguessable job URL until completion.
 
 The Blueprint starts with the user-selected Qubrid route and
 `deepseek-ai/DeepSeek-V4-Flash`. These are ordinary `CLAUSEGRID_PROVIDER` and `CLAUSEGRID_MODEL`
@@ -66,7 +67,10 @@ The exact public Host is deliberately enforced, so a local HTTP smoke request mu
 
 ## Public-mode controls
 
-- Only the repository's synthetic `WORKBOOK_CASES` and synthetic policy are addressable.
+- The Render Blueprint explicitly enables uploads with `CLAUSEGRID_ENABLE_PUBLIC_UPLOADS=true`.
+- Uploads require both a compatible `.xlsx` and parseable policy PDF, same-origin requests, explicit
+  browser consent, separate per-client/global throttling, immutable hashes, single-use ownership,
+  30-minute expiry, and isolated ephemeral storage under a temporary runtime.
 - One audit/approval may execute at a time; public audits run in background jobs.
 - Defaults allow six audits globally and two per client per rolling hour.
 - Modifying requests require the configured HTTPS Origin.
@@ -74,7 +78,9 @@ The exact public Host is deliberately enforced, so a local HTTP smoke request mu
   `Authorization: Bearer $CLAUSEGRID_ADMIN_TOKEN`; an administrative client must also send the
   exact configured `Origin` header.
 - Connections have a bounded socket read/write timeout and JSON request bodies are capped at 20 KB.
-- Provider credentials and the administrator token stay server-side.
+- Provider/model identity, provider credentials, and the administrator token stay server-side.
+- Anonymous result JSON removes runtime-routing fields, and raw trajectories are not offered as
+  public downloads; the original server-side artifacts remain intact for controlled evaluation.
 - Sealed evaluator vectors and oracle code are excluded from the public image; only the published
   aggregate legacy scorecard is copied for the UI summary.
 - Public failures return generic text and a job ID; details are logged server-side.

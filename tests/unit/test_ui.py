@@ -277,7 +277,10 @@ def test_public_audit_is_same_origin_asynchronous_and_disables_browser_approval(
         config = request("/api/config")
         assert config["public_demo"] is True
         assert config["browser_approval_enabled"] is False
-        assert config["private_uploads_enabled"] is False
+        assert config["uploads_enabled"] is False
+        assert config["runtime_label"] == "Managed private AI runtime"
+        assert "provider" not in config
+        assert "model" not in config
         queued = request("/api/audit", method="POST", body={"case_id": "M10"})
         assert queued["status"] == "queued"
         for _ in range(100):
@@ -288,6 +291,20 @@ def test_public_audit_is_same_origin_asynchronous_and_disables_browser_approval(
         else:
             pytest.fail("Public audit job did not finish")
         assert job["result"]["result"]["decision"] == "ABSTAIN"
+        assert "scripted-provider" not in json.dumps(job)
+        assert "scripted-ui-agent" not in json.dumps(job)
+        assert "trajectory.jsonl" not in job["result"]["downloads"]
+        run_id = job["result"]["result"]["run_id"]
+        for hidden_name in ("proposal.json", "report.json", "trajectory.jsonl"):
+            with pytest.raises(HTTPError) as hidden_download:
+                urlopen(
+                    Request(
+                        f"http://127.0.0.1:{port}/download/{run_id}/{hidden_name}",
+                        headers={"Host": "demo.example"},
+                    ),
+                    timeout=10,
+                )
+            assert hidden_download.value.code == 404
 
         bad_origin = Request(
             f"http://127.0.0.1:{port}/api/audit",
@@ -670,7 +687,95 @@ def test_public_mode_rejects_private_workbook_uploads(tmp_path: Path) -> None:
             urlopen(request, timeout=10)
         assert captured.value.code == 403
         error = json.loads(captured.value.read())
-        assert "disabled on the public demo" in error["error"]
+        assert error["error"] == "Workbook uploads are disabled"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_public_mode_can_enable_guarded_uploads_without_disclosing_runtime_identity(
+    tmp_path: Path,
+) -> None:
+    workbook = ROOT / "workbooks/mutants/M10_supplier_rebate.xlsx"
+    policy = ROOT / "policies/supplier_rebate_sla_policy.pdf"
+    private_root = tmp_path / "public-uploads"
+    handler = make_handler(
+        ROOT,
+        model=AbstainingUiModel(),
+        provider="secret-provider",
+        model_id="secret-model",
+        public_config=PublicServerConfig(
+            origin="https://demo.example",
+            uploads_enabled=True,
+        ),
+        configured_artifact_root=tmp_path / "artifacts",
+        configured_private_root=private_root,
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+
+    def post(path: str, data: bytes, content_type: str) -> dict[str, Any]:
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}{path}",
+                data=data,
+                headers={
+                    "Host": "demo.example",
+                    "Origin": "https://demo.example",
+                    "Content-Type": content_type,
+                },
+                method="POST",
+            ),
+            timeout=10,
+        ) as response:
+            return cast(dict[str, Any], json.loads(response.read()))
+
+    def get(path: str) -> dict[str, Any]:
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}{path}",
+                headers={"Host": "demo.example"},
+            ),
+            timeout=10,
+        ) as response:
+            return cast(dict[str, Any], json.loads(response.read()))
+
+    try:
+        config = get("/api/config")
+        assert config["uploads_enabled"] is True
+        assert "provider" not in config
+        assert "model" not in config
+        staged = post(
+            "/api/uploads/workbook",
+            workbook.read_bytes(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        ready = post(
+            f"/api/uploads/{staged['upload_id']}/policy",
+            policy.read_bytes(),
+            "application/pdf",
+        )
+        assert ready["ready"] is True
+        queued = post(
+            "/api/audit",
+            json.dumps({"upload_id": staged["upload_id"]}).encode(),
+            "application/json",
+        )
+        for _ in range(100):
+            job = get(queued["status_url"])
+            if job["status"] == "complete":
+                break
+            time.sleep(0.01)
+        else:
+            pytest.fail("Public uploaded audit did not finish")
+        encoded = json.dumps(job)
+        assert "secret-provider" not in encoded
+        assert "secret-model" not in encoded
+        assert "trajectory.jsonl" not in job["result"]["downloads"]
+        assert list((private_root / "uploads").iterdir()) == []
     finally:
         server.shutdown()
         server.server_close()

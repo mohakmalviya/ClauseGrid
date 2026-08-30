@@ -194,6 +194,11 @@ def build_parser() -> argparse.ArgumentParser:
     serve_parser.add_argument("--max-audits-per-hour", type=int, default=6)
     serve_parser.add_argument("--max-audits-per-client-hour", type=int, default=2)
     serve_parser.add_argument("--admin-token-env", default="FORMULAWITNESS_ADMIN_TOKEN")
+    serve_parser.add_argument(
+        "--enable-public-uploads",
+        action="store_true",
+        help="Enable rate-limited temporary .xlsx and .pdf uploads in public mode",
+    )
     _add_model_options(serve_parser)
     trajectory_parser = subparsers.add_parser(
         "verify-trajectory",
@@ -316,6 +321,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 max_audits_per_hour=args.max_audits_per_hour,
                 max_audits_per_client_hour=args.max_audits_per_client_hour,
                 admin_token=os.environ.get(args.admin_token_env),
+                uploads_enabled=args.enable_public_uploads,
             )
         try:
             serve(

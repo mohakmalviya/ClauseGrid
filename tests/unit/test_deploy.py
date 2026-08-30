@@ -13,6 +13,8 @@ def test_deployment_args_use_render_origin_and_qubrid_defaults(
     monkeypatch.delenv("CLAUSEGRID_PROVIDER", raising=False)
     monkeypatch.delenv("CLAUSEGRID_MODEL", raising=False)
     monkeypatch.delenv("CLAUSEGRID_API_KEY", raising=False)
+    monkeypatch.delenv("CLAUSEGRID_ENABLE_PUBLIC_UPLOADS", raising=False)
+    monkeypatch.delenv("FORMULAWITNESS_ENABLE_PUBLIC_UPLOADS", raising=False)
     monkeypatch.delenv("FORMULAWITNESS_PUBLIC_ORIGIN", raising=False)
     monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://formulawitness.example")
     monkeypatch.setenv("PORT", "12345")
@@ -24,6 +26,7 @@ def test_deployment_args_use_render_origin_and_qubrid_defaults(
     assert args[args.index("--provider") + 1] == "qubrid"
     assert args[args.index("--model") + 1] == QUBRID_DEFAULT_MODEL
     assert "--allow-external-processing" in args
+    assert "--enable-public-uploads" not in args
     assert all("KEY" not in item and "TOKEN" not in item for item in args)
 
 
@@ -74,3 +77,14 @@ def test_deployment_args_support_a_custom_openai_compatible_gateway(
 
     assert args[args.index("--base-url") + 1] == "https://gateway.example/v1"
     assert args[args.index("--api-key-env") + 1] == "CLAUSEGRID_API_KEY"
+
+
+def test_deployment_args_can_enable_public_uploads(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CLAUSEGRID_PUBLIC_ORIGIN", "https://clausegrid.example")
+    monkeypatch.setenv("CLAUSEGRID_ENABLE_PUBLIC_UPLOADS", "true")
+
+    assert "--enable-public-uploads" in _deployment_args()
+
+    monkeypatch.setenv("CLAUSEGRID_ENABLE_PUBLIC_UPLOADS", "sometimes")
+    with pytest.raises(SystemExit, match="true or false"):
+        _deployment_args()

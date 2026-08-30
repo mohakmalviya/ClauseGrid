@@ -740,6 +740,8 @@ class ToolCallingAgent:
                 selected_ids.add(citation.citation_id)
             if len(selected_citations) >= 64:
                 break
+        preview_citations = selected_citations[:8]
+        preview_ids = {citation.citation_id for citation in preview_citations}
         selected_citations.sort(key=lambda item: (item.page, item.start_char, item.end_char))
 
         experiments = list(getattr(state, "experiments", {}).values())
@@ -750,6 +752,11 @@ class ToolCallingAgent:
                     "page": citation.page,
                     "start": citation.start_char,
                     "end": citation.end_char,
+                    **(
+                        {"quote_preview": citation.exact_quote[:1_000]}
+                        if citation.citation_id in preview_ids
+                        else {}
+                    ),
                 }
                 for citation in selected_citations[:64]
             ],
@@ -808,8 +815,13 @@ class ToolCallingAgent:
 
         citation_ids = [citation.citation_id for citation in selected_citations[-32:]]
         experiment_ids = [evidence.experiment_id for evidence in experiments[-24:]]
+        citation_quote_previews = [
+            {"id": citation.citation_id, "quote": citation.exact_quote[:800]}
+            for citation in preview_citations
+        ]
         compact: dict[str, object] = {
             "citation_ids": citation_ids,
+            "citation_quote_previews": citation_quote_previews,
             "experiment_ids": experiment_ids,
             "candidate": ledger["candidate"],
             "falsifier_verdict": ledger["falsifier_verdict"],
@@ -817,10 +829,16 @@ class ToolCallingAgent:
         }
         rendered = render(compact)
         while len(rendered) > max_chars:
-            if len(citation_ids) >= len(experiment_ids) and citation_ids:
-                citation_ids.pop(0)
-            elif experiment_ids:
+            if experiment_ids:
                 experiment_ids.pop(0)
+            elif len(citation_ids) > len(citation_quote_previews):
+                citation_ids.pop(0)
+            elif len(citation_quote_previews) > 1:
+                citation_quote_previews.pop(0)
+            elif citation_ids:
+                citation_ids.pop(0)
+            elif citation_quote_previews:
+                citation_quote_previews.pop(0)
             else:
                 break
             rendered = render(compact)

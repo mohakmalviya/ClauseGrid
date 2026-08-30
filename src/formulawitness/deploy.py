@@ -35,6 +35,17 @@ def _positive_int(primary: str, legacy: str | None, default: int) -> int:
     return value
 
 
+def _boolean(primary: str, legacy: str | None, default: bool = False) -> bool:
+    raw = _environment(primary, legacy, "true" if default else "false")
+    assert raw is not None
+    normalized = raw.casefold()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise SystemExit(f"{primary} must be true or false")
+
+
 def _deployment_args() -> list[str]:
     """Build the public-server arguments entirely from non-secret environment metadata."""
 
@@ -65,6 +76,10 @@ def _deployment_args() -> list[str]:
         "FORMULAWITNESS_MAX_AUDITS_PER_CLIENT_HOUR",
         2,
     )
+    public_uploads = _boolean(
+        "CLAUSEGRID_ENABLE_PUBLIC_UPLOADS",
+        "FORMULAWITNESS_ENABLE_PUBLIC_UPLOADS",
+    )
     args = [
         "serve",
         "--host",
@@ -91,6 +106,8 @@ def _deployment_args() -> list[str]:
         args.extend(["--api-key-env", api_key_env])
     if admin_token_env:
         args.extend(["--admin-token-env", admin_token_env])
+    if public_uploads:
+        args.append("--enable-public-uploads")
     return args
 
 

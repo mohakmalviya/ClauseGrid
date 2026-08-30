@@ -52,15 +52,16 @@ non-repair result or successful approval; an operating-system deletion failure i
 and queued for retry instead of leaving the job running. Inspect the model-selected policy citations, sandbox experiments, independent falsifier
 verdict, exact formula diff, proposal hash, and raw JSONL trajectory. If and only if a repair survives
 falsification, enter a local reviewer label to approve the exact proposal and write a copied workbook.
-Provider, model, endpoint, and credential configuration are server-side; the unauthenticated demo
-server refuses non-loopback binding.
+Provider, model, endpoint, and credential configuration are server-side. The public browser receives
+only a generic managed-runtime label; exact runtime identity remains in controlled audit artifacts.
 
 Real-file mode requires both files. ClauseGrid will not silently compare an uploaded workbook
 against the bundled synthetic supplier policy. The browser also requires confirmation that the data
 is public, synthetic, or approved for processing by the configured model provider. Pending uploads
 and retained review inputs expire after 30 minutes, and browser retries reuse the same prepared
-upload. Stopping the server removes the complete temporary runtime. This private upload mode is
-intentionally unavailable on the anonymous public deployment.
+upload. Stopping the server removes the complete temporary runtime. The Render demo enables the same
+path behind same-origin checks, separate upload throttling, audit rate limits, and ephemeral storage;
+it remains an anonymous demonstration and must not receive confidential data.
 
 Direct CLI equivalents:
 
@@ -108,11 +109,11 @@ alternatives are recorded in [model selection evidence](docs/MODEL_SELECTION.md)
 ## Publish the synthetic public demo
 
 The repository includes a non-root Docker image, an environment-only deployment entry point, and a
-Render Blueprint. The public mode accepts only bundled synthetic benchmark case IDs, runs one audit
-at a time in a background job, applies global and per-client request limits, enforces the configured
-HTTPS Host/Origin, and never sends a provider or administrator credential to the browser. Browser
-approval is disabled; the public site demonstrates investigation and falsification, not anonymous
-write authorization.
+Render Blueprint. Public mode accepts bundled benchmarks plus explicitly consented `.xlsx`/`.pdf`
+pairs, runs one audit at a time in a background job, applies upload and audit request limits, enforces
+the configured HTTPS Host/Origin, and never sends provider identity, credentials, or administrator
+credentials to the browser. Browser approval is disabled; the public site demonstrates investigation
+and falsification, not anonymous write authorization.
 
 1. Push the private repository to GitHub and create a Render Blueprint from `render.yaml`.
 2. Enter a fresh Qubrid key as the Blueprint's `CLAUSEGRID_API_KEY` secret.

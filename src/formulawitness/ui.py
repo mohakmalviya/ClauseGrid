@@ -71,7 +71,7 @@ button{border:0;border-radius:10px;padding:12px 17px;background:linear-gradient(
 <section class="panel product-intro" aria-labelledby="productIntroTitle"><div><span class="eyebrow">Why ClauseGrid exists</span><h1 id="productIntroTitle">Spreadsheets execute policy. ClauseGrid proves when they get it wrong.</h1><p class="intro-copy">Business rules hide inside formulas that can look valid while silently mishandling a threshold, exception, date, or rebate. ClauseGrid turns that risk into a cited, reproducible, human-reviewable case.</p></div><aside class="hero-proof"><span class="proof-label">Every proposed repair must pass</span><div class="proof-flow"><div class="proof-node"><i>1</i>Policy-grounded evidence</div><div class="proof-line"></div><div class="proof-node"><i>2</i>Reproducible counterexamples</div><div class="proof-line"></div><div class="proof-node"><i>3</i>Independent falsification</div><div class="proof-line"></div><div class="proof-node"><i>4</i>Explicit human approval</div></div></aside></section>
 <section class="guide-grid" aria-label="Product overview"><div class="guide-card"><span class="guide-index">01 / PROBLEM</span><h3>The problem</h3><p>A one-cell formula error can misapply rebates, controls, eligibility rules, or exceptions across thousands of decisions.</p></div><div class="guide-card"><span class="guide-index">02 / NEED</span><h3>Why it is needed</h3><p>High-stakes fixes need citations, executable tests, independent challenge, and approval—not a plausible AI answer.</p></div><div class="guide-card"><span class="guide-index">03 / USERS</span><h3>Who it is for</h3><p>Finance, procurement, operations, compliance, risk, and audit teams using policy-driven workbooks.</p></div><div class="guide-card"><span class="guide-index">04 / TRY IT</span><h3>How to try it</h3><p>Run a controlled benchmark or privately upload a compatible workbook with its governing policy PDF.</p></div></section>
 <section class="hero"><div class="panel"><span class="section-kicker">Agentic assurance, not formula autocomplete</span><h2 class="hero-title">One agent investigates. Another is paid to disagree.</h2><p>The manager discovers policy and workbook semantics through bounded tools. A fresh-context falsifier attacks every staged repair before a reviewer can authorize a copied workbook.</p><div class="agent-visual"><div class="agent-card"><div class="agent-icon">M</div><b>Audit manager</b><span>Finds evidence · runs experiments · stages a repair</span></div><div class="handoff">→</div><div class="agent-card falsifier"><div class="agent-icon">F</div><b>Independent falsifier</b><span>Searches for counterexamples · blocks weak proposals</span></div></div><div class="metric"><div><b>Typed tools only</b><span class="small">No shell access</span></div><div><b>Fail-closed</b><span class="small">Uncertainty becomes ABSTAIN</span></div><div><b>Zero source writes</b><span class="small">Until human approval</span></div></div></div>
-<div class="panel launch-panel"><div class="launch-head"><div><span class="section-kicker">Live controlled audit</span><h2 style="margin:4px 0 0">Choose evidence to audit</h2></div><span class="runtime-state">Runtime ready</span></div><label>Server-side runtime</label><div><code id="runtime">Loading configuration…</code></div><div class="source-tabs" role="tablist" aria-label="Audit input"><button type="button" class="source-tab active" id="benchmarkTab">Controlled benchmark</button><button type="button" class="source-tab" id="uploadTab">Upload workbook + policy</button></div><div id="benchmarkSource"><label for="case">Synthetic benchmark workbook</label><select id="case"></select></div><div id="uploadSource" class="hidden"><div class="upload-grid"><div class="file-box"><label for="workbookFile">Compatible .xlsx workbook</label><input id="workbookFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></div><div class="file-box"><label for="policyFile">Matching policy .pdf</label><input id="policyFile" type="file" accept=".pdf,application/pdf"></div></div><label class="consent"><input id="uploadConsent" type="checkbox"><span>I confirm these files contain public, synthetic, or approved data. Selected cells, formulas, and policy passages may be sent to <b id="consentProvider">the configured model provider</b> and retained in the local evidence trace.</span></label><p class="profile-note">Supported profile: calculation-focused .xlsx only; no macros, external links, drawings, comments, embedded objects, Power Query, defined names, shared/array formulas, conditional formatting, data validation, worksheet extensions, cross-sheet formula chains, or functions outside arithmetic, IF, AND, OR, MAX, MIN, ROUND, LOOKUP, and literal equality COUNTIF. Qualified raw inputs such as Inputs!A1 can be varied in experiments. Temporary input copies expire after 30 minutes.</p><div id="uploadManifest" class="upload-manifest hidden"></div></div><div class="actions"><button id="audit">Run agent audit</button><button class="secondary" id="reset">Reset</button></div><div class="run-status"><div class="status-line"><span class="status-dot" id="statusDot"></span><div id="message">M10 demonstrates a subtle waiver-scope failure. A live run can take several minutes.</div></div><div class="progress-track"><div class="progress-bar" id="progressBar"></div></div><div class="status-meta" id="progressMeta">READY · waiting for a case</div></div></div></section>
+<div class="panel launch-panel"><div class="launch-head"><div><span class="section-kicker">Live controlled audit</span><h2 style="margin:4px 0 0">Choose evidence to audit</h2></div><span class="runtime-state">Runtime ready</span></div><label>Server-side runtime</label><div><code id="runtime">Loading configuration…</code></div><div class="source-tabs" role="tablist" aria-label="Audit input"><button type="button" class="source-tab active" id="benchmarkTab">Controlled benchmark</button><button type="button" class="source-tab" id="uploadTab">Upload workbook + policy</button></div><div id="benchmarkSource"><label for="case">Synthetic benchmark workbook</label><select id="case"></select></div><div id="uploadSource" class="hidden"><div class="upload-grid"><div class="file-box"><label for="workbookFile">Compatible .xlsx workbook</label><input id="workbookFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></div><div class="file-box"><label for="policyFile">Matching policy .pdf</label><input id="policyFile" type="file" accept=".pdf,application/pdf"></div></div><label class="consent"><input id="uploadConsent" type="checkbox"><span>I confirm these files contain public, synthetic, or approved data. Selected cells, formulas, and policy passages may be sent to <b id="consentProvider">the managed AI service</b> and retained in the evidence trace.</span></label><p class="profile-note">Supported profile: calculation-focused .xlsx only; no macros, external links, drawings, comments, embedded objects, Power Query, defined names, shared/array formulas, conditional formatting, data validation, worksheet extensions, cross-sheet formula chains, or functions outside arithmetic, IF, AND, OR, MAX, MIN, ROUND, LOOKUP, and literal equality COUNTIF. Qualified raw inputs such as Inputs!A1 can be varied in experiments. Temporary input copies expire after 30 minutes.</p><div id="uploadManifest" class="upload-manifest hidden"></div></div><div class="actions"><button id="audit">Run agent audit</button><button class="secondary" id="reset">Reset</button></div><div class="run-status"><div class="status-line"><span class="status-dot" id="statusDot"></span><div id="message">M10 demonstrates a subtle waiver-scope failure. A live run can take several minutes.</div></div><div class="progress-track"><div class="progress-bar" id="progressBar"></div></div><div class="status-meta" id="progressMeta">READY · waiting for a case</div></div></div></section>
 <div class="steps" aria-label="Audit workflow"><div class="step on">1 · Inputs</div><div class="step" id="s2">2 · Evidence</div><div class="step" id="s3">3 · Experiments</div><div class="step" id="s4">4 · Falsification</div><div class="step" id="s5">5 · Review & approve</div></div>
 <section class="panel evidence"><div class="evidence-head"><div><span class="section-kicker">Measured deterministic layer</span><h2 style="margin-top:5px">Legacy deterministic regression evidence</h2><p>This frozen scorecard validates the deterministic workbook layer. It is not model-agent performance.</p></div><div class="benchmark-badge" id="benchmarkBadge">Loading benchmark…</div></div><div style="overflow:auto"><table class="score-table"><thead><tr><th>Metric</th><th>Legacy baseline</th><th>Legacy advanced</th><th>Change</th></tr></thead><tbody id="scorecard"></tbody></table></div><div class="disclosure" id="measurementDisclosure"></div></section>
 <section id="results" class="hidden"><div class="grid results-grid"><div class="panel citation-panel"><h2>Mechanically registered policy citations</h2><div id="citations"></div></div><div class="panel decision-panel"><h2>Agent decision and exact proposal</h2><div id="diagnosis"></div></div></div>
@@ -86,20 +86,20 @@ const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function decodedResponse(response,text,path){let data=null;try{data=JSON.parse(text)}catch{}if(!response.ok){const detail=data?.error||text.trim()||response.statusText;const e=new Error(`${path} failed (${response.status}): ${detail}`);e.status=response.status;throw e}if(data===null||typeof data!=='object'){throw new Error(`${path} returned an invalid server response. Reload once the runtime is ready.`)}return data}
 async function api(path,options){const method=String(options?.method||'GET').toUpperCase();const attempts=method==='GET'?9:1;for(let attempt=0;attempt<attempts;attempt++){let response;try{response=await fetch(path,options)}catch(error){if(attempt+1<attempts){$('message').textContent='Connecting to the audit runtime…';await sleep(Math.min(5000,750*2**attempt));continue}throw new Error(`${path} could not reach the audit runtime: ${error.message}`)}const text=await response.text();const contentType=response.headers.get('content-type')||'';const renderColdStart=method==='GET'&&!contentType.includes('application/json')&&[404,502,503,504].includes(response.status);if(renderColdStart&&attempt+1<attempts){$('message').textContent='The hosted runtime is waking up. Retrying automatically…';$('progressMeta').textContent=`CONNECTING · RETRY ${attempt+1}/${attempts-1}`;await sleep(Math.min(5000,750*2**attempt));continue}return decodedResponse(response,text,path)}throw new Error(`${path} could not reach the audit runtime.`)}
 async function sendFile(path,file,contentType){const response=await fetch(path,{method:'POST',headers:{'Content-Type':contentType},body:file});const text=await response.text();return decodedResponse(response,text,path)}
-function setInputMode(mode){if(mode==='upload'&&!runtimeConfig?.private_uploads_enabled)return;inputMode=mode;const custom=mode==='upload';$('benchmarkSource').classList.toggle('hidden',custom);$('uploadSource').classList.toggle('hidden',!custom);$('benchmarkTab').classList.toggle('active',!custom);$('uploadTab').classList.toggle('active',custom);$('message').textContent=custom?'Choose a compatible workbook and its matching policy. Preflight runs before the model is called.':'M10 demonstrates a subtle waiver-scope failure. A live run can take several minutes.';$('progressMeta').textContent=`READY · ${custom?'WAITING FOR PRIVATE FILES':'WAITING FOR A CASE'}`}
+function setInputMode(mode){if(mode==='upload'&&!runtimeConfig?.uploads_enabled)return;inputMode=mode;const custom=mode==='upload';$('benchmarkSource').classList.toggle('hidden',custom);$('uploadSource').classList.toggle('hidden',!custom);$('benchmarkTab').classList.toggle('active',!custom);$('uploadTab').classList.toggle('active',custom);$('message').textContent=custom?'Choose a compatible workbook and its matching policy. Preflight runs before the model is called.':'M10 demonstrates a subtle waiver-scope failure. A live run can take several minutes.';$('progressMeta').textContent=`READY · ${custom?'WAITING FOR FILES':'WAITING FOR A CASE'}`}
 function renderUploadManifest(m){const sheetNames=(m.sheets||[]).map(s=>s.name).join(', ');$('uploadManifest').textContent=`Preflight passed · ${m.formula_count} formulas · ${m.sheets?.length||0} sheets (${sheetNames}) · ${m.policy_page_count} policy pages · workbook ${m.workbook_sha256.slice(0,12)}… · policy ${m.policy_sha256.slice(0,12)}…`;$('uploadManifest').classList.remove('hidden')}
 async function uploadInputs(){const workbook=$('workbookFile').files[0],policy=$('policyFile').files[0];if(!workbook||!policy)throw new Error('Select both a compatible .xlsx workbook and its matching policy .pdf.');if(!workbook.name.toLowerCase().endsWith('.xlsx'))throw new Error('Workbook must use the .xlsx extension.');if(!policy.name.toLowerCase().endsWith('.pdf'))throw new Error('Policy must use the .pdf extension.');if(!$('uploadConsent').checked)throw new Error('Confirm data authorization and model-processing consent before upload.');const limits=runtimeConfig.upload_limits||{};if(workbook.size>Number(limits.workbook_bytes||0))throw new Error('Workbook exceeds the server upload limit.');if(policy.size>Number(limits.policy_bytes||0))throw new Error('Policy PDF exceeds the server upload limit.');const signature=`${workbook.name}:${workbook.size}:${workbook.lastModified}|${policy.name}:${policy.size}:${policy.lastModified}`;if(preparedUploadId&&preparedUploadSignature===signature)return preparedUploadId;preparedUploadId=null;preparedUploadSignature=null;$('message').textContent='Validating workbook safety and supported formulas before any model call…';$('progressMeta').textContent='PREFLIGHT · OOXML SAFETY · FORMULA PROFILE';const staged=await sendFile('/api/uploads/workbook',workbook,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');const ready=await sendFile(`/api/uploads/${staged.upload_id}/policy`,policy,'application/pdf');renderUploadManifest(ready);preparedUploadId=ready.upload_id;preparedUploadSignature=signature;return ready.upload_id}
 function pct(value){return `${Number(value).toFixed(1)}%`}function seconds(value){return `${Number(value).toFixed(3)} s`}
-function renderSummary(s){$('benchmarkBadge').textContent=`${s.benchmark} · ${s.workbook_count} workbooks × ${s.hidden_cases_per_workbook} sealed cases`;$('scorecard').replaceChildren();const rows=[['Primary outcome: E2E-SRR',pct(s.baseline_e2e_srr),pct(s.advanced_e2e_srr),`+${Number(s.improvement_pp).toFixed(1)} pp`],['Clean preservation',pct(s.baseline_clean_preservation),pct(s.advanced_clean_preservation),'no regression'],['Challenging case H01',pct(s.baseline_hard_rate),pct(s.advanced_hard_rate),`+${Number(s.advanced_hard_rate-s.baseline_hard_rate).toFixed(1)} pp`],['Automated wall-clock, M10 median',seconds(s.baseline_runtime_seconds),seconds(s.advanced_runtime_seconds),`+${seconds(s.advanced_runtime_seconds-s.baseline_runtime_seconds)}`],['Human time per task','Not measured','Not measured','No claim'],['Model/API cost per task','$0.00 legacy','$0.00 legacy','Model cost not reported']];for(const values of rows){const tr=document.createElement('tr');for(const value of values)tr.append(node('td',value));$('scorecard').append(tr)}$('measurementDisclosure').textContent='The model-agent manager/falsifier is intentionally reported separately and has not inherited these scores. Every run below exposes its own provider, model, usage, evidence, and outcome.'}
+function renderSummary(s){$('benchmarkBadge').textContent=`${s.benchmark} · ${s.workbook_count} workbooks × ${s.hidden_cases_per_workbook} sealed cases`;$('scorecard').replaceChildren();const rows=[['Primary outcome: E2E-SRR',pct(s.baseline_e2e_srr),pct(s.advanced_e2e_srr),`+${Number(s.improvement_pp).toFixed(1)} pp`],['Clean preservation',pct(s.baseline_clean_preservation),pct(s.advanced_clean_preservation),'no regression'],['Challenging case H01',pct(s.baseline_hard_rate),pct(s.advanced_hard_rate),`+${Number(s.advanced_hard_rate-s.baseline_hard_rate).toFixed(1)} pp`],['Automated wall-clock, M10 median',seconds(s.baseline_runtime_seconds),seconds(s.advanced_runtime_seconds),`+${seconds(s.advanced_runtime_seconds-s.baseline_runtime_seconds)}`],['Human time per task','Not measured','Not measured','No claim'],['Model/API cost per task','$0.00 legacy','$0.00 legacy','Model cost not reported']];for(const values of rows){const tr=document.createElement('tr');for(const value of values)tr.append(node('td',value));$('scorecard').append(tr)}$('measurementDisclosure').textContent='The live agent run is reported separately and has not inherited these legacy scores. Public results expose evidence and outcome while runtime identity remains in controlled server-side artifacts.'}
 function updateProgress(p={}){const actor=p.actor||'';const turn=Number(p.turn||0),limit=Math.max(1,Number(p.turn_limit||1));let percent=actor==='falsifier'?60+(turn/limit)*27:10+(turn/limit)*45;if(!actor)percent=5;$('progressBar').style.width=`${Math.min(92,percent)}%`;$('statusDot').classList.add('live');const elapsed=p.elapsed_seconds===undefined?'starting':`${Number(p.elapsed_seconds).toFixed(0)}s elapsed`;const action=p.last_tool?`${p.last_tool}${p.last_ok===false?' · rejected, recovering':''}`:'preparing tools';$('progressMeta').textContent=`${actor||'CONTROLLER'} · ${elapsed} · ${action}`.toUpperCase()}
-async function init(){await api('/healthz');const [data,summary,config]=await Promise.all([api('/api/cases'),api('/api/summary'),api('/api/config')]);runtimeConfig=config;for(const c of data.cases){const o=node('option',`${c.id} — ${c.label}`);o.value=c.id;if(c.id==='M10')o.selected=true;$('case').append(o)}$('runtime').textContent=`${config.provider} · ${config.model}`;$('consentProvider').textContent=`${config.provider} (${config.model})`;$('progressMeta').textContent=`READY · ${config.provider} · ${config.model}`.toUpperCase();if(!config.private_uploads_enabled){$('uploadTab').classList.add('hidden');$('uploadTab').disabled=true}if(config.public_demo)$('message').textContent='Public live audits are queued, rate-limited, and restricted to synthetic workbooks.';renderSummary(summary)}
+async function init(){await api('/healthz');const [data,summary,config]=await Promise.all([api('/api/cases'),api('/api/summary'),api('/api/config')]);runtimeConfig=config;for(const c of data.cases){const o=node('option',`${c.id} — ${c.label}`);o.value=c.id;if(c.id==='M10')o.selected=true;$('case').append(o)}$('runtime').textContent=config.runtime_label;$('consentProvider').textContent='the managed AI service';$('progressMeta').textContent='READY · MANAGED AI RUNTIME';if(!config.uploads_enabled){$('uploadTab').classList.add('hidden');$('uploadTab').disabled=true}if(config.public_demo)$('message').textContent=config.uploads_enabled?'Public audits are queued and rate-limited. Use the benchmark or upload approved files.':'Public live audits are queued, rate-limited, and restricted to synthetic workbooks.';renderSummary(summary)}
 async function waitForJob(url){for(let attempt=0;attempt<480;attempt++){const job=await api(url);if(job.status==='complete')return job.result;if(job.status==='failed')throw new Error(job.error||'Audit failed closed');const p=job.progress||{};if(p.actor==='falsifier')setSteps(4);else if(p.last_tool==='run_experiment')setSteps(3);else if(job.status==='running')setSteps(2);const turn=p.turn===undefined?'':` · turn ${p.turn}/${p.turn_limit}`;const elapsed=p.elapsed_seconds===undefined?'':` · ${Number(p.elapsed_seconds).toFixed(0)}s`;const action=p.last_tool?` · ${p.last_tool}${p.last_ok===false?' rejected':''}`:'';$('message').textContent=`${p.phase||'Agent audit'}${turn}${elapsed}${action}`;updateProgress(p);await new Promise(resolve=>setTimeout(resolve,1000))}throw new Error('Fast demo did not finish within eight minutes')}
 function setSteps(n){for(let i=2;i<=5;i++)$('s'+i).classList.toggle('on',i<=n)}
 function renderDownloads(files){$('downloads').replaceChildren();for(const f of files||[]){const a=node('a',f);a.href=`/download/${encodeURIComponent(current.result.run_id)}/${encodeURIComponent(f)}`;$('downloads').append(a)}}
 function observedSummary(item){const observation=item.observation||{};const applied=(observation.applied_formula_overrides||[]).join(', ')||'source formula';const values=JSON.stringify(observation.observations||{});return `${applied} → ${values}`}
 function render(data){current=data;const result=data.result;const state=data.state||{};$('results').classList.remove('hidden');$('sourceHash').textContent=result.source_sha256;$('proposalHash').textContent=data.proposal_hash;setSteps(5);$('progressBar').style.width='100%';$('statusDot').classList.remove('live');$('progressMeta').textContent=`COMPLETE · ${result.decision} · ${result.run_id}`;
  $('citations').replaceChildren();for(const c of data.citations||[]){const d=node('div');d.append(node('b',c.citation_id));d.append(node('div',`Page ${c.page} · characters ${c.start_char}–${c.end_char}`,'small'));d.append(node('div',c.exact_quote,'quote'));$('citations').append(d)}if(!(data.citations||[]).length)$('citations').append(node('p','No citation was registered before the agent abstained.'));
- $('diagnosis').replaceChildren(node('div',`Decision: ${result.decision}`,'status '+result.decision),node('div',`${data.provider} · ${data.model}`,'small'));if(state.decision?.explanation)$('diagnosis').append(node('p',state.decision.explanation));for(const p of result.patches||[]){const d=node('div',null,'patch');d.append(node('b',`Patch ${p.cell} · ${(p.rule_ids||[]).join(', ')}`));d.append(node('div',p.old_formula,'before'));d.append(node('div',p.new_formula,'after'));d.append(node('p',p.rationale));$('diagnosis').append(d)}if(!(result.patches||[]).length)$('diagnosis').append(node('p','No workbook patch has been authorized.'));
+ $('diagnosis').replaceChildren(node('div',`Decision: ${result.decision}`,'status '+result.decision),node('div',runtimeConfig?.runtime_label||'Managed AI runtime','small'));if(state.decision?.explanation)$('diagnosis').append(node('p',state.decision.explanation));for(const p of result.patches||[]){const d=node('div',null,'patch');d.append(node('b',`Patch ${p.cell} · ${(p.rule_ids||[]).join(', ')}`));d.append(node('div',p.old_formula,'before'));d.append(node('div',p.new_formula,'after'));d.append(node('p',p.rationale));$('diagnosis').append(d)}if(!(result.patches||[]).length)$('diagnosis').append(node('p','No workbook patch has been authorized.'));
  $('experiments').replaceChildren();for(const t of data.experiments||[]){const tr=document.createElement('tr');for(const value of [t.experiment_id,t.actor,t.request?.purpose||'—',observedSummary(t)])tr.append(node('td',value));$('experiments').append(tr)}if(!(data.experiments||[]).length){const tr=document.createElement('tr');const td=node('td','No sandbox experiment completed.');td.colSpan=4;tr.append(td);$('experiments').append(tr)}
  $('falsifier').replaceChildren();const v=data.falsifier_verdict;if(v){$('falsifier').append(node('span',v.status,'status '+v.status),node('p',v.explanation));if(v.counterexamples?.length)$('falsifier').append(node('div',`Counterexamples: ${v.counterexamples.join('; ')}`,'danger'));if(v.remaining_risks?.length)$('falsifier').append(node('div',`Remaining risks: ${v.remaining_risks.join('; ')}`,'small'))}else $('falsifier').append(node('p','No falsifier verdict was produced.'));
  const approved=Boolean(result.approval_hash);const survived=v?.status==='SURVIVED';const browserApproval=runtimeConfig?.browser_approval_enabled===true;$('approve').disabled=!browserApproval||result.decision!=='REPAIR'||!survived||approved;$('approvalMessage').textContent=!browserApproval?'Public approval is disabled; only an authenticated administrator can approve artifacts.':(approved?`Approved: ${result.approval_hash}`:(result.decision==='REPAIR'&&!survived?'Repair is locked because independent falsification did not survive.':(result.decision==='REPAIR'?'Review every artifact before approval.':'No repair is eligible for approval.')));if(data.cleanup_warning)$('approvalMessage').textContent+=` ${data.cleanup_warning}`;renderDownloads(data.downloads)}
@@ -122,6 +122,7 @@ DOWNLOAD_ALLOWLIST = frozenset(
     }
 )
 APPROVAL_GATED_DOWNLOADS = frozenset({"approval.json", "repaired.xlsx", "report.json"})
+PUBLIC_DOWNLOAD_BLOCKLIST = frozenset({"proposal.json", "report.json", "trajectory.jsonl"})
 UPLOAD_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 MAX_CONCURRENT_UPLOAD_PROCESSING = 2
 
@@ -134,6 +135,7 @@ class PublicServerConfig:
     max_audits_per_hour: int = 6
     max_audits_per_client_hour: int = 2
     admin_token: str | None = None
+    uploads_enabled: bool = False
 
     def __post_init__(self) -> None:
         parsed = urlsplit(self.origin)
@@ -260,14 +262,30 @@ def _valid_approval_commit(run_dir: Path) -> bool:
         return False
 
 
-def _available_downloads(run_dir: Path) -> list[str]:
+def _available_downloads(run_dir: Path, *, public: bool = False) -> list[str]:
     approval_committed = _valid_approval_commit(run_dir)
     return sorted(
         name
         for name in DOWNLOAD_ALLOWLIST
         if (run_dir / name).is_file()
         and (name not in APPROVAL_GATED_DOWNLOADS or approval_committed)
+        and (not public or name not in PUBLIC_DOWNLOAD_BLOCKLIST)
     )
+
+
+def _without_runtime_identity(value: Any) -> Any:
+    """Remove provider/model routing metadata from an anonymous public response."""
+
+    blocked = {"provider", "canonical_provider", "model", "model_id", "base_url"}
+    if isinstance(value, dict):
+        return {
+            key: _without_runtime_identity(item)
+            for key, item in value.items()
+            if str(key).casefold() not in blocked
+        }
+    if isinstance(value, list):
+        return [_without_runtime_identity(item) for item in value]
+    return value
 
 
 def _agent_review_payload(
@@ -276,6 +294,7 @@ def _agent_review_payload(
     *,
     provider: str,
     model_id: str,
+    disclose_runtime_identity: bool = True,
 ) -> dict[str, Any]:
     """Load the persisted, reviewable agent evidence for one completed local run."""
 
@@ -286,7 +305,7 @@ def _agent_review_payload(
     experiments = state.get("experiments", {})
     if not isinstance(citations, dict) or not isinstance(experiments, dict):
         raise TypeError("Agent state has invalid review evidence")
-    return {
+    payload = {
         "result": result.to_dict(),
         "state": state,
         "proposal_hash": object_hash(proposal),
@@ -295,8 +314,11 @@ def _agent_review_payload(
         "falsifier_verdict": state.get("falsifier_verdict"),
         "provider": provider,
         "model": model_id,
-        "downloads": _available_downloads(run_dir),
+        "downloads": _available_downloads(run_dir, public=not disclose_runtime_identity),
     }
+    if not disclose_runtime_identity:
+        return cast(dict[str, Any], _without_runtime_identity(payload))
+    return payload
 
 
 def _summary_payload(root: Path) -> dict[str, Any]:
@@ -346,9 +368,10 @@ def make_handler(
     uploads_lock = threading.Lock()
     artifact_root = (configured_artifact_root or root / "artifacts/ui").resolve(strict=False)
     artifact_root.mkdir(parents=True, exist_ok=True)
+    uploads_enabled = public_config is None or public_config.uploads_enabled
     private_runtime = None
     private_root: Path | None = None
-    if public_config is None:
+    if uploads_enabled:
         if configured_private_root is None:
             private_runtime = TemporaryDirectory(prefix="formulawitness-private-")
             private_root = Path(private_runtime.name).resolve()
@@ -365,6 +388,14 @@ def make_handler(
             global_limit=public_config.max_audits_per_hour,
             client_limit=public_config.max_audits_per_client_hour,
         )
+    )
+    upload_limiter = (
+        SlidingWindowRateLimiter(
+            global_limit=max(4, public_config.max_audits_per_hour * 2),
+            client_limit=max(2, public_config.max_audits_per_client_hour * 2),
+        )
+        if public_config is not None and uploads_enabled
+        else None
     )
 
     def try_remove_upload(
@@ -428,9 +459,10 @@ def make_handler(
                     cleanup_pending_uploads.pop(cleanup_key, None)
 
     class Handler(BaseHTTPRequestHandler):
-        server_version = "ClauseGrid/0.3"
+        server_version = "ClauseGrid/0.4"
         _private_runtime = private_runtime
         _reap_expired_uploads = staticmethod(reap_expired_uploads)
+        _uploads_enabled = uploads_enabled
 
         def setup(self) -> None:
             super().setup()
@@ -615,6 +647,7 @@ def make_handler(
                     run_artifact_root,
                     provider=provider,
                     model_id=model_id,
+                    disclose_runtime_identity=public_config is None,
                 )
                 sessions[result.run_id] = {
                     "proposal_hash": str(review["proposal_hash"]),
@@ -686,25 +719,29 @@ def make_handler(
                 self.wfile.write(data)
                 return
             if parsed.path == "/api/config":
-                self._json(
-                    {
-                        "provider": provider,
-                        "model": model_id,
-                        "local_only": public_config is None,
-                        "public_demo": public_config is not None,
-                        "browser_approval_enabled": public_config is None,
-                        "private_uploads_enabled": public_config is None,
-                        "upload_limits": {
-                            "workbook_bytes": MAX_WORKBOOK_BYTES,
-                            "policy_bytes": MAX_POLICY_BYTES,
-                            "retention_seconds": UPLOAD_TTL_SECONDS,
-                        },
-                        "demo_turn_limits": {
-                            "manager": DEMO_AGENT_LIMITS.manager_turn_limit,
-                            "falsifier": DEMO_AGENT_LIMITS.falsifier_turn_limit,
-                        },
-                    }
-                )
+                config_payload: dict[str, Any] = {
+                    "runtime_label": (
+                        f"{provider} · {model_id}"
+                        if public_config is None
+                        else "Managed private AI runtime"
+                    ),
+                    "local_only": public_config is None,
+                    "public_demo": public_config is not None,
+                    "browser_approval_enabled": public_config is None,
+                    "uploads_enabled": uploads_enabled,
+                    "upload_limits": {
+                        "workbook_bytes": MAX_WORKBOOK_BYTES,
+                        "policy_bytes": MAX_POLICY_BYTES,
+                        "retention_seconds": UPLOAD_TTL_SECONDS,
+                    },
+                    "demo_turn_limits": {
+                        "manager": DEMO_AGENT_LIMITS.manager_turn_limit,
+                        "falsifier": DEMO_AGENT_LIMITS.falsifier_turn_limit,
+                    },
+                }
+                if public_config is None:
+                    config_payload.update({"provider": provider, "model": model_id})
+                self._json(config_payload)
                 return
             if parsed.path == "/api/cases":
                 cases = [
@@ -733,6 +770,9 @@ def make_handler(
                 run_id, filename = parts[1], Path(parts[2]).name
                 session_artifact_root = Path(sessions[run_id]["artifact_root"])
                 run_dir = session_artifact_root / run_id
+                if public_config is not None and filename in PUBLIC_DOWNLOAD_BLOCKLIST:
+                    self._json({"error": "Artifact not available"}, HTTPStatus.NOT_FOUND)
+                    return
                 target = run_dir / filename
                 if filename not in DOWNLOAD_ALLOWLIST or not target.is_file():
                     self._json({"error": "Artifact not available"}, HTTPStatus.NOT_FOUND)
@@ -759,17 +799,26 @@ def make_handler(
         def do_POST(self) -> None:
             if not self._trusted_request(modifying=True):
                 return
-            if public_config is None:
+            if uploads_enabled:
                 reap_expired_uploads()
             try:
                 parsed_path = urlparse(self.path).path
                 if parsed_path == "/api/uploads/workbook":
-                    if public_config is not None or private_root is None:
+                    if not uploads_enabled or private_root is None:
                         self._json(
-                            {"error": "Private workbook uploads are disabled on the public demo"},
+                            {"error": "Workbook uploads are disabled"},
                             HTTPStatus.FORBIDDEN,
                         )
                         return
+                    if upload_limiter is not None:
+                        allowed, retry_after = upload_limiter.allow(self._client_key())
+                        if not allowed:
+                            self._json(
+                                {"error": "Public upload limit reached"},
+                                HTTPStatus.TOO_MANY_REQUESTS,
+                                headers={"Retry-After": str(retry_after)},
+                            )
+                            return
                     reservation = reserve_upload_processing(new_workbook=True)
                     if reservation is None:
                         self._json(
@@ -803,9 +852,9 @@ def make_handler(
                     r"/api/uploads/(?P<upload_id>[0-9a-f]{32})/policy", parsed_path
                 )
                 if policy_match is not None:
-                    if public_config is not None:
+                    if not uploads_enabled or private_root is None:
                         self._json(
-                            {"error": "Private policy uploads are disabled on the public demo"},
+                            {"error": "Policy uploads are disabled"},
                             HTTPStatus.FORBIDDEN,
                         )
                         return
@@ -858,8 +907,8 @@ def make_handler(
                     if bool(case_id) == bool(upload_id):
                         raise ValueError("Choose exactly one benchmark case or private upload")
                     if upload_id:
-                        if public_config is not None or private_root is None:
-                            raise ValueError("Private uploads are disabled on the public demo")
+                        if not uploads_enabled or private_root is None:
+                            raise ValueError("Uploads are disabled")
                         if UPLOAD_ID_RE.fullmatch(upload_id) is None:
                             raise ValueError("Upload identifier is invalid")
                         reap_expired_uploads()
@@ -890,13 +939,6 @@ def make_handler(
                             HTTPStatus.CONFLICT,
                         )
                         return
-                    if uploaded_input is not None:
-                        with uploads_lock:
-                            claimed_upload = uploads.pop(source_id, None)
-                            upload_created_at.pop(source_id, None)
-                        if claimed_upload is not uploaded_input:
-                            operation_lock.release()
-                            raise ValueError("Upload is unknown, expired, or already in use")
                     if public_config is not None:
                         assert limiter is not None
                         allowed, retry_after = limiter.allow(self._client_key())
@@ -908,6 +950,13 @@ def make_handler(
                                 headers={"Retry-After": str(retry_after)},
                             )
                             return
+                    if uploaded_input is not None:
+                        with uploads_lock:
+                            claimed_upload = uploads.pop(source_id, None)
+                            upload_created_at.pop(source_id, None)
+                        if claimed_upload is not uploaded_input:
+                            operation_lock.release()
+                            raise ValueError("Upload is unknown, expired, or already in use")
                     job_id = uuid.uuid4().hex
                     with jobs_lock:
                         if len(jobs) >= 100:
@@ -1058,7 +1107,7 @@ def serve(
     server = ThreadingHTTPServer((host, port), handler)
     cleanup_stop: threading.Event | None = None
     cleanup_thread: threading.Thread | None = None
-    if public_config is None:
+    if public_config is None or public_config.uploads_enabled:
         reap_uploads = cast(Any, handler)._reap_expired_uploads
         cleanup_stop, cleanup_thread = _start_upload_reaper(reap_uploads, UPLOAD_TTL_SECONDS)
     display_url = (

@@ -12,6 +12,8 @@ services:
         value: qubrid
       - key: CLAUSEGRID_MODEL
         value: deepseek-ai/DeepSeek-V4-Flash
+      - key: CLAUSEGRID_ENABLE_PUBLIC_UPLOADS
+        value: "true"
       - key: CLAUSEGRID_MAX_AUDITS_PER_HOUR
         value: "6"
       - key: CLAUSEGRID_MAX_AUDITS_PER_CLIENT_HOUR

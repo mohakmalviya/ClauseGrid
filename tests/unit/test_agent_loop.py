@@ -684,6 +684,7 @@ def test_coordination_boundary_closes_discovery_before_terminal_reserve(
     notice = cast(str, model.requests[1].messages[-1].content)
     assert "closed broad discovery" in notice
     assert citation.citation_id in notice
+    assert citation.exact_quote in notice
     assert "IDs may be cited directly" in notice
 
 
@@ -1143,3 +1144,4 @@ def test_terminal_notice_bounds_large_controller_evidence_ledger(tmp_path: Path)
     assert sum(len(message.model_dump_json()) for message in bounded) <= 10_000
     assert "final model turn" in notice[0].content
     assert "Controller evidence ledger" in notice[0].content
+    assert "Registered policy evidence." in notice[0].content

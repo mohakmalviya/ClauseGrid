@@ -195,3 +195,17 @@
   reported with its endpoint and status instead of crashing as an `Unexpected token` exception.
 - Kept POST and upload requests non-retrying to avoid duplicating audits or external processing
   after an ambiguous network failure.
+
+## Checkpoint 14 - public runtime privacy, uploads, and durable policy evidence
+
+- Reproduced a live run that registered four exact policy citations, then reached a terminal turn
+  whose compact controller ledger retained only their handles. The model incorrectly claimed the
+  policy text was unavailable and safely `ABSTAIN`ed.
+- Added bounded exact-quote previews to both normal and highly compact evidence ledgers so terminal
+  and coordination turns retain policy meaning after the original tool observations are compacted.
+- Removed provider/model routing metadata from anonymous config and job responses, replaced the UI
+  identity with a managed-runtime label, and withheld raw trajectory downloads in public mode while
+  preserving the original server-side artifacts.
+- Enabled same-origin public `.xlsx`/`.pdf` uploads on Render with consent, compatibility preflight,
+  separate upload throttling, single-use hash binding, audit limits, expiry, cleanup, and ephemeral
+  isolation. Browser approval remains disabled.
