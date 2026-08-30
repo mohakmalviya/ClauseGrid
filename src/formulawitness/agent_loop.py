@@ -137,12 +137,17 @@ class ToolCallingAgent:
                 coordination_mode=coordination_mode,
                 experiment_mode=experiment_mode,
             )
+            request_context_limit = self._request_context_limit(
+                snapshot,
+                final_turn=final_turn,
+            )
             trailing_messages = self._budget_notice(
                 turns_remaining=turns_remaining,
                 input_budget_terminal=input_budget_terminal,
                 tool_budget_terminal=tool_budget_terminal,
                 coordination_mode=coordination_mode,
                 experiment_mode=experiment_mode,
+                context_limit=request_context_limit,
             )
             tool_choice: ToolChoice = "required"
             if len(tools) == 1:
@@ -150,10 +155,7 @@ class ToolCallingAgent:
             request = ModelRequest(
                 messages=self._bounded_messages(
                     trailing_messages=trailing_messages,
-                    max_context_chars=self._request_context_limit(
-                        snapshot,
-                        final_turn=final_turn,
-                    ),
+                    max_context_chars=request_context_limit,
                 ),
                 tools=tools,
                 tool_choice=tool_choice,
@@ -368,12 +370,9 @@ class ToolCallingAgent:
             groups.append(current)
 
         base = list(self.messages[:2])
-        trailing_has_ledger = any(
-            "Controller evidence ledger" in message.content
-            for message in trailing_messages
-            if isinstance(message, UserMessage)
-        )
-        ledger = "" if trailing_has_ledger else self._evidence_ledger()
+        # A controller notice may deliberately omit the ledger when the immutable base prompt
+        # leaves no room. Do not reinsert an unbounded default ledger during compaction.
+        ledger = "" if trailing_messages else self._evidence_ledger()
         summary = UserMessage(
             content=(
                 "Earlier complete action groups were compacted after reaching the configured "
@@ -632,6 +631,7 @@ class ToolCallingAgent:
         tool_budget_terminal: bool = False,
         coordination_mode: bool = False,
         experiment_mode: bool = False,
+        context_limit: int | None = None,
     ) -> tuple[ChatMessage, ...]:
         if (
             (not self.terminal_tool_names or turns_remaining > 2)
@@ -683,9 +683,20 @@ class ToolCallingAgent:
                 "Controller budget notice: two action slots remain. Complete at most one final "
                 f"high-information action, then finish through one of: {names}."
             )
-        return (UserMessage(content=content + self._evidence_ledger()),)
+        ledger_limit = 9_000
+        if context_limit is not None:
+            base_size = sum(len(message.model_dump_json()) for message in self.messages[:2])
+            notice_size = len(UserMessage(content=content).model_dump_json())
+            # _bounded_messages may add a short compaction explanation between the immutable
+            # system/goal pair and this notice. Reserve room for that explanation and JSON
+            # framing before deciding how much registered evidence can be repeated.
+            ledger_limit = min(
+                ledger_limit,
+                max(0, context_limit - base_size - notice_size - 1_200),
+            )
+        return (UserMessage(content=content + self._evidence_ledger(max_chars=ledger_limit)),)
 
-    def _workbook_coordinate_hint(self, *, max_chars: int = 7_000) -> str:
+    def _workbook_coordinate_hint(self, *, max_chars: int = 2_500) -> str:
         """Repeat successful workbook reads next to forced experiment instructions."""
 
         useful = [
@@ -700,9 +711,11 @@ class ToolCallingAgent:
             encoded = encoded[:max_chars] + "...[truncated]"
         return "\nSuccessful workbook coordinate evidence: " + encoded
 
-    def _evidence_ledger(self) -> str:
+    def _evidence_ledger(self, *, max_chars: int = 9_000) -> str:
         """Keep registered handles available when their original observations are compacted."""
 
+        if max_chars <= 0:
+            return ""
         state = getattr(self.registry, "state", None)
         if state is None:
             return ""
@@ -777,10 +790,41 @@ class ToolCallingAgent:
                 "proposal_id": verdict.proposal_id,
                 "experiment_ids": list(verdict.experiment_ids),
             }
-        return (
-            "\nController evidence ledger (registered handles; IDs may be cited directly): "
-            + json.dumps(ledger, sort_keys=True, separators=(",", ":"))
-        )
+        prefix = "\nController evidence ledger (registered handles; IDs may be cited directly): "
+
+        def render(payload: dict[str, object]) -> str:
+            return prefix + json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+        rendered = render(ledger)
+        if len(rendered) <= max_chars:
+            return rendered
+
+        # Bulky workbook previews are useful but reconstructible through their tools. Preserve
+        # durable evidence handles and proposal state before spending context on those previews.
+        ledger["workbook_observations"] = []
+        rendered = render(ledger)
+        if len(rendered) <= max_chars:
+            return rendered
+
+        citation_ids = [citation.citation_id for citation in selected_citations[-32:]]
+        experiment_ids = [evidence.experiment_id for evidence in experiments[-24:]]
+        compact: dict[str, object] = {
+            "citation_ids": citation_ids,
+            "experiment_ids": experiment_ids,
+            "candidate": ledger["candidate"],
+            "falsifier_verdict": ledger["falsifier_verdict"],
+            "details_compacted": True,
+        }
+        rendered = render(compact)
+        while len(rendered) > max_chars:
+            if len(citation_ids) >= len(experiment_ids) and citation_ids:
+                citation_ids.pop(0)
+            elif experiment_ids:
+                experiment_ids.pop(0)
+            else:
+                break
+            rendered = render(compact)
+        return rendered if len(rendered) <= max_chars else ""
 
     def _bounded_observation_ledger(self, *, max_chars: int = 14_000) -> list[dict[str, object]]:
         """Retain the newest useful reads without letting the compacting ledger overflow context."""

@@ -1067,3 +1067,79 @@ def test_oversized_parallel_group_is_compacted_without_breaking_tool_protocol(
     assert [message.tool_call_id for message in results] == ["call-a", "call-b"]
     assert all(json.loads(message.content)["context_compacted"] for message in results)
     assert sum(len(message.model_dump_json()) for message in bounded) <= 10_000
+
+
+def test_terminal_notice_bounds_large_controller_evidence_ledger(tmp_path: Path) -> None:
+    terminal = {"done": False}
+    registry = CoordinationRegistry(terminal)
+    registry.state = AgentRunState(
+        run_id="bounded-controller-ledger",
+        source_sha256="1" * 64,
+        policy_sha256="2" * 64,
+    )
+    for index in range(48):
+        citation = CitationEvidence(
+            citation_id=f"citation-{index:012d}",
+            document_sha256="2" * 64,
+            page=(index % 4) + 1,
+            start_char=index * 10,
+            end_char=index * 10 + 100,
+            exact_quote="Registered policy evidence.",
+            quote_sha256="3" * 64,
+        )
+        registry.state.citations[citation.citation_id] = citation
+    for index in range(32):
+        experiment_id = f"experiment-{index:012d}"
+        registry.state.experiments[experiment_id] = ExperimentEvidence(
+            experiment_id=experiment_id,
+            actor="audit-manager",
+            request={"expectations": [{"cell": "A1", "expected": index}]},
+            observation={"observations": {"A1": index}},
+        )
+
+    loop = ToolCallingAgent(
+        actor="audit-manager",
+        model=CoordinationModel(),
+        registry=cast(AgentToolRegistry, registry),
+        budget=AgentBudgetLedger(_limits()),
+        trajectory=Trajectory(tmp_path / "trajectory.jsonl", "bounded-controller-ledger"),
+        system_prompt="S" * 3_500,
+        goal="G" * 1_000,
+        prompt_version="bounded-controller-ledger-v1",
+        is_terminal=lambda: terminal["done"],
+        terminal_tool_names=("request_human",),
+        max_context_chars=10_000,
+    )
+    for index in range(6):
+        loop._observation_ledger[f"read-{index}"] = {
+            "tool": "read_region",
+            "arguments": {"sheet": "Inputs", "start": "A1", "end": "Z100"},
+            "result": "x" * 10_000,
+        }
+    loop.messages.extend(
+        [
+            AssistantMessage(
+                content=None,
+                tool_calls=(ToolCall(call_id="inspect-large", name="inspect", arguments={}),),
+            ),
+            ToolResultMessage(
+                tool_call_id="inspect-large",
+                name="inspect",
+                content="y" * 12_000,
+            ),
+        ]
+    )
+
+    notice = loop._budget_notice(
+        turns_remaining=1,
+        input_budget_terminal=True,
+        context_limit=10_000,
+    )
+    bounded = loop._bounded_messages(
+        trailing_messages=notice,
+        max_context_chars=10_000,
+    )
+
+    assert sum(len(message.model_dump_json()) for message in bounded) <= 10_000
+    assert "final model turn" in notice[0].content
+    assert "Controller evidence ledger" in notice[0].content
