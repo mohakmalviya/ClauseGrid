@@ -19,13 +19,13 @@ services; its proxy forwards public traffic to the port supplied in `PORT`.
 5. Check `GET /healthz`, load the UI, select M10, and run one audit. The POST returns `202`; the UI
    polls an unguessable job URL until the result is complete.
 
-The Blueprint starts with `qubrid` and `deepseek-ai/DeepSeek-V3.2`, but these are ordinary
-`CLAUSEGRID_PROVIDER` and `CLAUSEGRID_MODEL` environment values. Change them to any documented
-preset without rebuilding the image; keep the matching key value in `CLAUSEGRID_API_KEY`. For a
-custom OpenAI-compatible gateway set `CLAUSEGRID_PROVIDER=openai-compatible` and add
-`CLAUSEGRID_BASE_URL`. The deployment entry point reads `RENDER_EXTERNAL_URL`, binds
-`0.0.0.0:$PORT`, and stores transient artifacts under `/tmp/clausegrid`. Environment variables are
-configured at runtime, not embedded into the container.
+The Blueprint starts with the official DeepSeek route and `deepseek-v4-flash`, the route that
+completed the M10 manager/falsifier smoke. These are ordinary `CLAUSEGRID_PROVIDER` and
+`CLAUSEGRID_MODEL` environment values. Change them together only for a separately qualified route;
+keep the matching key value in `CLAUSEGRID_API_KEY`. For a custom OpenAI-compatible gateway set
+`CLAUSEGRID_PROVIDER=openai-compatible` and add `CLAUSEGRID_BASE_URL`. The deployment entry point
+reads `RENDER_EXTERNAL_URL`, binds `0.0.0.0:$PORT`, and stores transient artifacts under
+`/tmp/clausegrid`. Environment variables are configured at runtime, not embedded into the container.
 
 The selected model remains a demo profile rather than a production recommendation. Public users may
 see a safe abstention, and a live audit can take several minutes. Use the repeated blind `agent-eval`
@@ -52,8 +52,8 @@ Run the image with runtime environment variables:
 ```powershell
 docker run --rm -p 10000:10000 `
   -e CLAUSEGRID_API_KEY `
-  -e CLAUSEGRID_PROVIDER=qubrid `
-  -e CLAUSEGRID_MODEL=deepseek-ai/DeepSeek-V3.2 `
+  -e CLAUSEGRID_PROVIDER=deepseek `
+  -e CLAUSEGRID_MODEL=deepseek-v4-flash `
   -e CLAUSEGRID_PUBLIC_ORIGIN=https://demo.example `
   -e PORT=10000 `
   clausegrid:demo
