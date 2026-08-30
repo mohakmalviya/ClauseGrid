@@ -272,6 +272,13 @@
   15 px navigation, 14 px controls, 13 px supporting copy, and a 12 px metadata floor. Tablet and
   phone headers now reflow instead of shrinking text, and low-contrast metadata colors were
   darkened. A regression test prevents future explicit font sizes below the 12 px floor.
+- Removed the desktop-only 700 px mode minimum that created an empty workbench band, aligned both
+  stage labels as block-level flex rows, and placed investigation actions and runtime status in one
+  full-width control row. The two differentiation cards now use shared subgrid rows so their
+  kickers, headings, copy, and diagrams line up without forced card heights.
+- Renamed the top navigation link to `Why ClauseGrid` and added an above-the-fold
+  `How this differs from Claude` link while retaining the complete comparison and agent-role
+  explanation below the workbench.
 - Browser checks ran the first-screen M10 path and confirmed the expected 26/27 result with exact
   cell evidence, exercised both tab systems by keyboard, walked to the result explanation, and
-  verified mode restoration. The focused UI suite passes 31 tests; the complete suite passes 305.
+  verified mode restoration. The focused UI suite passes 32 tests; the complete suite passes 306.

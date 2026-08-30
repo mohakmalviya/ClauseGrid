@@ -211,12 +211,14 @@ summary:focus-visible, [tabindex]:focus-visible {
   line-height: 1.01;
 }
 .opening p { max-width: 780px; margin: 0; color: #d1dae4; font-size: var(--text-lead); line-height: 1.58; }
-.opening-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+.opening-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
 .opening-actions button { min-height: 42px; padding: 0 15px; }
 .opening-quick { background: var(--signal); color: var(--signal-ink); }
 .opening-quick:hover:not(:disabled) { background: #c8e653; }
 .opening-tour { border: 1px solid rgba(255,255,255,.24); background: transparent; color: #fff; }
 .opening-tour:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+.opening-why { margin-left: 5px; color: var(--signal); font-size: var(--text-ui); font-weight: 800; text-underline-offset: 4px; }
+.opening-why:hover { color: #fff; }
 .proof-list { display: grid; gap: 1px; border: 1px solid rgba(255,255,255,.12); }
 .proof-item {
   display: grid;
@@ -356,14 +358,15 @@ summary:focus-visible, [tabindex]:focus-visible {
   text-transform: uppercase;
 }
 .mode-tab:not(.active) .mode-badge { color: #788494; }
-.mode-pane { min-height: 700px; }
+.mode-pane { min-height: 0; }
 .workbench-grid { display: grid; grid-template-columns: var(--workbench-columns); }
 .input-stage, .run-stage { min-width: 0; padding: var(--workbench-pad); }
 .input-stage { border-right: 1px solid var(--line); }
 .stage-label {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
+  width: max-content;
   margin-bottom: 18px;
   color: var(--ink);
   font-family: Consolas, monospace;
@@ -407,7 +410,7 @@ select, input {
 }
 select:focus, input:focus { border-color: var(--action); box-shadow: 0 0 0 4px rgba(49, 87, 230, .09); }
 .field-note { margin: 9px 0 0; color: var(--ink-soft); font-size: var(--text-sm); line-height: 1.5; }
-.run-stage { display: flex; flex-direction: column; min-height: 310px; background: #f8f6f1; }
+.run-stage { display: flex; flex-direction: column; min-height: 0; background: #f8f6f1; }
 .run-stage h3 { margin: 0; font-family: Georgia, serif; font-size: 22px; }
 .run-stage > p { margin: 8px 0 18px; color: var(--ink-soft); font-size: var(--text-body); line-height: 1.55; }
 .run-checks { display: grid; gap: 9px; margin-bottom: 20px; }
@@ -435,10 +438,22 @@ button:hover:not(:disabled) { background: var(--action-dark); transform: transla
 button.secondary { border: 1px solid var(--line); background: #ece8df; color: var(--ink); }
 button.secondary:hover:not(:disabled) { background: #e3ded3; }
 button:disabled { cursor: not-allowed; opacity: .48; }
-.run-stage .primary-run { width: 100%; margin-top: auto; }
+.run-stage .primary-run { width: 100%; margin-top: 0; }
 .actions { display: flex; gap: 9px; margin-top: 15px; }
 .actions #audit { flex: 1; }
 .run-note { min-height: 34px; margin-top: 11px; color: var(--ink-soft); font-size: var(--text-sm); line-height: 1.45; }
+.investigation-controls {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(300px, .9fr) minmax(0, 1.1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 20px var(--workbench-pad);
+  border-top: 1px solid var(--line);
+  background: #f8f6f1;
+}
+.investigation-controls .actions, .investigation-controls .run-status { margin: 0; }
+.investigation-controls .actions { align-self: center; }
 .verify-result {
   min-height: 152px;
   margin: 0 var(--workbench-pad) 28px;
@@ -559,20 +574,21 @@ code { font-family: Consolas, monospace; font-size: var(--text-xs); word-break: 
 .danger { color: var(--fail) !important; }
 .small { color: var(--ink-soft); font-size: var(--text-sm); }
 
-.support-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
-.support-card { min-width: 0; padding: clamp(20px, 2.2vw, 30px); border: 1px solid var(--line); border-radius: var(--radius); background: rgba(255, 253, 248, .94); }
-.support-card h2 { margin: 6px 0 11px; font-family: Georgia, serif; font-size: clamp(23px, 2vw, 31px); }
-.support-card p { color: var(--ink-soft); font-size: var(--text-body); line-height: 1.65; }
-.difference-flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 20px; border: 1px solid var(--line); background: var(--line); }
-.difference-flow div { min-height: 92px; padding: 14px; background: #fff; }
+.support-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(4, auto); column-gap: 14px; row-gap: 0; align-items: stretch; margin-top: 18px; }
+.support-card { display: grid; grid-row: span 4; grid-template-rows: subgrid; min-width: 0; align-self: stretch; padding: clamp(20px, 2.2vw, 30px); border: 1px solid var(--line); border-radius: var(--radius); background: rgba(255, 253, 248, .94); }
+.support-card h2 { margin: 6px 0 11px; font-family: Georgia, serif; font-size: clamp(23px, 2vw, 31px); line-height: 1.12; text-wrap: balance; }
+.support-card > p { margin: 0; color: var(--ink-soft); font-size: var(--text-body); line-height: 1.65; }
+.support-card > :is(.difference-flow, .agent-pair) { align-self: stretch; margin-top: 20px; }
+.difference-flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; border: 1px solid var(--line); background: var(--line); }
+.difference-flow div { min-height: 0; padding: 14px; background: #fff; }
 .difference-flow b { display: block; margin-bottom: 6px; font-size: var(--text-ui); }
 .difference-flow span { color: var(--ink-soft); font-size: var(--text-sm); line-height: 1.45; }
-.agent-pair { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; margin-top: 20px; }
-.agent-node { min-height: 98px; padding: 15px; border-top: 3px solid var(--action); background: #fff; }
+.agent-pair { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 10px; }
+.agent-node { min-height: 0; padding: 15px; border-top: 3px solid var(--action); background: #fff; }
 .agent-node:last-child { border-top-color: var(--pass); }
 .agent-node b { display: block; font-size: var(--text-ui); }
 .agent-node span { display: block; margin-top: 6px; color: var(--ink-soft); font-size: var(--text-sm); line-height: 1.45; }
-.agent-arrow { color: var(--action); font-weight: 900; }
+.agent-arrow { align-self: center; color: var(--action); font-weight: 900; }
 .support-details { margin-top: 14px; padding: 0; overflow: hidden; }
 .support-details > summary {
   padding: 20px clamp(20px, 2.2vw, 30px);
@@ -685,8 +701,9 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
 @media (max-width: 1100px) {
   .opening { grid-template-columns: minmax(0, 1fr) 310px; }
   .workbench-grid, .support-grid { grid-template-columns: 1fr; }
+  .support-grid { grid-template-rows: none; row-gap: 14px; }
+  .support-card { display: block; grid-row: auto; }
   .input-stage { border-right: 0; border-bottom: 1px solid var(--line); }
-  .run-stage { min-height: 270px; }
 }
 @media (max-width: 900px) {
   .workspace { padding: 16px; }
@@ -700,6 +717,7 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
   .pack-grid { grid-template-columns: 1fr 1fr; }
   .hash-grid { grid-template-columns: 1fr; }
   .lifecycle { grid-template-columns: 1fr 1fr; }
+  .investigation-controls { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
   .header-pack { min-width: 150px; max-width: 165px; }
@@ -728,6 +746,7 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
   .mode-tab + .mode-tab { border-left: 4px solid transparent; border-top: 1px solid var(--line); }
   .mode-tab.active { border-left-color: var(--action); }
   .input-stage, .run-stage { padding: 21px 17px; }
+  .investigation-controls { padding: 17px; }
   .verify-result { margin: 0 17px 20px; padding: 15px; }
   .verify-details, .upload-grid, .grid { grid-template-columns: 1fr; }
   .workflow-strip { grid-template-columns: 1fr; }
@@ -781,7 +800,7 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
     <nav class="appbar-nav" aria-label="Primary navigation">
       <a href="#start">Start</a>
       <a href="#auditWorkspace">Run a check</a>
-      <a href="#howItWorks">How it works</a>
+      <a href="#howItWorks">Why ClauseGrid</a>
       <a href="#policyPackSection">Policy Pack</a>
       <a href="#evidenceSection">Evidence</a>
     </nav>
@@ -803,7 +822,7 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
           <span class="eyebrow">Policy locked spreadsheet assurance</span>
           <h1 id="openingTitle">Prove every spreadsheet follows the approved policy</h1>
           <p>ClauseGrid checks workbook formulas against rules that qualified people already approved and shows the exact evidence behind every result. It does not ask an AI model to redefine the policy on every recurring audit.</p>
-          <div class="opening-actions"><button type="button" class="opening-quick" id="quickAudit" disabled>Run the M10 quick check</button><button type="button" class="opening-tour" id="openingTour">Show me around</button></div>
+          <div class="opening-actions"><button type="button" class="opening-quick" id="quickAudit" disabled>Run the M10 quick check</button><button type="button" class="opening-tour" id="openingTour">Show me around</button><a class="opening-why" href="#howItWorks">How this differs from Claude →</a></div>
         </div>
         <aside class="proof-list" aria-label="ClauseGrid assurances">
           <div class="proof-item"><i>✓</i><div><b>Source file unchanged</b><span>All checks run on controlled copies</span></div></div>
@@ -877,7 +896,7 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
                 <div id="uploadManifest" class="upload-manifest hidden"></div>
               </div>
             </div>
-            <div class="run-stage" id="investigationRun" data-tour="run-ai">
+            <div class="run-stage" id="investigationRun">
               <span class="stage-label">Agent investigation</span>
               <h3>Find evidence test a theory then challenge it</h3>
               <p>The manager reads policy evidence and runs workbook experiments A fresh context falsifier searches for counterexamples before any repair can reach human review</p>
@@ -886,6 +905,8 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
                 <div class="run-check"><i>2</i><span>Independent falsifier tries to break the proposal</span></div>
                 <div class="run-check"><i>3</i><span>Uncertainty fails closed to human review</span></div>
               </div>
+            </div>
+            <div class="investigation-controls" data-tour="run-ai">
               <div class="actions"><button id="audit">Run AI investigation</button><button class="secondary" id="reset">Reset</button></div>
               <div class="run-status">
                 <div class="status-line"><span class="status-dot" id="statusDot"></span><div id="message" role="status" aria-live="polite">M10 demonstrates a subtle waiver scope failure An AI investigation can take several minutes</div></div>
@@ -918,8 +939,8 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
         </article>
         <article class="support-card">
           <span class="section-kicker">Agent engineering</span>
-          <h2>Two roles challenge unfamiliar evidence</h2>
-          <p>Agents are optional and have no authority to silently change policy meaning They help when a new workbook or edge case needs investigation</p>
+          <h2>Two agent roles challenge unfamiliar evidence before approval</h2>
+          <p>Agents are optional and cannot silently change policy meaning They investigate new workbooks run experiments and challenge proposed repairs Approved tests still control the final pass or fail decision</p>
           <div class="agent-pair"><div class="agent-node"><b>Audit manager</b><span>Reads evidence runs experiments and proposes an exact formula change</span></div><div class="agent-arrow">→</div><div class="agent-node"><b>Fresh context falsifier</b><span>Searches for counterexamples and blocks unsupported proposals</span></div></div>
         </article>
       </section>

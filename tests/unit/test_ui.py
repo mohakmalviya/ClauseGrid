@@ -464,6 +464,8 @@ def test_primary_navigation_and_active_pack_live_in_top_bar() -> None:
     assert '<aside class="side-rail"' not in HTML
     assert "--rail-width" not in HTML
     assert '<nav class="appbar-nav" aria-label="Primary navigation">' in HTML
+    assert '<a href="#howItWorks">Why ClauseGrid</a>' in HTML
+    assert 'class="opening-why" href="#howItWorks">How this differs from Claude' in HTML
     for anchor in (
         "#start",
         "#auditWorkspace",
@@ -500,6 +502,20 @@ def test_typography_has_a_readable_floor_at_every_breakpoint() -> None:
         ".appbar-nav a { flex: 0 0 auto; padding: 8px 10px; font-size: var(--text-nav); }" in HTML
     )
     assert ".tour-trigger { min-height: 40px; padding: 0 10px; font-size: var(--text-ui); }" in HTML
+
+
+def test_workbench_and_support_cards_do_not_reserve_unexplained_space() -> None:
+    assert ".mode-pane { min-height: 0; }" in HTML
+    assert "min-height: 700px" not in HTML
+    assert "display: flex;\n  align-items: center;\n  gap: 8px;\n  width: max-content;" in HTML
+    assert ".run-stage { display: flex; flex-direction: column; min-height: 0;" in HTML
+    assert ".run-stage .primary-run { width: 100%; margin-top: 0; }" in HTML
+    assert 'class="investigation-controls" data-tour="run-ai"' in HTML
+    assert "grid-column: 1 / -1;" in HTML
+    assert "grid-template-rows: repeat(4, auto);" in HTML
+    assert "grid-template-rows: subgrid;" in HTML
+    assert ".support-card > p { margin: 0;" in HTML
+    assert ".support-grid { grid-template-rows: none; row-gap: 14px; }" in HTML
 
 
 def test_policy_pack_api_and_recurring_verification_never_call_model() -> None:
