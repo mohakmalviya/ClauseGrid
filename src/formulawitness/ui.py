@@ -400,12 +400,20 @@ def make_handler(
         (private_root / "uploads").mkdir(parents=True, exist_ok=True)
         (private_root / "runs").mkdir(parents=True, exist_ok=True)
     operation_lock = threading.Lock()
-    limiter = (
+    audit_limiter = (
         None
         if public_config is None
         else SlidingWindowRateLimiter(
             global_limit=public_config.max_audits_per_hour,
             client_limit=public_config.max_audits_per_client_hour,
+        )
+    )
+    verification_limiter = (
+        None
+        if public_config is None
+        else SlidingWindowRateLimiter(
+            global_limit=max(24, public_config.max_audits_per_hour * 4),
+            client_limit=max(8, public_config.max_audits_per_client_hour * 4),
         )
     )
     upload_limiter = (
@@ -962,8 +970,8 @@ def make_handler(
                         return
                     try:
                         if public_config is not None:
-                            assert limiter is not None
-                            allowed, retry_after = limiter.allow(self._client_key())
+                            assert verification_limiter is not None
+                            allowed, retry_after = verification_limiter.allow(self._client_key())
                             if not allowed:
                                 self._json(
                                     {"error": "Public demo audit limit reached"},
@@ -1033,8 +1041,8 @@ def make_handler(
                         )
                         return
                     if public_config is not None:
-                        assert limiter is not None
-                        allowed, retry_after = limiter.allow(self._client_key())
+                        assert audit_limiter is not None
+                        allowed, retry_after = audit_limiter.allow(self._client_key())
                         if not allowed:
                             operation_lock.release()
                             self._json(

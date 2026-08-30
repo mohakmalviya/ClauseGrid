@@ -239,7 +239,11 @@ def test_public_audit_is_same_origin_asynchronous_and_disables_browser_approval(
         model=AbstainingUiModel(),
         provider="scripted-provider",
         model_id="scripted-ui-agent",
-        public_config=PublicServerConfig(origin="https://demo.example"),
+        public_config=PublicServerConfig(
+            origin="https://demo.example",
+            max_audits_per_hour=1,
+            max_audits_per_client_hour=1,
+        ),
     )
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -282,6 +286,9 @@ def test_public_audit_is_same_origin_asynchronous_and_disables_browser_approval(
         assert config["runtime_label"] == "Managed private AI runtime"
         assert "provider" not in config
         assert "model" not in config
+        verification = request("/api/verify", method="POST", body={"case_id": "M10"})
+        assert verification["verification"]["decision"] == "FAIL"
+        assert verification["verification"]["model_calls"] == 0
         queued = request("/api/audit", method="POST", body={"case_id": "M10"})
         assert queued["status"] == "queued"
         for _ in range(100):
