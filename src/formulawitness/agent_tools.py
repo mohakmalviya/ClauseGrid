@@ -208,6 +208,18 @@ class StageCandidateArgs(ToolArgs):
     expected_invariants: tuple[str, ...] = Field(min_length=1, max_length=20)
 
 
+class FalsifyCandidateArgs(ToolArgs):
+    proposal_id: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=128,
+        description=(
+            "Optional staged proposal id returned by stage_candidate. When supplied it must "
+            "exactly match the controller's current proposal."
+        ),
+    )
+
+
 class DecisionArgs(ToolArgs):
     explanation: str = Field(min_length=8, max_length=4_000)
     evidence_ids: tuple[str, ...] = Field(min_length=1, max_length=100)
@@ -441,8 +453,8 @@ class AgentToolRegistry:
         if self._require_falsifier:
             self._add(
                 "falsify_candidate",
-                "Launch an independent fresh-context falsifier against the currently staged proposal.",
-                NoArgs,
+                "Launch an independent fresh-context falsifier against the currently staged proposal. proposal_id is optional; if supplied, it must be the exact id returned by stage_candidate.",
+                FalsifyCandidateArgs,
                 self._falsify_candidate,
             )
         self._add(
@@ -792,9 +804,13 @@ class AgentToolRegistry:
         self.state.falsifier_verdict = None
         return {"proposal_id": proposal.proposal_id, **proposal.model_dump(mode="json")}
 
-    def _falsify_candidate(self, _: ToolArgs) -> dict[str, Any]:
+    def _falsify_candidate(self, args: ToolArgs) -> dict[str, Any]:
+        if not isinstance(args, FalsifyCandidateArgs):
+            raise TypeError("Falsifier arguments have an invalid controller type")
         if self.state.candidate is None:
             raise ValueError("No candidate is staged")
+        if args.proposal_id is not None and args.proposal_id != self.state.candidate.proposal_id:
+            raise ValueError("proposal_id does not match the currently staged candidate")
         if self._falsify is None:
             raise RuntimeError("Falsifier is unavailable")
         verdict = self._falsify(self.state.candidate)

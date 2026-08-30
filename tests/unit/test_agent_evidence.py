@@ -721,9 +721,38 @@ def test_inconclusive_falsification_stops_manager_without_more_model_turns() -> 
         require_falsifier=True,
     )
 
-    result = _call(registry, "falsify_candidate", {})
+    result = _call(registry, "falsify_candidate", {"proposal_id": proposal_id})
 
     assert result.ok
     assert state.decision is not None
     assert state.decision.decision == "ABSTAIN"
     assert "manager-evidence" in state.decision.evidence_ids
+
+
+def test_falsification_rejects_a_stale_proposal_id() -> None:
+    manager, _, state, citation_id, old_hash = _registries()
+    assert _stage(manager, citation_id, old_hash, "=1").ok
+    assert state.candidate is not None
+    registry = AgentToolRegistry(
+        workbook=MUTANT,
+        policy=PolicyText(POLICY),
+        state=state,
+        actor="audit-manager",
+        charge_workbook_execution=lambda: None,
+        falsify=lambda candidate: FalsifierVerdict(
+            status="INCONCLUSIVE",
+            proposal_id=candidate.proposal_id,
+            experiment_ids=(),
+            counterexamples=(),
+            remaining_risks=("Not reached for a stale proposal id.",),
+            explanation="The stale-id guard should reject before this callback is used.",
+        ),
+        require_falsifier=True,
+    )
+
+    result = _call(registry, "falsify_candidate", {"proposal_id": "proposal-stale"})
+
+    assert not result.ok
+    assert result.error_type == "ValueError"
+    assert result.error == "proposal_id does not match the currently staged candidate"
+    assert state.falsifier_verdict is None

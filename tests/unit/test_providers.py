@@ -176,6 +176,28 @@ def test_deepseek_non_v4_models_keep_provider_neutral_defaults(
         client.close()
 
 
+def test_qubrid_deepseek_v4_disables_thinking_for_forced_named_tools(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("QUBRID_API_KEY", "provider-secret")
+
+    client, canonical = providers.build_model_client(
+        provider="qubrid",
+        model="deepseek-ai/DeepSeek-V4-Flash",
+        base_url=None,
+        api_key_env=None,
+    )
+    try:
+        assert canonical == "qubrid"
+        assert client.request_settings.temperature == 0.0
+        assert client.request_settings.parallel_tool_calls is False
+        assert client.request_settings.extra_body == {
+            "thinking": {"type": "disabled"}
+        }
+    finally:
+        client.close()
+
+
 def test_qubrid_default_uses_catalog_profile(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("QUBRID_API_KEY", "provider-secret")
 

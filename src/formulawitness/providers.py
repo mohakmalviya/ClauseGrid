@@ -13,7 +13,7 @@ TransportKind = Literal["openai-compatible", "anthropic"]
 
 NVIDIA_LIGHTNING_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b"
 QUBRID_DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3.2"
-DEEPSEEK_V4_MODEL_PREFIX = "deepseek-v4-"
+DEEPSEEK_V4_MODEL_TOKEN = "deepseek-v4-"
 
 
 @dataclass(frozen=True)
@@ -138,7 +138,7 @@ def build_model_client(
 def _request_settings(provider: str, model: str) -> ModelRequestSettings:
     """Apply documented model settings without changing other provider/model pairs."""
 
-    if provider == "deepseek" and model.startswith(DEEPSEEK_V4_MODEL_PREFIX):
+    if provider in {"deepseek", "qubrid"} and DEEPSEEK_V4_MODEL_TOKEN in model.casefold():
         # DeepSeek V4 enables thinking by default, but its Chat Completions thinking
         # mode rejects the named tool_choice used for ClauseGrid's terminal actions.
         # Non-thinking mode supports forced named tools and needs no hidden-reasoning

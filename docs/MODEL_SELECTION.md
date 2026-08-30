@@ -19,6 +19,7 @@ tools, and resource limits. NVIDIA NIM did not report monetary cost.
 |---|---|---|---|
 | `openai/gpt-oss-120b` | `REPAIR`, proposal only | Found the P6 waiver-scope defect, proposed the minimal formula change, and completed the falsifier loop in 121.3 s | Validated reference |
 | `deepseek-v4-flash` through DeepSeek | `REPAIR`, proposal only | Found the P6 waiver-scope defect, proposed the correct minimal P6 formula, and received a fresh-context falsifier `SURVIVED` verdict across three candidate-focused experiments in 78.2 s | Validated M10 smoke; repeat blind trials still required |
+| `deepseek-ai/DeepSeek-V4-Flash` through Qubrid | `ABSTAIN` in two full M10 runs | With thinking disabled, forced tools worked. One run found and staged the exact P6 repair but repeatedly supplied the proposal id to a no-argument falsifier tool; after the tool safely accepted only a matching optional id, a fresh run instead repeated invalid formula-cell overrides and never staged a candidate. Both exhausted 30 manager turns. | API-compatible; not task-reliable and not selected as the deployment default |
 | `deepseek-ai/DeepSeek-V3.2` through Qubrid | `ABSTAIN` in two full M10 runs | Passed named and required tool probes. The first run ended on one stale undeclared tool call; after bounded protocol recovery was added, the second recognized the P6 waiver-scope defect but repeatedly targeted nonexistent cells, exhausted 30 manager turns, and never staged a candidate. | Fast and transport-compatible; not task-qualified |
 | `openai/gpt-oss-120b` through Qubrid | Tool gate failed | Six live request variants returned reasoning that a function should be called but an empty `tool_calls` array; the alternate Qubrid endpoint returned unstable prose/JSON content rather than a standard tool call. | Qubrid route eliminated despite the same model succeeding through NVIDIA NIM |
 | `openai/gpt-oss-20b` | `NO_CHANGE` | Used 26 manager turns and 10 experiments but accepted the defective waiver semantics | Eliminated for correctness |
@@ -83,6 +84,22 @@ then still fails closed if drift continues. The repaired M10 run made 31 model c
 with one protocol retry. It identified the correct waiver-scope defect in P6, but repeatedly invented
 invalid experiment coordinates and reached the manager limit without a candidate or falsifier run.
 This is useful integration evidence, not a production-quality result.
+
+## Qubrid DeepSeek V4 Flash compatibility
+
+Qubrid lists `deepseek-ai/DeepSeek-V4-Flash`, but its default thinking mode rejects required and
+named `tool_choice` values. Sending `thinking.type=disabled` made the forced named-tool gate pass in
+3.0 seconds. ClauseGrid therefore applies the same non-thinking, forced-serial profile to DeepSeek
+V4 models reached through either the official DeepSeek endpoint or Qubrid.
+
+Two blind Qubrid runs did not establish task reliability. The first found the exact waiver-scope
+defect, staged the correct P6 formula, and attempted falsification, but repeatedly added the current
+proposal id to a no-argument coordination tool. The tool now accepts that id only when it exactly
+matches the controller's staged candidate; mismatches still fail closed. The next blind run took a
+different path, repeated an invalid formula-cell value override eight times, never staged a repair,
+and exhausted the manager-turn limit. No Qubrid V4 run completed fresh-context falsification, so the
+public deployment default was not changed. The official DeepSeek route remains the only V4 Flash
+route with a completed M10 repair at this checkpoint.
 
 ## Qubrid GLM-4.7-Flash compatibility
 

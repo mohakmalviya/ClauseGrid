@@ -169,3 +169,18 @@
 - Verified the 140-event trajectory hash chain, source preservation, proposal-only approval boundary,
   the full 248-test suite, Ruff, and mypy. This remains a single-task smoke rather than a production
   reliability claim.
+
+## Checkpoint 12 - Qubrid DeepSeek V4 route qualification
+
+- Confirmed `deepseek-ai/DeepSeek-V4-Flash` in Qubrid's authenticated catalog and reproduced its
+  thinking-mode rejection of mandatory named tools; non-thinking mode passed the forced tool gate.
+- Extended the DeepSeek V4 non-thinking, forced-serial profile to Qubrid without changing other
+  provider/model pairs.
+- Allowed `falsify_candidate` to receive the optional proposal id models commonly echo from
+  `stage_candidate`, but only when it exactly matches the controller's current staged candidate;
+  stale or substituted ids remain rejected.
+- Ran two blind M10 audits. One staged the exact P6 correction but exhausted turns on the former
+  argument mismatch. After the compatibility fix, a fresh run repeatedly attempted invalid
+  formula-cell value overrides and never staged a candidate. Both ended safely as `ABSTAIN`.
+- Kept the deployment default unchanged because catalog presence and one correct intermediate
+  hypothesis do not satisfy the manager/falsifier acceptance contract.
