@@ -108,14 +108,17 @@ class AgentDecision(StrictRecord):
     explanation: str = Field(min_length=8, max_length=4_000)
     evidence_ids: tuple[str, ...] = Field(max_length=100)
     proposal_id: str | None = None
-    reason_code: Literal[
-        "HUMAN_REVIEW",
-        "SAFETY_LIMIT_REACHED",
-        "REPAIR_REJECTED",
-        "FALSIFIER_INCONCLUSIVE",
-        "MODEL_UNAVAILABLE",
-        "RUNTIME_FAILURE",
-    ] | None = None
+    reason_code: (
+        Literal[
+            "HUMAN_REVIEW",
+            "SAFETY_LIMIT_REACHED",
+            "REPAIR_REJECTED",
+            "FALSIFIER_INCONCLUSIVE",
+            "MODEL_UNAVAILABLE",
+            "RUNTIME_FAILURE",
+        ]
+        | None
+    ) = None
 
 
 @dataclass

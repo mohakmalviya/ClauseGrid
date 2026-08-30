@@ -931,10 +931,7 @@ class AgentToolRegistry:
         expected = expectation.expected
         if isinstance(actual, bool) or isinstance(expected, bool):
             return type(actual) is type(expected) and actual == expected
-        numeric = (
-            isinstance(actual, (int, float))
-            and isinstance(expected, (int, float))
-        )
+        numeric = isinstance(actual, (int, float)) and isinstance(expected, (int, float))
         if numeric:
             assert isinstance(actual, (int, float))
             assert isinstance(expected, (int, float))

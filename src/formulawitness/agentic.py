@@ -652,6 +652,7 @@ def run_agentic(
             "request_human",
         )
     )
+
     def finish_manager_safely(reason: str) -> None:
         """Convert a depleted terminal retry into a useful, structured public outcome."""
 
@@ -715,9 +716,7 @@ def run_agentic(
         manager.run()
     except Exception as exc:  # noqa: BLE001 - controller must always fail closed to ABSTAIN
         if state.decision is None:
-            reason_code: Literal[
-                "SAFETY_LIMIT_REACHED", "MODEL_UNAVAILABLE", "RUNTIME_FAILURE"
-            ]
+            reason_code: Literal["SAFETY_LIMIT_REACHED", "MODEL_UNAVAILABLE", "RUNTIME_FAILURE"]
             if isinstance(exc, AgentBudgetExceeded):
                 explanation = (
                     "The investigation reached its safety limit before a supported repair "
@@ -733,8 +732,7 @@ def run_agentic(
                 reason_code = "MODEL_UNAVAILABLE"
             else:
                 explanation = (
-                    "The investigation could not complete safely. "
-                    "The workbook was left unchanged."
+                    "The investigation could not complete safely. The workbook was left unchanged."
                 )
                 reason_code = "RUNTIME_FAILURE"
             state.decision = AgentDecision(
