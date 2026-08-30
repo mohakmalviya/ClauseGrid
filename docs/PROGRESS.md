@@ -264,6 +264,10 @@
 - Added roving keyboard focus to both tab groups, hid AI workflow and result state from recurring
   verification, disabled mode changes during a running AI audit, and exposed runtime failures in
   the status badge instead of always claiming readiness.
+- Removed the disconnected left sidebar and moved all five section links, live Policy Pack version,
+  approved-rule count, and walkthrough control into a compact responsive top bar. The workbench
+  header, tabs, stages, and result cards now share one gutter and one column grid so their dividers
+  and content rails stay aligned at desktop and mobile widths.
 - Browser checks ran the first-screen M10 path and confirmed the expected 26/27 result with exact
   cell evidence, exercised both tab systems by keyboard, walked to the result explanation, and
-  verified mode restoration. The focused UI suite passes 28 tests; the complete suite passes 302.
+  verified mode restoration. The focused UI suite passes 30 tests; the complete suite passes 304.

@@ -387,10 +387,7 @@ def test_agent_result_ui_is_state_aware_and_full_width() -> None:
     assert "showApproval=browserApproval&&result.decision==='REPAIR'&&survived" in HTML
     assert "$('approvalPanel').classList.toggle('hidden',!showApproval)" in HTML
 
-    assert (
-        ".app-shell { display: grid; grid-template-columns: var(--rail-width) minmax(0, 1fr); }"
-        in HTML
-    )
+    assert ".app-shell { display: block; width: 100%; }" in HTML
     assert ".workspace {" in HTML
     assert "width: 100%;" in HTML
     assert ".results-grid { display: grid; grid-template-columns: 1fr;" in HTML
@@ -400,7 +397,7 @@ def test_agent_result_ui_is_state_aware_and_full_width() -> None:
 
 def test_first_visit_walkthrough_is_accessible_replayable_and_responsive() -> None:
     assert 'id="startTour"' in HTML
-    assert 'id="railTourButton"' in HTML
+    assert 'id="railTourButton"' not in HTML
     assert 'id="tourLayer"' in HTML
     assert 'role="dialog"' in HTML
     assert 'aria-modal="true"' in HTML
@@ -446,6 +443,43 @@ def test_workbench_has_two_explicit_modes_and_a_stable_empty_result() -> None:
     assert "$('modeRecurring').tabIndex=investigating?-1:0" in HTML
     assert "$('runtimeState').textContent='Runtime unavailable'" in HTML
     assert "pack.generated_test_count+pack.regression_test_count" in HTML
+
+
+def test_workbench_tabs_and_content_share_one_alignment_grid() -> None:
+    assert "--workbench-pad: clamp(22px, 2.4vw, 38px);" in HTML
+    assert "--workbench-columns: minmax(0, 1fr) minmax(0, 1fr);" in HTML
+    assert (
+        ".workbench-grid { display: grid; grid-template-columns: var(--workbench-columns); }"
+        in HTML
+    )
+    assert ".mode-switch {" in HTML
+    assert "grid-template-columns: var(--workbench-columns);" in HTML
+    assert "padding: 0;" in HTML
+    assert "padding: 13px var(--workbench-pad);" in HTML
+    assert "minmax(0, 1.05fr)" not in HTML
+
+
+def test_primary_navigation_and_active_pack_live_in_top_bar() -> None:
+    assert '<aside class="side-rail"' not in HTML
+    assert "--rail-width" not in HTML
+    assert '<nav class="appbar-nav" aria-label="Primary navigation">' in HTML
+    for anchor in (
+        "#start",
+        "#auditWorkspace",
+        "#howItWorks",
+        "#policyPackSection",
+        "#evidenceSection",
+    ):
+        assert f'href="{anchor}"' in HTML
+    assert 'class="header-pack" aria-label="Active Policy Pack"' in HTML
+    assert 'id="headerPackVersion"' in HTML
+    assert 'id="headerRuleCount"' in HTML
+    assert "$('headerPackVersion').textContent=version" in HTML
+    assert "$('headerRuleCount').textContent=String(pack.rule_count)" in HTML
+    assert ".appbar-nav { display: none; }" not in HTML
+    assert ".header-pack { display: none; }" not in HTML
+    assert ":root { --header-height: 112px; }" in HTML
+    assert ".appbar-nav::-webkit-scrollbar { display: none; }" in HTML
 
 
 def test_policy_pack_api_and_recurring_verification_never_call_model() -> None:
