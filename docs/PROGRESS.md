@@ -209,3 +209,10 @@
 - Enabled same-origin public `.xlsx`/`.pdf` uploads on Render with consent, compatibility preflight,
   separate upload throttling, single-use hash binding, audit limits, expiry, cleanup, and ephemeral
   isolation. Browser approval remains disabled.
+- A fresh live M10 audit completed in 175.8 seconds and retained the exact RB-202/RB-203 policy
+  meaning through terminal coordination. It localized P6 and reached falsification; the falsifier
+  correctly marked the model's unsafe `=1` proposal `BROKEN`. The manager then exhausted its turn
+  budget, so the run remained a safe `ABSTAIN`, not a successful repair or model-qualification claim.
+- Live Render preflight accepted the synthetic workbook/policy pair as 22 formulas across four
+  sheets and four PDF pages. Anonymous config/results omitted runtime identity, and direct public
+  requests for proposal, report, and raw trajectory artifacts returned `404`.
