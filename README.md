@@ -1,211 +1,422 @@
 # ClauseGrid
 
-ClauseGrid is policy-to-spreadsheet assurance for operational Excel workbooks. Qualified reviewers
-approve cited policy meaning as an immutable Policy Pack; recurring audits then compare known
-workbooks with an independent deterministic rule oracle and require zero model calls. An optional
-model-directed manager/falsifier path remains available for unfamiliar policies, mappings, and
-repair investigation, but a model never owns the approved expected result or recurring verdict.
+ClauseGrid checks whether the formulas in an Excel workbook follow the rules written in a policy
+document.
 
-The flagship defect is deliberately plausible: a critical-incident waiver incorrectly bypasses an ordinary SLA penalty. The workbook opens, the formula is valid, and typical rows look reasonable. Only the policy-derived waiver counterexample exposes it.
+For example, a supplier contract may say that a waiver removes one penalty but does not remove
+another. The spreadsheet can contain a valid-looking formula that ignores this detail and pays the
+wrong amount. Normal spreadsheet tools may not notice because the formula is valid Excel.
+ClauseGrid tests what the formula **means**, not only whether it can run.
 
-## Intended user and bottleneck
+Try the public demonstration at [clausegrid.onrender.com](https://clausegrid.onrender.com).
 
-ClauseGrid is for finance, procurement, and supplier-operations reviewers who approve rebate and SLA settlements. Their policy is written in prose while the payable amount is implemented in formulas, so ordinary spreadsheet linting can miss a syntactically valid threshold, exception, lookup, date, or rounding rule that silently overpays or underpays a supplier. ClauseGrid turns that manual policy-to-formula review into a cited, reproducible witness and preserves the final judgment for a qualified reviewer.
+## Why it exists
 
-## Approved Policy Pack and zero-model replay
+Important business rules are often split across two places:
 
-The repository contains one complete, deliberately narrow supplier-rebate Policy Pack. Its
-version-controlled release metadata requires separate policy-owner and controls-review roles. Exact
-rules and citations, generated boundary cases, a retained waiver-scope regression, a workbook
-mapping, engine versions, and the exact deterministic implementations are materialized into one
-approved release hash with separate test-suite and mapping hashes. Both demo review records attest
-the same release hash, so changing a rule, test, mapping, generator, or engine invalidates approval.
+- a PDF explains thresholds, exceptions, dates, caps, and rounding rules;
+- an Excel workbook turns those rules into money or decisions.
 
-Expected results are computed by `policy_oracle.py` using direct `Decimal` and date semantics. It
-does not import the spreadsheet formula evaluator. The workbook is executed separately, so a shared
-formula-engine bug cannot make both sides agree. The public pack uses clearly labelled synthetic
-demo approvals; production approval requires authenticated identities and durable storage.
+A small difference between the PDF and the formula can cause an overpayment, underpayment, or
+incorrect approval. Reviewing this by hand is slow, difficult to repeat, and easy to get wrong.
 
-```powershell
-# Neither command reads an API key or calls a model.
-.\.venv\Scripts\clausegrid.exe pack-status
-.\.venv\Scripts\clausegrid.exe verify-pack workbooks\reference\supplier_rebate_pristine.xlsx
-.\.venv\Scripts\clausegrid.exe verify-pack workbooks\mutants\M10_supplier_rebate.xlsx
+ClauseGrid gives finance, procurement, operations, compliance, and audit teams a repeatable way to
+check the workbook against an approved interpretation of the policy.
+
+## How ClauseGrid works
+
+ClauseGrid is designed around the workflow below. This repository includes one pre-reviewed
+synthetic example. The public demo can replay that approved pack, but it does not provide an
+authenticated system for creating approvals or publishing replacement versions.
+
+1. **Read the policy.** ClauseGrid keeps the exact policy clauses and page references that matter.
+2. **Describe expected behaviour.** Thresholds, exceptions, dates, caps, and rounding are turned
+   into clear examples and executable rules.
+3. **Record human approval.** In a production workflow, a policy owner and a controls reviewer
+   approve the same Policy Pack. The demo pack contains synthetic review records for these roles.
+4. **Freeze that version.** The rules, tests, workbook mapping, and code versions receive one
+   tamper-evident hash.
+5. **Test workbooks repeatedly.** Known workbook templates are checked by deterministic code. The
+   same inputs and hashes produce the same evidence, with zero model calls.
+6. **Keep new edge cases.** A production version registry should turn a new mistake into a
+   regression test or a reviewed replacement Policy Pack. The public demo explains this process but
+   does not save these changes.
+
+### What is a Policy Pack?
+
+A Policy Pack is the approved definition of correct behaviour for one policy and workbook type. It
+contains:
+
+- the policy rules and their source citations;
+- examples around important boundaries and exceptions;
+- regression tests for mistakes found in the past;
+- the workbook cells that contain inputs and outputs;
+- the versions of the deterministic verification code;
+- the review records and release hash.
+
+The repository currently includes one complete synthetic Policy Pack for supplier rebates and SLA
+penalties. It is a focused demonstration, not a ready-made policy for every company.
+
+## Where AI agents are used
+
+ClauseGrid has an optional AI-assisted investigation path for a new policy, an unfamiliar workbook,
+or a suspected formula error.
+
+- The **audit manager agent** chooses which policy pages, workbook cells, dependency checks, and
+  sandbox experiments to use. It can propose an explanation or repair.
+- The **falsifier agent** starts with fresh context and tries to disprove that proposal using new
+  counterexamples.
+- Deterministic code checks file safety, runs formulas, compares results, validates hashes, and
+  controls whether a proposal is eligible for human review.
+
+The AI agents can help investigate, but they do not decide what the company policy means. They
+cannot activate a Policy Pack or silently change a workbook. People approve policy meaning, and
+deterministic code owns recurring `PASS`, `FAIL`, or `INCONCLUSIVE` results.
+
+This is the main difference between ClauseGrid and uploading the same files to a general AI chat:
+the approved meaning and tests are retained and replayed instead of being interpreted again in every
+new conversation.
+
+## Quick start without an API key
+
+The deterministic Policy Pack commands do not need an AI model or API key.
+
+### Requirements
+
+- Git.
+- Python 3.11 or newer.
+- Internet access during installation so Python can download dependencies.
+- PowerShell for the Windows helper scripts. It is already included with modern Windows.
+
+Node.js, Microsoft Excel, Docker, and an API key are **not** required for the first test.
+
+### 1. Download the project
+
+```text
+git clone <repository-url>
+cd ClauseGrid
 ```
 
-The first workbook returns `PASS`; M10 returns `FAIL` because the permanent waiver-scope regression
-case catches it. A run with no observed mismatch but incomplete execution returns `INCONCLUSIVE`,
-not a fabricated pass or failure. If a mismatch is observed during an incomplete run, the result is
-`FAIL` with `complete: false`, preserving both facts. A discovered edge case must be classified before it changes anything: an existing
-rule may gain a regression test, unclear meaning requires a new Policy Pack, a moved cell changes
-the Mapping Pack, and engine or source-data problems remain separate. An active version is never
-edited in place. The bundled and public demo is intentionally read-only: it verifies one controlled
-release but does not implement authenticated draft approval, supersession, or historical audit
-lookup. Those require the durable governance service described in the architecture.
+Replace `<repository-url>` with the GitHub URL you were given. A private repository requires a
+GitHub account with access.
 
-## Competition provenance
+### 2A. Install on Windows
 
-ClauseGrid began as the reviewed scaffold in root commit `0941c68`; the policy, synthetic workbooks, application, benchmark, interface, and evidence were created during the competition. Codex was the required coding agent. The language runtimes and dependencies listed in `requirements-lock.txt` were pre-existing tools. No pre-existing ClauseGrid application code or private dataset was used.
-
-## Legacy deterministic benchmark
-
-Frozen benchmark: **SupplierRebate-SLA-16-v2** — 12 one-fault mutants, three clean controls, one three-fault hard case, and 48 sealed vectors per workbook. Revision 2 was preregistered before its scored run after an adversarial audit required real ordered lookup, proportional proration, and a fully disjoint held-out input split.
-
-| System | E2E Semantic Repair Rate | Clean Preservation | Hard case |
-|---|---:|---:|---:|
-| Deterministic direct baseline | 33.3% (4/12) | 100% | 0% |
-| Deterministic advanced workflow | **100% (12/12)** | **100%** | **100%** |
-| Improvement | **+66.7 percentage points** | no regression | +100 pp |
-
-A repair counts only when every sealed output `L6:T6` is semantically correct, workbook integrity passes, the original is unchanged, and the patch respects the one-cell limit (three cells for the hard case). See [evals/results.json](evals/results.json). These numbers predate the model runtime and must not be presented as agent performance.
-
-The archived hackathon-format comparison reports $0 API cost only for the legacy deterministic workflows. Model-agent cost is `Not reported`. No human time-saving claim is made without a qualified-reviewer study.
-
-## Run it
-
-Requirements: Python 3.11+ and PowerShell. Legacy deterministic evaluation remains offline. The
-model-directed commands support Qubrid, OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM,
-OpenCode Zen, OpenRouter, Groq, Together, Gemini, Mistral, xAI, and custom OpenAI-compatible
-endpoints. Credentials are read from provider-specific environment variables;
-the key is never accepted as a CLI argument or persisted. Provider cost is recorded as `Not
-reported` unless the provider supplies it.
+Open PowerShell inside the project folder and run:
 
 ```powershell
-.\scripts\setup.ps1
-.\scripts\eval.ps1
-$env:QUBRID_API_KEY = '<set outside the repository>'
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
+```
+
+The script creates `.venv`, installs the locked dependencies, and installs the `clausegrid` command.
+
+Activate the environment before using the commands below:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Run the same activation command whenever you open a new PowerShell window.
+
+If script activation is blocked, allow it only for the current window:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+### 2B. Install on macOS or Linux
+
+Open a terminal inside the project folder and run:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e '.[dev]'
+```
+
+To activate the environment in a later terminal:
+
+```bash
+source .venv/bin/activate
+```
+
+### 3. Confirm the installation
+
+After activation, this command should show the available commands:
+
+```text
+clausegrid --help
+```
+
+### 4. Run the zero-model demonstration
+
+Show the approved Policy Pack:
+
+```text
+clausegrid pack-status
+```
+
+Check a correct workbook:
+
+```text
+clausegrid verify-pack workbooks/reference/supplier_rebate_pristine.xlsx
+```
+
+Check a workbook with the waiver-scope defect:
+
+```text
+clausegrid verify-pack workbooks/mutants/M10_supplier_rebate.xlsx
+```
+
+The first workbook should return `PASS`. M10 should return `FAIL` because one retained regression
+test finds the incorrect waiver behaviour. The M10 command intentionally exits with a non-zero code
+because a defect was found; this does not mean ClauseGrid crashed.
+
+Both results report `model_calls: 0`.
+
+## Run the website locally with AI investigations
+
+The current web interface contains both the zero-model verifier and the optional AI investigation
+area. Starting this combined interface requires one supported model provider and an exact model ID.
+
+### 1. Choose a provider
+
+Set only the key for the provider you want to use:
+
+| Provider option | Environment variable |
+|---|---|
+| `openai` | `OPENAI_API_KEY` |
+| `anthropic` or `claude` | `ANTHROPIC_API_KEY` |
+| `deepseek` | `DEEPSEEK_API_KEY` |
+| `nvidia-nim` | `NVIDIA_NIM_API_KEY` |
+| `qubrid` | `QUBRID_API_KEY` |
+| `opencode` | `OPENCODE_API_KEY` |
+| `openrouter` | `OPENROUTER_API_KEY` |
+| `groq` | `GROQ_API_KEY` |
+| `together` | `TOGETHER_API_KEY` |
+| `gemini` | `GEMINI_API_KEY` |
+| `mistral` | `MISTRAL_API_KEY` |
+| `xai` | `XAI_API_KEY` |
+
+API keys must stay in your terminal or deployment secret manager. Never paste a real key into the
+README, source code, `.env.example`, a commit, or a screenshot.
+
+Model IDs can change over time. Copy the exact model ID from the provider's current model list. Do
+not assume that a model name from another provider will work.
+
+### 2A. Start the site on Windows
+
+This example uses the same Qubrid route configured for the public demo:
+
+```powershell
+$env:QUBRID_API_KEY = '<your-key>'
 .\.venv\Scripts\clausegrid.exe serve `
-  --provider qubrid --model 'deepseek-ai/DeepSeek-V3.2' `
+  --provider qubrid `
+  --model 'deepseek-ai/DeepSeek-V4-Flash' `
   --allow-external-processing
 ```
 
-Open `http://127.0.0.1:8765`, then either run M10 or select **Upload workbook + policy** to privately
-stage a compatible `.xlsx` together with its governing text-readable `.pdf`. Custom inputs pass
-OOXML, formula-profile, PDF, size, and hash preflight before the model is called. They live under an
-isolated OS-temporary runtime rather than the repository. Deletion is attempted before exposing a
-non-repair result or successful approval; an operating-system deletion failure is shown explicitly
-and queued for retry instead of leaving the job running. Inspect the model-selected policy citations, sandbox experiments, independent falsifier
-verdict, exact formula diff, proposal hash, and raw JSONL trajectory. If and only if a repair survives
-falsification, enter a local reviewer label to approve the exact proposal and write a copied workbook.
-Provider, model, endpoint, and credential configuration are server-side. The public browser receives
-only a generic managed-runtime label; exact runtime identity remains in controlled audit artifacts.
+### 2B. Start the site on macOS or Linux
 
-The page first exposes the active synthetic Policy Pack and a **Run deterministic verification**
-control. That route uses the committed pack and makes zero model calls. The slower AI investigation
-below it is a separate onboarding/diagnostic path and never modifies the active pack.
-
-Real-file mode requires both files. ClauseGrid will not silently compare an uploaded workbook
-against the bundled synthetic supplier policy. The browser also requires confirmation that the data
-is public, synthetic, or approved for processing by the configured model provider. Pending uploads
-and retained review inputs expire after 30 minutes, and browser retries reuse the same prepared
-upload. Stopping the server removes the complete temporary runtime. The Render demo enables the same
-path behind same-origin checks, separate upload throttling, audit rate limits, and ephemeral storage;
-it remains an anonymous demonstration and must not receive confidential data.
-
-Direct CLI equivalents:
-
-```powershell
-.\.venv\Scripts\clausegrid.exe baseline workbooks\mutants\M10_supplier_rebate.xlsx --reviewer reviewer@example.test
-.\.venv\Scripts\clausegrid.exe advanced workbooks\mutants\M10_supplier_rebate.xlsx --reviewer reviewer@example.test
-.\.venv\Scripts\clausegrid.exe inspect workbooks\reference\supplier_rebate_pristine.xlsx
-.\.venv\Scripts\clausegrid.exe eval
-```
-
-Model-directed proposal and approval commands:
-
-```powershell
-$env:QUBRID_API_KEY = '<set outside the repository>'
-.\.venv\Scripts\clausegrid.exe agent workbooks\mutants\M10_supplier_rebate.xlsx `
-  --provider qubrid --model 'deepseek-ai/DeepSeek-V3.2' `
+```bash
+export QUBRID_API_KEY='<your-key>'
+clausegrid serve \
+  --provider qubrid \
+  --model 'deepseek-ai/DeepSeek-V4-Flash' \
   --allow-external-processing
-.\.venv\Scripts\clausegrid.exe agent-baseline workbooks\mutants\M10_supplier_rebate.xlsx `
-  --provider nvidia-nim --model openai/gpt-oss-120b --allow-external-processing
-$env:OPENCODE_API_KEY = '<set outside the repository>'
-.\.venv\Scripts\clausegrid.exe agent workbooks\mutants\M10_supplier_rebate.xlsx `
-  --provider opencode --model big-pickle --allow-external-processing
-.\.venv\Scripts\clausegrid.exe approve-agent RUN_ID `
-  workbooks\mutants\M10_supplier_rebate.xlsx `
-  --proposal-hash REVIEWED_HASH --reviewer reviewer@example.test
 ```
 
-The `agent` command is always proposal-only. Only the separate `approve-agent` command or local UI
-approval gate can write a repaired copy, and both require an explicit reviewer label.
-Any non-loopback model endpoint additionally requires `--allow-external-processing`; the CLI checks
-this consent before reading the configured credential environment variable. Loopback development may
-omit it. Browser requests never contain the provider credential.
-Model choice is intentionally explicit; see [model selection evidence](docs/MODEL_SELECTION.md) for the
-current task-specific tournament and its limitations.
+Open [http://127.0.0.1:8765](http://127.0.0.1:8765) and leave the terminal running.
 
-The `opencode` provider uses OpenCode Zen's OpenAI-compatible chat endpoint. Model IDs remain
-explicit because the free catalog and availability can change; query OpenCode's live model catalog
-before running. ClauseGrid reads only `OPENCODE_API_KEY` from the process environment. See
-[model providers](docs/PROVIDERS.md) for the currently verified free-model compatibility results.
+To use another provider, change all three matching pieces:
 
-The `qubrid` preset uses `https://platform.qubrid.com/v1` and reads `QUBRID_API_KEY`. Qubrid model
-IDs remain explicit and are not the public deployment default. Task-level evidence and eliminated
-alternatives are recorded in [model selection evidence](docs/MODEL_SELECTION.md).
+1. the environment variable containing its key;
+2. the `--provider` value;
+3. the exact `--model` value supported by that provider.
 
-## Publish the synthetic public demo
+For a private OpenAI-compatible gateway, also provide `--base-url` and `--api-key-env`. See
+[docs/PROVIDERS.md](docs/PROVIDERS.md) for examples.
 
-The repository includes a non-root Docker image, an environment-only deployment entry point, and a
-Render Blueprint. Public mode accepts bundled benchmarks plus explicitly consented `.xlsx`/`.pdf`
-pairs, runs one audit at a time in a background job, applies upload and audit request limits, enforces
-the configured HTTPS Host/Origin, and never sends provider identity, credentials, or administrator
-credentials to the browser. It also exposes the committed synthetic Policy Pack and its zero-model
-verification route. Browser policy or repair approval is disabled; the public site demonstrates the
-mechanism rather than treating anonymous clicks as governance.
+### Common setup problems
 
-1. Push the private repository to GitHub and create a Render Blueprint from `render.yaml`.
-2. Enter a fresh Qubrid key as the Blueprint's `CLAUSEGRID_API_KEY` secret.
-3. The Blueprint selects `qubrid` and `deepseek-ai/DeepSeek-V4-Flash`; change both values together
-   if you deliberately choose a different provider/model route.
-4. Deploy. Render supplies `RENDER_EXTERNAL_URL`; the container binds to Render's `PORT` on
-   `0.0.0.0` and exposes `/healthz`.
+- **`python` is not recognized on Windows:** install Python 3.11 or newer from python.org, enable
+  **Add Python to PATH**, close PowerShell, and open it again.
+- **`python3 -m venv` fails on Debian or Ubuntu:** install the operating system's Python venv
+  package, commonly `sudo apt install python3-venv`, then create `.venv` again.
+- **`clausegrid` is not recognized:** activate `.venv` in the current terminal, then try again.
+- **The API key is reported as missing:** export the key in the same terminal that starts ClauseGrid.
+  This project does not automatically load a `.env` file.
+- **The browser says connection refused:** the `serve` command is not running. Leave that terminal
+  open while using the site.
+- **Port 8765 is busy:** add `--port 8766` to the `serve` command and open
+  `http://127.0.0.1:8766` instead.
+- **The provider returns 401:** the key is invalid, expired, or belongs to a different provider.
+  Create a new key and update the environment variable; never put it in the repository.
 
-The service is intentionally single-instance and stores run artifacts in `/tmp`; jobs and downloads
-do not survive a restart. This is an internet-visible hackathon demonstration, not a production
-multi-tenant service. Exact commands, controls, and operational limits are in
-[deployment](docs/DEPLOYMENT.md).
+### Why is `--allow-external-processing` required?
 
-## What makes it agentic
+The AI agents may send selected formulas, policy text, and experiment results to the chosen model
+provider. This flag is an explicit confirmation that you are allowed to send that material outside
+your computer. It is required for remote model endpoints.
 
-The `agent` command runs a real model-controlled loop:
+The deterministic Policy Pack verifier does not call the model, even when the combined website is
+running.
 
-1. The audit manager chooses workbook discovery, policy retrieval, dependency, and sandbox tools with input-dependent arguments.
-2. Raw model responses, tool calls, observations, errors, retries, usage, and state transitions are stored in a tamper-evident JSONL trajectory.
-3. Tool observations and validation failures change the next action. The controller caches repeated reads, forces executable evidence after bounded discovery, and reserves decision/verdict turns so malformed actions cannot consume the entire run.
-4. The manager can revise a broken candidate, finish, abstain, or request a human. Python does not select a fixed investigation sequence.
-5. A staged proposal launches a separate falsifier with fresh context and read/sandbox-only tools. It must run expectation-graded, candidate-sensitive experiments before a conclusive verdict; only `SURVIVED` can unlock `submit_repair`.
-6. The model never receives an apply or approval tool. Reviewer approval is a separate hash-bound command followed by deterministic replay on a copy.
+## Test your own workbook and policy
 
-`agent-baseline` is the fair one-model comparison: the same provider, discovery tools, sandbox, and limits, but one candidate, one candidate validation, and no falsifier. The old `baseline`, `advanced`, and `eval` commands are retained and explicitly labeled legacy deterministic workflows.
+In the local website:
 
-## Safety boundary
+1. open **Upload workbook + policy**;
+2. choose one `.xlsx` workbook;
+3. choose its matching text-readable `.pdf` policy;
+4. confirm that the files are approved for processing by the configured model provider;
+5. start the AI investigation;
+6. review the citations, experiments, falsifier result, and proposed formula change.
 
-- Calculation-focused `.xlsx` only; `.xlsm`, VBA, OLE/ActiveX, DDE, external links, Power Query/connections, drawings, conditional formatting, data validation, worksheet extensions, volatile formulas, and network refreshes are rejected.
-- The source hash is checked before and after every run; repairs are copy-on-write.
-- The evaluator supports arithmetic, comparisons, bounded direct/qualified cell references and ranges, plus `IF`, `AND`, `OR`, `MAX`, `MIN`, `ROUND`, ordered `LOOKUP`, and literal equality `COUNTIF`. The uploaded workbook's initial calculation is executed during preflight; anything outside this profile fails closed before a custom browser run spends model tokens.
-- Experiments can vary same-sheet inputs or qualified raw inputs such as `Inputs!A1`. Cross-sheet formula-to-formula chains are rejected during upload preflight because the current sandbox recalculates one formula sheet at a time.
-- Approval is immutable and hash-bound. A stale or unexpected old formula cannot be patched.
-- Repaired bytes are not offered for download unless the approval commit marker is valid and binds
-  their exact SHA-256 hash.
-- Public rule execution labels visible cases. Held-out vectors and the independent oracle live under `evals/sealed`, outside the installed repair package; evaluation gives each repair process only staged workbook/policy inputs and applies a file-capability guard that denies ordinary access to evaluator files.
+ClauseGrid will not compare your workbook against the bundled synthetic policy. Both matching files
+are required.
 
-This is a focused assurance prototype, not a general Excel replacement. Its main real-world failure mode is ambiguous or conflicting policy language; such rules must produce an abstention and human clarification rather than an invented oracle.
+The current safe workbook profile is intentionally narrow. It accepts calculation-focused `.xlsx`
+files and rejects macros, external links, Power Query, unsupported volatile formulas, embedded
+executables, and other features that the sandbox cannot verify safely. Cross-sheet formula chains
+are also limited. See [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for the full supported profile.
+
+Local uploads use an operating-system temporary directory. The original workbook is never modified.
+A reviewed repair is written to a new copy.
+
+## Understanding the result
+
+- `PASS` means every approved test ran and matched the Policy Pack.
+- `FAIL` means at least one executed test produced a confirmed mismatch.
+- `INCONCLUSIVE` means no mismatch was observed, but one or more tests could not run, so ClauseGrid
+  does not claim pass or fail.
+- `complete: false` means some tests did not run. A result can still be `FAIL` when another executed
+  test has already proved a mismatch.
+- `ABSTAIN` is used by the AI investigation when the evidence is not strong enough for a proposal.
+
+Important evidence includes the workbook hash, Policy Pack hash, test-suite hash, mapping hash,
+individual test records, affected rule IDs, source citations, execution mode, and model-call count.
+
+## Run the automated tests
+
+### Windows
+
+```powershell
+.\scripts\verify.ps1
+```
+
+### macOS or Linux
+
+With the virtual environment active:
+
+```bash
+ruff format --check .
+ruff check .
+mypy src
+pytest
+clausegrid eval
+```
+
+The current release passed 293 automated tests. Its frozen deterministic benchmark detects all 12
+single-formula mutants, preserves all three clean controls, and detects the hard multi-error case.
+
+## Benchmark results
+
+The frozen benchmark contains 12 defective workbooks, three clean controls, one hard case, and 48
+sealed test inputs per workbook.
+
+| Workflow | Defects repaired correctly | Clean workbooks preserved | Hard case |
+|---|---:|---:|---:|
+| Simple deterministic baseline | 33.3% | 100% | 0% |
+| Advanced deterministic workflow | **100%** | **100%** | **100%** |
+
+These numbers measure the older deterministic repair workflow. They are **not** performance claims
+for the AI agents. Model cost and human time savings have not been measured.
+
+## Deploy with Render
+
+The easiest public deployment uses the included `render.yaml` and Dockerfile.
+
+1. Push the repository to GitHub.
+2. In Render, create a new Blueprint from the repository.
+3. Keep the Blueprint path as `render.yaml`.
+4. Enter the selected provider key in the secret named `CLAUSEGRID_API_KEY`.
+5. Confirm that `CLAUSEGRID_PROVIDER` and `CLAUSEGRID_MODEL` match that key.
+6. Deploy and wait for `/healthz` to report `ok`.
+
+The included Blueprint currently selects:
+
+```text
+CLAUSEGRID_PROVIDER=qubrid
+CLAUSEGRID_MODEL=deepseek-ai/DeepSeek-V4-Flash
+```
+
+Do not commit `CLAUSEGRID_API_KEY`. Add it only through the Render secret field.
+
+The public service is a demonstration:
+
+- uploads and AI investigations are rate-limited;
+- temporary jobs and downloads can disappear after a restart;
+- browser-based policy approval is disabled;
+- the included approval identities are synthetic demo roles;
+- it is not a production multi-tenant compliance system.
+
+Never upload confidential company files to the public demo. Run ClauseGrid locally or in an approved
+private environment for real data.
+
+Docker is mainly used to reproduce the hosted environment. A direct local Python installation is
+simpler for normal development because public container mode expects an HTTPS origin or reverse
+proxy. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for Docker and production-hardening details.
+
+## Security and privacy rules
+
+- API keys are read from environment variables and are never accepted as command-line values.
+- The original workbook is checked by SHA-256 before and after a run and is never edited in place.
+- Repairs are copy-on-write and require a separate, hash-bound review step.
+- Unsupported workbook features fail closed instead of being guessed.
+- The AI agents do not receive an approval or file-apply tool.
+- Public responses hide the model provider and model name.
+- Real production use still needs authenticated users, durable storage, a version registry, audit
+  history, monitoring, retention rules, and an approved provider-data agreement.
+
+## Current limitations
+
+- Only the synthetic supplier-rebate Policy Pack is complete and ready for deterministic replay.
+- A new company policy needs its own reviewed rules, examples, mapping, and tests.
+- The public site can demonstrate an approved pack but does not save real policy approvals or
+  superseded versions.
+- AI proposals can be wrong. They are investigation aids, not policy authority.
+- ClauseGrid supports a controlled subset of Excel formulas and workbook features.
+- Ambiguous or conflicting policy wording requires a human decision.
 
 ## Repository map
 
 ```text
-policies/       Synthetic source policy PDF
-policy_packs/   Version-controlled controlled-pack release and regression cases
-workbooks/      Pristine, 12 mutants, 3 controls, and hard workbook
-src/            Formula parser, safe OOXML layer, agents, UI, and CLI
-fixtures/       Frozen build and benchmark manifests
-evals/          Sealed evaluator outputs and scored results
-artifacts/      Benchmark validation and submission evidence
-trajectories/   Submitted baseline/advanced JSONL trajectories
+policy_packs/   Approved demo rules, mappings, tests, reviews, and hashes
+policies/       Synthetic supplier-rebate policy PDF
+workbooks/      Correct, defective, control, and hard-case workbooks
+src/            Application, deterministic verifier, AI agents, UI, and CLI
 tests/          Unit, integration, security, and evaluation tests
-docs/           Architecture, reproduction, limitations, demo, and disclosure
+evals/          Frozen benchmark results and sealed evaluation code
+artifacts/      Reviewable run and submission evidence
+docs/           Detailed architecture, provider, deployment, and usage guides
 ```
 
-Start with the [user guide](docs/USER_GUIDE.md). More detail: [Submission report](docs/SUBMISSION_REPORT.md), [Improvement changelog](docs/IMPROVEMENT_CHANGELOG.md), [Architecture](docs/ARCHITECTURE.md), [Model providers](docs/PROVIDERS.md), [Reproduction](docs/REPRODUCE.md), [Metric](docs/METRIC.md), [Security](docs/SECURITY.md), [deployment](docs/DEPLOYMENT.md), and [five-minute demo](docs/DEMO_SCRIPT.md).
+## More documentation
+
+- [User guide](docs/USER_GUIDE.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Model providers](docs/PROVIDERS.md)
+- [Deployment](docs/DEPLOYMENT.md)
+- [Security](docs/SECURITY.md)
+- [Reproduction guide](docs/REPRODUCE.md)
+- [Five-minute demo](docs/DEMO_SCRIPT.md)
+
+## Hackathon note
+
+ClauseGrid was built for the micro1 Frontier Engineering Challenge. The application, synthetic
+policy, workbooks, benchmark, interface, and evidence were created during the competition. Codex was
+the required coding agent. The benchmark report is kept separate from the AI-agent claims so the
+results remain reproducible and honest.
