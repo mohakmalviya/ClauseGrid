@@ -13,7 +13,7 @@ calculate, and return a plausible number while implementing the wrong threshold,
 lookup, date, or rounding rule. The business risk is a silent overpayment or underpayment that
 ordinary spreadsheet linting cannot explain against policy.
 
-FormulaWitness converts the policy into cited typed rules and discriminating counterexamples,
+ClauseGrid converts the policy into cited typed rules and discriminating counterexamples,
 executes the workbook through a fail-closed worker, localizes semantic drift, proposes the smallest
 supported repair, requires human approval, and independently replays the repaired copy.
 
@@ -27,7 +27,7 @@ percentage points without increasing false repairs. Clean controls and H01 are r
 
 ## Final comparison
 
-| Metric | Simple baseline | FormulaWitness | Change |
+| Metric | Simple baseline | ClauseGrid | Change |
 |---|---:|---:|---:|
 | Primary outcome: E2E-SRR | 33.3% (4/12) | **100% (12/12)** | **+66.7 pp** |
 | Clean preservation | 100% (3/3) | **100% (3/3)** | no regression |
@@ -37,7 +37,7 @@ percentage points without increasing false repairs. Clean controls and H01 are r
 | Model/API cost per task | $0.00 (legacy) | $0.00 (legacy) | $0.00 (legacy) |
 
 The runtime row is an end-to-end local measurement on the recorded Windows/Python environment;
-it is not a latency guarantee. FormulaWitness spends about 0.12 additional seconds on M10 to
+it is not a latency guarantee. ClauseGrid spends about 0.12 additional seconds on M10 to
 produce the evidence, repair, approval record, and repaired copy that the direct baseline misses.
 Local compute was not monetized. Human time is explicitly **not measured** because no qualified-
 reviewer timing study has been run; the project makes no unsupported time-saving claim. The
@@ -63,10 +63,10 @@ comparison required for future blind repeated evaluation.
 H01 combines a wrong ordered lookup, an over-broad critical-waiver exception, and an incorrect cap
 order. The errors interact through downstream settlement cells, so fixing the first visible symptom
 is insufficient. The baseline returned `NO_CHANGE`, passed 9/48 sealed vectors, and failed first at
-H10. FormulaWitness changed exactly `N6`, `P6`, and `S6`, passed 48/48, preserved the source, and
+H10. ClauseGrid changed exactly `N6`, `P6`, and `S6`, passed 48/48, preserved the source, and
 made no unrelated change.
 
-The case revealed why FormulaWitness replays the complete public witness set after each candidate
+The case revealed why ClauseGrid replays the complete public witness set after each candidate
 and permits a bounded three-step search only for the declared three-fault case. Localization is a
 ranking, not proof; complete replay and minimality are the acceptance gate.
 
@@ -84,7 +84,7 @@ The Git root commit `0941c68` contains only the reviewed scaffold and project sp
 policy, workbooks, implementation, evaluation, interface, artifacts, and documentation were added
 during the competition. OpenAI Codex was the required coding agent. ReportLab, pypdf, Pillow,
 pytest, mypy, Ruff, Hatchling, and the Codex-bundled workbook authoring tool were pre-existing tools;
-no pre-existing FormulaWitness application code or private dataset was used.
+no pre-existing ClauseGrid application code or private dataset was used.
 
 ## Deliverable status
 

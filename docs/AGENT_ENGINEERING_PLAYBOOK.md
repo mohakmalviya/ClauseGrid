@@ -1,6 +1,6 @@
 # Agent engineering playbook
 
-This document is the durable design standard for FormulaWitness. It records the conclusions of a
+This document is the durable design standard for ClauseGrid. It records the conclusions of a
 primary-source review of agent architectures, orchestration, tools, safety, state, and evaluation.
 It replaces any earlier assumption that naming deterministic stages as agents is enough.
 
@@ -53,9 +53,9 @@ None of the following is sufficient:
 A strong falsification test is: if the model can be replaced by a stub without materially changing
 task success, the model is not controlling the workflow.
 
-## 3. Correct FormulaWitness architecture
+## 3. Correct ClauseGrid architecture
 
-FormulaWitness should be a hybrid system. A deterministic, checkpointed graph owns safety and
+ClauseGrid should be a hybrid system. A deterministic, checkpointed graph owns safety and
 irreversible actions. Model-controlled loops own uncertain reasoning.
 
 ```text
@@ -209,7 +209,7 @@ actions. A fixed list of expected stages is not a substitute for a raw model/too
 
 ### Compared systems
 
-1. Deterministic FormulaWitness remains a non-agent baseline.
+1. Deterministic ClauseGrid remains a non-agent baseline.
 2. A fair single-agent baseline gets the same model and read-only/sandbox tools, but one candidate
    and one validation pass with no specialist delegation or adversarial retry.
 3. The advanced system uses the manager, specialists, falsifier loop, and human approval.

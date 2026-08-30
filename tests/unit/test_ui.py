@@ -317,7 +317,7 @@ def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     assert "Independent falsifier verdict" in HTML
     assert "Legacy deterministic regression evidence" in HTML
     assert "It is not model-agent performance" in HTML
-    assert HTML.index("Why FormulaWitness exists") < HTML.index("Run agent audit")
+    assert HTML.index("Why ClauseGrid exists") < HTML.index("Run agent audit")
     assert "The problem" in HTML
     assert "Why it is needed" in HTML
     assert "Who it is for" in HTML

@@ -1,4 +1,4 @@
-"""Command-line interface for FormulaWitness."""
+"""Command-line interface for ClauseGrid."""
 
 from __future__ import annotations
 
@@ -108,7 +108,7 @@ def _configured_model(args: argparse.Namespace) -> tuple[ModelClient, str, str]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="formulawitness",
+        prog="clausegrid",
         description="Policy-grounded semantic repair for controlled .xlsx workbooks",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -119,7 +119,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_common(baseline_parser)
     advanced_parser = subparsers.add_parser(
-        "advanced", help="Run the legacy deterministic FormulaWitness workflow"
+        "advanced", help="Run the legacy deterministic ClauseGrid workflow"
     )
     _add_common(advanced_parser)
     agent_parser = subparsers.add_parser(

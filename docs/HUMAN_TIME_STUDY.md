@@ -11,7 +11,7 @@ To measure it credibly:
 2. Use at least ten fixed synthetic workbooks, balanced across simple defects, interaction defects,
    and clean controls. Do not reveal the mutation label.
 3. Randomize task order and use a crossover design: each reviewer audits half with the current
-   baseline materials and half with FormulaWitness, then swaps conditions for a second set.
+   baseline materials and half with ClauseGrid, then swaps conditions for a second set.
 4. Start active-time measurement when the reviewer receives the policy and workbook. Stop when they
    submit `REPAIR`, `NO_CHANGE`, or `ABSTAIN` and identify the responsible cell(s).
 5. Record correctness, active seconds, review confidence, and whether the reviewer requested more

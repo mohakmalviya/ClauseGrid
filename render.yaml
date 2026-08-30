@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: formulawitness
+    name: clausegrid
     runtime: docker
     plan: free
     healthCheckPath: /healthz

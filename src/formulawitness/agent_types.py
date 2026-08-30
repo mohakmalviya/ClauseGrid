@@ -1,4 +1,4 @@
-"""Provider-neutral types for model-directed FormulaWitness agents.
+"""Provider-neutral types for model-directed ClauseGrid agents.
 
 These records describe only observable messages, tool calls, and usage. They do not
 store or request hidden model reasoning.

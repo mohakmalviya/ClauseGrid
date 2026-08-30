@@ -1,4 +1,4 @@
-"""Typed, serializable records used throughout FormulaWitness."""
+"""Typed, serializable records used throughout ClauseGrid."""
 
 from __future__ import annotations
 

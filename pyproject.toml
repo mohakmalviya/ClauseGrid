@@ -3,7 +3,7 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "formulawitness"
+name = "clausegrid"
 version = "0.1.0"
 description = "Agentic policy assurance for operational Excel workbooks"
 readme = "README.md"
@@ -24,6 +24,7 @@ dev = [
 ]
 
 [project.scripts]
+clausegrid = "formulawitness.cli:main"
 formulawitness = "formulawitness.cli:main"
 
 [tool.hatch.build.targets.wheel]

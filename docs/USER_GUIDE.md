@@ -1,6 +1,6 @@
-# FormulaWitness user guide
+# ClauseGrid user guide
 
-FormulaWitness audits ordinary `.xlsx` workbooks against a written PDF policy. A model-directed
+ClauseGrid audits ordinary `.xlsx` workbooks against a written PDF policy. A model-directed
 manager chooses what to inspect and which sandbox experiments to run. A separate fresh-context
 falsifier challenges any proposed formula repair. The system never edits the submitted workbook
 during an audit: it produces a reviewable proposal, and only a separate human approval command can
@@ -28,7 +28,7 @@ From the repository root on Windows PowerShell:
 Confirm the command is installed:
 
 ```powershell
-.\.venv\Scripts\formulawitness.exe --help
+.\.venv\Scripts\clausegrid.exe --help
 ```
 
 On macOS or Linux, create a Python virtual environment and install the locked dependencies and
@@ -49,7 +49,7 @@ command-line arguments, screenshots, or Git:
 $env:QUBRID_API_KEY = '<your-new-Qubrid-key>'
 ```
 
-FormulaWitness uses:
+ClauseGrid uses:
 
 - provider: `qubrid`
 - endpoint: `https://platform.qubrid.com/v1`
@@ -69,7 +69,7 @@ and policy content to an external provider, so every remote command requires
 Start the local review server:
 
 ```powershell
-.\.venv\Scripts\formulawitness.exe serve `
+.\.venv\Scripts\clausegrid.exe serve `
   --provider qubrid `
   --model 'deepseek-ai/DeepSeek-V3.2' `
   --allow-external-processing
@@ -121,13 +121,13 @@ A browser refresh does not accelerate the provider.
 First run the local safety inspection, which does not call a model:
 
 ```powershell
-.\.venv\Scripts\formulawitness.exe inspect 'C:\path\to\workbook.xlsx'
+.\.venv\Scripts\clausegrid.exe inspect 'C:\path\to\workbook.xlsx'
 ```
 
 Then run the proposal-only audit:
 
 ```powershell
-.\.venv\Scripts\formulawitness.exe agent 'C:\path\to\workbook.xlsx' `
+.\.venv\Scripts\clausegrid.exe agent 'C:\path\to\workbook.xlsx' `
   --policy 'C:\path\to\policy.pdf' `
   --provider qubrid `
   --model 'deepseek-ai/DeepSeek-V3.2' `
@@ -154,7 +154,7 @@ Each run directory contains:
 Verify that the trajectory has not been modified:
 
 ```powershell
-.\.venv\Scripts\formulawitness.exe verify-trajectory `
+.\.venv\Scripts\clausegrid.exe verify-trajectory `
   'artifacts\runs\RUN_ID\trajectory.jsonl'
 ```
 
@@ -168,7 +168,7 @@ Only approve a `REPAIR` proposal after qualified human review. Copy the proposal
 persisted result, then run:
 
 ```powershell
-.\.venv\Scripts\formulawitness.exe approve-agent RUN_ID `
+.\.venv\Scripts\clausegrid.exe approve-agent RUN_ID `
   'C:\path\to\workbook.xlsx' `
   --policy 'C:\path\to\policy.pdf' `
   --artifacts artifacts\runs `
@@ -182,7 +182,7 @@ and proposal hash. A stale or changed source is rejected. A successful approval 
 
 ## 8. Run the offline regression gate
 
-Before changing or deploying FormulaWitness:
+Before changing or deploying ClauseGrid:
 
 ```powershell
 .\scripts\verify.ps1
@@ -203,7 +203,7 @@ that has appeared in chat or logs, then configure `QUBRID_API_KEY` as a Render s
 
 ### `QUBRID_API_KEY` is unset
 
-Set it in the same terminal that starts FormulaWitness. Environment variables set in another shell
+Set it in the same terminal that starts ClauseGrid. Environment variables set in another shell
 are not inherited.
 
 ### Remote model processing requires consent
@@ -230,12 +230,12 @@ only when the cause is transient; do not convert an abstention into approval man
 ### Workbook rejected during inspection
 
 Remove unsupported active content in a trusted copy or use a different controlled workbook.
-FormulaWitness intentionally rejects risky workbook features instead of executing or stripping them
+ClauseGrid intentionally rejects risky workbook features instead of executing or stripping them
 silently.
 
 ## 11. Scope and limitations
 
-FormulaWitness is an assurance prototype for policy-governed operational formulas, not a general
+ClauseGrid is an assurance prototype for policy-governed operational formulas, not a general
 Excel calculation engine. It supports a documented formula subset and depends on human judgment for
 ambiguous policy. One successful demo does not establish production accuracy. Production use needs
 repeated blind evaluation on representative workbooks, authenticated reviewer identity, durable

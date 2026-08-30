@@ -1,4 +1,4 @@
-"""A fail-closed evaluator for the small, documented FormulaWitness formula subset."""
+"""A fail-closed evaluator for the small, documented ClauseGrid formula subset."""
 
 from __future__ import annotations
 

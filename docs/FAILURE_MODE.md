@@ -1,6 +1,6 @@
 # Main failure mode
 
-FormulaWitness is only as sound as the approved interpretation of the written policy.
+ClauseGrid is only as sound as the approved interpretation of the written policy.
 
 The synthetic benchmark is deliberately unambiguous. Real policies often omit units, disagree across amendments, use undefined terms, or leave boundary/precedence behavior implicit. Generating a deterministic expected result in those cases would turn uncertainty into a fabricated oracle.
 

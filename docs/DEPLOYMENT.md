@@ -1,6 +1,6 @@
 # Public demo deployment
 
-FormulaWitness has two server modes. Local mode remains loopback-only and exposes the reviewer gate.
+ClauseGrid has two server modes. Local mode remains loopback-only and exposes the reviewer gate.
 Public mode is a constrained, synthetic-data demonstration behind an HTTPS proxy; browser approval
 is disabled. It is not a production multi-tenant deployment.
 
@@ -41,7 +41,7 @@ Official platform references:
 Build without passing any credential into the build:
 
 ```powershell
-docker build -t formulawitness:demo .
+docker build -t clausegrid:demo .
 ```
 
 Run the image with runtime environment variables:
@@ -51,7 +51,7 @@ docker run --rm -p 10000:10000 `
   -e QUBRID_API_KEY `
   -e FORMULAWITNESS_PUBLIC_ORIGIN=https://demo.example `
   -e PORT=10000 `
-  formulawitness:demo
+  clausegrid:demo
 ```
 
 The exact public Host is deliberately enforced, so a local HTTP smoke request must set

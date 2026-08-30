@@ -1,4 +1,4 @@
-"""Measure representative FormulaWitness task runtime without reusing run artifacts."""
+"""Measure representative ClauseGrid task runtime without reusing run artifacts."""
 
 from __future__ import annotations
 

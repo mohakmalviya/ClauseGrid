@@ -1,4 +1,4 @@
-"""Top-level model-directed FormulaWitness audit and guarded approval pipeline."""
+"""Top-level model-directed ClauseGrid audit and guarded approval pipeline."""
 
 from __future__ import annotations
 

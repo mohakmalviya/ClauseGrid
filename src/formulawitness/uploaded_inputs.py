@@ -26,7 +26,7 @@ UPLOAD_TTL_SECONDS = 30 * 60
 
 
 class UploadRejected(ValueError):
-    """The supplied input is outside FormulaWitness's safe supported profile."""
+    """The supplied input is outside ClauseGrid's safe supported profile."""
 
 
 class UploadTooLarge(UploadRejected):
@@ -122,7 +122,7 @@ def _validate_formula_profile(workbook: Path) -> None:
         except FormulaError as exc:
             raise UploadRejected(
                 f"Unsupported formula in {reference}: {exc}. "
-                "FormulaWitness can execute only the documented supported formula profile."
+                "ClauseGrid can execute only the documented supported formula profile."
             ) from exc
     sheet_names = workbook_sheet_names(workbook)
     try:

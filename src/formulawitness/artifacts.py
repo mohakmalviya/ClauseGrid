@@ -131,7 +131,7 @@ def counterexample_rows(tests: list[dict[str, Any]]) -> list[list[Any]]:
 
 
 def report_rows(report: dict[str, Any]) -> list[list[Any]]:
-    rows: list[list[Any]] = [["FormulaWitness review report", "Value"]]
+    rows: list[list[Any]] = [["ClauseGrid review report", "Value"]]
     for key in ("run_id", "method", "decision", "source_sha256", "rules_sha256", "approval_hash"):
         rows.append([key, report.get(key, "")])
     rows.append(["changed_cell_count", len(report.get("patches", []))])

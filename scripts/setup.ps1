@@ -16,5 +16,5 @@ if (-not (Test-Path -LiteralPath $venvPython)) {
 & $venvPython -m pip install --no-deps -r (Join-Path $repoRoot 'requirements-lock.txt')
 if ($LASTEXITCODE -ne 0) { throw 'Locked dependency installation failed.' }
 & $venvPython -m pip install -e $repoRoot --no-deps --no-build-isolation
-if ($LASTEXITCODE -ne 0) { throw 'FormulaWitness editable installation failed.' }
-Write-Output "FormulaWitness environment ready: $venvPython"
+if ($LASTEXITCODE -ne 0) { throw 'ClauseGrid editable installation failed.' }
+Write-Output "ClauseGrid environment ready: $venvPython"

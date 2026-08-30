@@ -1,4 +1,4 @@
-# FormulaWitness project specification
+# ClauseGrid project specification
 
 ## Objective
 
@@ -48,7 +48,7 @@ A direct repair agent receives the workbook, policy, allowed tools, public cases
 
 ## Advanced solution
 
-FormulaWitness adds source-linked rule representation, ambiguity states, counterexample-guided experimentation, dependency/spectrum localization, constrained patching, human approval, and independent replay.
+ClauseGrid adds source-linked rule representation, ambiguity states, counterexample-guided experimentation, dependency/spectrum localization, constrained patching, human approval, and independent replay.
 
 ## Required deliverables
 

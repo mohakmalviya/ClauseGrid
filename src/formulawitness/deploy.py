@@ -1,4 +1,4 @@
-"""Environment-only production entry point for the public FormulaWitness demonstration."""
+"""Environment-only production entry point for the public ClauseGrid demonstration."""
 
 from __future__ import annotations
 

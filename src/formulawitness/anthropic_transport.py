@@ -1,4 +1,4 @@
-"""Native Anthropic Messages API transport normalized to FormulaWitness turns."""
+"""Native Anthropic Messages API transport normalized to ClauseGrid turns."""
 
 from __future__ import annotations
 

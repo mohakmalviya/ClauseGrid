@@ -1,4 +1,4 @@
-"""Probe live NIM models for the minimum FormulaWitness tool-call contract."""
+"""Probe live NIM models for the minimum ClauseGrid tool-call contract."""
 
 from __future__ import annotations
 

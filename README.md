@@ -1,16 +1,16 @@
-# FormulaWitness
+# ClauseGrid
 
-FormulaWitness is a model-directed policy-assurance system for operational Excel workbooks. An audit manager discovers an unfamiliar workbook and policy through typed tools, forms and tests repair hypotheses, and sends staged candidates to a fresh-context falsifier. Deterministic services own formula execution, hashes, budgets, copy-on-write patching, and approval. A reviewer is required before any repaired workbook is written.
+ClauseGrid is a model-directed policy-assurance system for operational Excel workbooks. An audit manager discovers an unfamiliar workbook and policy through typed tools, forms and tests repair hypotheses, and sends staged candidates to a fresh-context falsifier. Deterministic services own formula execution, hashes, budgets, copy-on-write patching, and approval. A reviewer is required before any repaired workbook is written.
 
 The flagship defect is deliberately plausible: a critical-incident waiver incorrectly bypasses an ordinary SLA penalty. The workbook opens, the formula is valid, and typical rows look reasonable. Only the policy-derived waiver counterexample exposes it.
 
 ## Intended user and bottleneck
 
-FormulaWitness is for finance, procurement, and supplier-operations reviewers who approve rebate and SLA settlements. Their policy is written in prose while the payable amount is implemented in formulas, so ordinary spreadsheet linting can miss a syntactically valid threshold, exception, lookup, date, or rounding rule that silently overpays or underpays a supplier. FormulaWitness turns that manual policy-to-formula review into a cited, reproducible witness and preserves the final judgment for a qualified reviewer.
+ClauseGrid is for finance, procurement, and supplier-operations reviewers who approve rebate and SLA settlements. Their policy is written in prose while the payable amount is implemented in formulas, so ordinary spreadsheet linting can miss a syntactically valid threshold, exception, lookup, date, or rounding rule that silently overpays or underpays a supplier. ClauseGrid turns that manual policy-to-formula review into a cited, reproducible witness and preserves the final judgment for a qualified reviewer.
 
 ## Competition provenance
 
-FormulaWitness began as the reviewed scaffold in root commit `0941c68`; the policy, synthetic workbooks, application, benchmark, interface, and evidence were created during the competition. Codex was the required coding agent. The language runtimes and dependencies listed in `requirements-lock.txt` were pre-existing tools. No pre-existing FormulaWitness application code or private dataset was used.
+ClauseGrid began as the reviewed scaffold in root commit `0941c68`; the policy, synthetic workbooks, application, benchmark, interface, and evidence were created during the competition. Codex was the required coding agent. The language runtimes and dependencies listed in `requirements-lock.txt` were pre-existing tools. No pre-existing ClauseGrid application code or private dataset was used.
 
 ## Legacy deterministic benchmark
 
@@ -38,7 +38,7 @@ reported` unless the provider supplies it.
 .\scripts\setup.ps1
 .\scripts\eval.ps1
 $env:QUBRID_API_KEY = '<set outside the repository>'
-.\.venv\Scripts\formulawitness.exe serve `
+.\.venv\Scripts\clausegrid.exe serve `
   --provider qubrid --model 'deepseek-ai/DeepSeek-V3.2' `
   --allow-external-processing
 ```
@@ -54,7 +54,7 @@ falsification, enter a local reviewer label to approve the exact proposal and wr
 Provider, model, endpoint, and credential configuration are server-side; the unauthenticated demo
 server refuses non-loopback binding.
 
-Real-file mode requires both files. FormulaWitness will not silently compare an uploaded workbook
+Real-file mode requires both files. ClauseGrid will not silently compare an uploaded workbook
 against the bundled synthetic supplier policy. The browser also requires confirmation that the data
 is public, synthetic, or approved for processing by the configured model provider. Pending uploads
 and retained review inputs expire after 30 minutes, and browser retries reuse the same prepared
@@ -64,25 +64,25 @@ intentionally unavailable on the anonymous public deployment.
 Direct CLI equivalents:
 
 ```powershell
-.\.venv\Scripts\formulawitness.exe baseline workbooks\mutants\M10_supplier_rebate.xlsx --reviewer reviewer@example.test
-.\.venv\Scripts\formulawitness.exe advanced workbooks\mutants\M10_supplier_rebate.xlsx --reviewer reviewer@example.test
-.\.venv\Scripts\formulawitness.exe inspect workbooks\reference\supplier_rebate_pristine.xlsx
-.\.venv\Scripts\formulawitness.exe eval
+.\.venv\Scripts\clausegrid.exe baseline workbooks\mutants\M10_supplier_rebate.xlsx --reviewer reviewer@example.test
+.\.venv\Scripts\clausegrid.exe advanced workbooks\mutants\M10_supplier_rebate.xlsx --reviewer reviewer@example.test
+.\.venv\Scripts\clausegrid.exe inspect workbooks\reference\supplier_rebate_pristine.xlsx
+.\.venv\Scripts\clausegrid.exe eval
 ```
 
 Model-directed proposal and approval commands:
 
 ```powershell
 $env:QUBRID_API_KEY = '<set outside the repository>'
-.\.venv\Scripts\formulawitness.exe agent workbooks\mutants\M10_supplier_rebate.xlsx `
+.\.venv\Scripts\clausegrid.exe agent workbooks\mutants\M10_supplier_rebate.xlsx `
   --provider qubrid --model 'deepseek-ai/DeepSeek-V3.2' `
   --allow-external-processing
-.\.venv\Scripts\formulawitness.exe agent-baseline workbooks\mutants\M10_supplier_rebate.xlsx `
+.\.venv\Scripts\clausegrid.exe agent-baseline workbooks\mutants\M10_supplier_rebate.xlsx `
   --provider nvidia-nim --model openai/gpt-oss-120b --allow-external-processing
 $env:OPENCODE_API_KEY = '<set outside the repository>'
-.\.venv\Scripts\formulawitness.exe agent workbooks\mutants\M10_supplier_rebate.xlsx `
+.\.venv\Scripts\clausegrid.exe agent workbooks\mutants\M10_supplier_rebate.xlsx `
   --provider opencode --model big-pickle --allow-external-processing
-.\.venv\Scripts\formulawitness.exe approve-agent RUN_ID `
+.\.venv\Scripts\clausegrid.exe approve-agent RUN_ID `
   workbooks\mutants\M10_supplier_rebate.xlsx `
   --proposal-hash REVIEWED_HASH --reviewer reviewer@example.test
 ```
@@ -97,7 +97,7 @@ current task-specific tournament and its limitations.
 
 The `opencode` provider uses OpenCode Zen's OpenAI-compatible chat endpoint. Model IDs remain
 explicit because the free catalog and availability can change; query OpenCode's live model catalog
-before running. FormulaWitness reads only `OPENCODE_API_KEY` from the process environment. See
+before running. ClauseGrid reads only `OPENCODE_API_KEY` from the process environment. See
 [model providers](docs/PROVIDERS.md) for the currently verified free-model compatibility results.
 
 The `qubrid` preset uses `https://platform.qubrid.com/v1` and reads `QUBRID_API_KEY`. The current

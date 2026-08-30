@@ -59,7 +59,7 @@ $env:OPENCODE_API_KEY = '<credential>'
 ```
 
 Query `https://opencode.ai/zen/v1/models` immediately before the run because free-model availability
-changes. This path uses FormulaWitness's manager, falsifier, tools, budgets, and trace; it does not
+changes. This path uses ClauseGrid's manager, falsifier, tools, budgets, and trace; it does not
 launch an external coding harness or grant it workspace access.
 
 Qubrid, OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM, OpenCode Zen, and a custom OpenAI-compatible

@@ -1,4 +1,4 @@
-"""Probe current OpenCode Zen free models for FormulaWitness's tool-call contract."""
+"""Probe current OpenCode Zen free models for ClauseGrid's tool-call contract."""
 
 from __future__ import annotations
 

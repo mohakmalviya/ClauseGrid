@@ -95,7 +95,7 @@ The local browser can feed this same generic runtime a private compatible `.xlsx
 policy `.pdf`; the anonymous public demo remains synthetic-only. The synthetic benchmark is retained
 for fair reproducible measurement and is not mixed with custom-run outcomes.
 
-FormulaWitness executes a documented nonvolatile formula subset rather than Excel itself. Macros,
+ClauseGrid executes a documented nonvolatile formula subset rather than Excel itself. Macros,
 external links, embedded objects, connections, volatile/network formulas, unsupported syntax,
 cross-sheet formula chains, ambiguous policy meaning, stale hashes, broad changes, and exhausted
 budgets fail closed. Qualified cross-sheet raw inputs remain available to sandbox experiments.

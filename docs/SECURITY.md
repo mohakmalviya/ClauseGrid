@@ -77,7 +77,7 @@ Public rate limits, jobs, and locks are process-local, so the demo must run as o
 container runs as an unprivileged user and writes transient artifacts below `/tmp`. Local/private
 trajectories can retain policy quotes, workbook observations, formulas, and model/tool messages;
 treat a configured persistent artifact directory as confidential, apply host filesystem controls,
-and delete it according to the data owner's retention policy. FormulaWitness does not encrypt
+and delete it according to the data owner's retention policy. ClauseGrid does not encrypt
 artifacts at rest.
 
 Sealed evaluation invokes the oracle only after each model run and never places reference formulas,
@@ -96,7 +96,7 @@ Excel full recalculation is forced.
 ## Known limitation
 
 The worker is an allowlisted interpreter plus process-local file-capability boundary, not a
-hostile-code kernel sandbox. The repair workers execute fixed FormulaWitness code, not
+hostile-code kernel sandbox. The repair workers execute fixed ClauseGrid code, not
 workbook-supplied Python. The public mode has no user accounts, tenant isolation, distributed rate
 limiter, durable queue, or durable artifact store. The JSONL hash chain is anchored into the reviewed
 proposal and approval, but it is not a digital signature or substitute for immutable external log

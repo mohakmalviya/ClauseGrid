@@ -19,7 +19,7 @@ rejects fewer than five trials. Select a different unique public case set with
 
 ```powershell
 $env:QUBRID_API_KEY = "<secret>"
-formulawitness agent-eval `
+clausegrid agent-eval `
   --provider qubrid `
   --model "deepseek-ai/DeepSeek-V3.2" `
   --allow-external-processing `

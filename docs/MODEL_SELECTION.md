@@ -1,6 +1,6 @@
 # Model selection evidence
 
-FormulaWitness does not assume that one provider model is universally best. The CLI requires an
+ClauseGrid does not assume that one provider model is universally best. The CLI requires an
 explicit `--model`, and model candidates are evaluated on the same end-to-end audit before they are
 recommended. A successful forced tool call is only a compatibility gate; it is not evidence that the
 model can complete a policy-grounded repair.
@@ -58,7 +58,7 @@ did not emit tool calls for forced named, required, automatic, or reasoning-para
 response stopped after hidden-provider reasoning indicated that the function should be called. The
 runtime correctly rejected those empty calls rather than interpreting reasoning text as an action.
 
-`deepseek-ai/DeepSeek-V3.2` passed both a forced named-tool probe and FormulaWitness's two-tool
+`deepseek-ai/DeepSeek-V3.2` passed both a forced named-tool probe and ClauseGrid's two-tool
 mandatory-choice probe on the first attempt. Its catalog profile uses temperature 1.0 and top-p 0.95.
 The first M10 attempt exposed stale tool reuse after controller action narrowing, which led to a new
 provider-neutral bounded repair: the client restates the currently declared tools and retries once,
@@ -78,7 +78,7 @@ Two complete M10 attempts failed the semantic task. The first produced one exper
 submitted a no-op edit, consumed all eight retry credits, and ended safely on an upstream 429. The
 second exercised the new rejected-candidate recovery, but its successful experiments contained no
 expected outcomes and missed the waiver-plus-independent-violation cross-product required by the
-policy. FormulaWitness rejected both candidate submissions and every unsupported no-change action,
+policy. ClauseGrid rejected both candidate submissions and every unsupported no-change action,
 then safely abstained at the manager-turn boundary. A focused prompt containing only the relevant
 policy, field meanings, and current formula also produced an incorrect repair. The evidence therefore
 does not support using this model as a judged or production default merely because its token price is

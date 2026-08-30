@@ -7,7 +7,7 @@ already completed this exact manager/falsifier workflow; for the current validat
 
 ```powershell
 $env:QUBRID_API_KEY = '<set outside the repository>'
-.\.venv\Scripts\formulawitness.exe serve `
+.\.venv\Scripts\clausegrid.exe serve `
   --provider qubrid --model 'deepseek-ai/DeepSeek-V3.2' `
   --allow-external-processing
 ```
@@ -48,7 +48,7 @@ human escalation.
 ## 3:15–4:05 — Exact proposal and human authority
 
 Show the before/after formula, source SHA-256, and proposal hash. Explain that the model has no apply
-or approval tool. Enter the local reviewer label and approve. FormulaWitness revalidates the source,
+or approval tool. Enter the local reviewer label and approve. ClauseGrid revalidates the source,
 policy, old-formula guard, persisted proposal, and sandbox evidence before publishing
 `repaired.xlsx`; the original remains byte-for-byte unchanged.
 
@@ -58,7 +58,7 @@ Download `proposal.json`, `agent-state.json`, `formula-diff.json`, `report.json`
 `trajectory.jsonl`, and the repaired workbook. Run the trajectory verifier:
 
 ```powershell
-.\.venv\Scripts\formulawitness.exe verify-trajectory `
+.\.venv\Scripts\clausegrid.exe verify-trajectory `
   artifacts\ui\RUN_ID\trajectory.jsonl
 ```
 

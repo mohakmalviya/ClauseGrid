@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Renamed the product and primary command to ClauseGrid while retaining the legacy
+  `formulawitness` import namespace and CLI alias for artifact and automation compatibility.
 - Added private local `.xlsx` + matching policy `.pdf` uploads with pre-model compatibility checks,
   isolated temporary storage, exact-hash audit/approval binding, and browser consent disclosure.
 - Bounded formula ranges and OOXML sheets/cells/shared strings, rejected XML entity declarations,

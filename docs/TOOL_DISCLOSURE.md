@@ -21,7 +21,7 @@ Anthropic/Claude uses the native Messages API. The verified live smoke used NVID
 it was not printed, copied into the repository, or written to an artifact. NIM responses reported
 token usage but not monetary cost, so cost is disclosed as `Not reported`.
 
-FormulaWitness supports OpenCode Zen through `--provider opencode` and its OpenAI-compatible chat
+ClauseGrid supports OpenCode Zen through `--provider opencode` and its OpenAI-compatible chat
 endpoint. The credential is read only from `OPENCODE_API_KEY`; model IDs remain explicit and are not
 silently selected from the changing free catalog. Compatibility probes send only synthetic prompts.
 An end-to-end result is disclosed only after a full manager/falsifier run completes and its trajectory

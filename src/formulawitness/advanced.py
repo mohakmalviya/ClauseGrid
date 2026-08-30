@@ -1,4 +1,4 @@
-"""Counterexample-guided FormulaWitness repair workflow."""
+"""Counterexample-guided ClauseGrid repair workflow."""
 
 from __future__ import annotations
 

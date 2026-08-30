@@ -1,4 +1,4 @@
-"""Narrow run-scoped tools exposed to FormulaWitness runtime agents."""
+"""Narrow run-scoped tools exposed to ClauseGrid runtime agents."""
 
 from __future__ import annotations
 
