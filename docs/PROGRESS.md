@@ -268,6 +268,10 @@
   approved-rule count, and walkthrough control into a compact responsive top bar. The workbench
   header, tabs, stages, and result cards now share one gutter and one column grid so their dividers
   and content rails stay aligned at desktop and mobile widths.
+- Replaced the former 8–12 px interface typography with a shared readable scale: 16 px body text,
+  15 px navigation, 14 px controls, 13 px supporting copy, and a 12 px metadata floor. Tablet and
+  phone headers now reflow instead of shrinking text, and low-contrast metadata colors were
+  darkened. A regression test prevents future explicit font sizes below the 12 px floor.
 - Browser checks ran the first-screen M10 path and confirmed the expected 26/27 result with exact
   cell evidence, exercised both tab systems by keyboard, walked to the result explanation, and
-  verified mode restoration. The focused UI suite passes 30 tests; the complete suite passes 304.
+  verified mode restoration. The focused UI suite passes 31 tests; the complete suite passes 305.

@@ -1,6 +1,7 @@
 import hashlib
 import inspect
 import json
+import re
 import shutil
 import threading
 import time
@@ -478,8 +479,27 @@ def test_primary_navigation_and_active_pack_live_in_top_bar() -> None:
     assert "$('headerRuleCount').textContent=String(pack.rule_count)" in HTML
     assert ".appbar-nav { display: none; }" not in HTML
     assert ".header-pack { display: none; }" not in HTML
-    assert ":root { --header-height: 112px; }" in HTML
+    assert ":root { --header-height: 116px; }" in HTML
     assert ".appbar-nav::-webkit-scrollbar { display: none; }" in HTML
+
+
+def test_typography_has_a_readable_floor_at_every_breakpoint() -> None:
+    for token in (
+        "--text-xs: 12px;",
+        "--text-sm: 13px;",
+        "--text-ui: 14px;",
+        "--text-nav: 15px;",
+        "--text-body: 16px;",
+        "--text-lead: 17px;",
+    ):
+        assert token in HTML
+    explicit_sizes = [int(value) for value in re.findall(r"font-size:\s*(\d+)px", HTML)]
+    assert explicit_sizes
+    assert min(explicit_sizes) >= 12
+    assert (
+        ".appbar-nav a { flex: 0 0 auto; padding: 8px 10px; font-size: var(--text-nav); }" in HTML
+    )
+    assert ".tour-trigger { min-height: 40px; padding: 0 10px; font-size: var(--text-ui); }" in HTML
 
 
 def test_policy_pack_api_and_recurring_verification_never_call_model() -> None:
