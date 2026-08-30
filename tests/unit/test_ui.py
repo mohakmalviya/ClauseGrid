@@ -379,7 +379,7 @@ def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     assert "const j=await r.json()" not in HTML
 
 
-def test_agent_result_ui_is_state_aware_and_full_width() -> None:
+def test_agent_result_ui_is_state_aware_centered_and_responsive() -> None:
     assert "No workbook patch has been authorized." not in HTML
     assert "The investigation stopped at a safety limit" in HTML
     assert "The proposed repair did not pass independent checks" in HTML
@@ -395,6 +395,18 @@ def test_agent_result_ui_is_state_aware_and_full_width() -> None:
     assert ".results-grid { display: grid; grid-template-columns: 1fr;" in HTML
     assert ".decision-panel { position: static;" in HTML
     assert ".decision-panel { position: sticky;" not in HTML
+    assert "width: min(100%, 1120px);" in HTML
+    assert "margin: clamp(24px, 3vw, 40px) auto 0;" in HTML
+    assert (
+        ".outcome-panel .patch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));"
+        in HTML
+    )
+    assert ".outcome-panel .patch > .before { grid-column: 1; grid-row: 3; }" in HTML
+    assert ".outcome-panel .patch > .after { grid-column: 2; grid-row: 3; }" in HTML
+    assert (
+        "#results .outcome-panel .patch > :is(b, .formula-label, .before, .after, p)"
+        " { grid-column: 1; grid-row: auto; }" in HTML
+    )
 
 
 def test_first_visit_walkthrough_is_accessible_replayable_and_responsive() -> None:
@@ -518,6 +530,11 @@ def test_workbench_and_support_cards_do_not_reserve_unexplained_space() -> None:
     assert "grid-template-rows: subgrid;" in HTML
     assert ".support-card > p { margin: 0;" in HTML
     assert ".support-grid { grid-template-rows: none; row-gap: 14px; }" in HTML
+    assert "grid-template-columns: minmax(280px, 340px) minmax(0, 764px);" in HTML
+    assert ".run-status { margin-top: 13px;" in HTML
+    assert "min-height: 104px" not in HTML
+    assert "min-height: 46px" not in HTML
+    assert ".result-sheet, #results > .panel, .results-grid .panel { padding: 20px 17px; }" in HTML
 
 
 def test_policy_pack_api_and_recurring_verification_never_call_model() -> None:
