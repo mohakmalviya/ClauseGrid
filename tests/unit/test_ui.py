@@ -356,7 +356,7 @@ def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     assert "this public demo is read-only" in HTML
     assert "if(v.failed_count)" in HTML
     assert "v.decision==='INCONCLUSIVE'" in HTML
-    assert "A policy violation was observed, but coverage was incomplete" in HTML
+    assert "Some checks could not run so no pass or fail was issued" in HTML
     assert "Audit without an LLM" in HTML
     assert "Keep every defect class" in HTML
     assert "Upload workbook + policy" in HTML
@@ -375,6 +375,22 @@ def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     assert "await api('/healthz')" in HTML
     assert "const text=await response.text()" in HTML
     assert "const j=await r.json()" not in HTML
+
+
+def test_agent_result_ui_is_state_aware_and_full_width() -> None:
+    assert "No workbook patch has been authorized." not in HTML
+    assert "The investigation stopped at a safety limit" in HTML
+    assert "The proposed repair did not pass independent checks" in HTML
+    assert "REPAIR REJECTED" in HTML
+
+    assert 'class="panel approval hidden" id="approvalPanel"' in HTML
+    assert "showApproval=browserApproval&&result.decision==='REPAIR'&&survived" in HTML
+    assert "$('approvalPanel').classList.toggle('hidden',!showApproval)" in HTML
+
+    assert "main{width:100%;max-width:none" in HTML
+    assert ".results-grid{display:grid;grid-template-columns:1fr" in HTML
+    assert ".decision-panel{position:static" in HTML
+    assert ".decision-panel{position:sticky" not in HTML
 
 
 def test_policy_pack_api_and_recurring_verification_never_call_model() -> None:

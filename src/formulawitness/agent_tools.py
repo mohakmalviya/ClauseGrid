@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -29,6 +30,14 @@ from .trace import object_hash
 from .workbook_tools import inspect_dependencies, list_formulas, read_region, workbook_manifest
 
 MAX_TOOL_RESULT_BYTES = 300_000
+CandidateFormulaTransform = Literal[
+    "remove_outer_if_keep_then_branch",
+    "remove_outer_if_keep_else_branch",
+]
+FORMULA_TRANSFORM_OPERATIONS: dict[CandidateFormulaTransform, FormulaTransform] = {
+    "remove_outer_if_keep_then_branch": "unwrap_outer_if_then",
+    "remove_outer_if_keep_else_branch": "unwrap_outer_if_else",
+}
 
 
 class ToolArgs(BaseModel):
@@ -87,6 +96,18 @@ class ExpectedObservationArgs(ToolArgs):
     cell: CellAddress
     expected: str | int | float | bool | None
     tolerance: float = Field(default=0.0, ge=0.0)
+
+    @model_validator(mode="after")
+    def numeric_values_must_be_finite(self) -> ExpectedObservationArgs:
+        if not math.isfinite(self.tolerance):
+            raise ValueError("Expectation tolerance must be finite")
+        if (
+            isinstance(self.expected, (int, float))
+            and not isinstance(self.expected, bool)
+            and not math.isfinite(float(self.expected))
+        ):
+            raise ValueError("Numeric expected observations must be finite")
+        return self
 
 
 class DateOverrideArgs(ToolArgs):
@@ -149,12 +170,13 @@ class CandidateEditArgs(ToolArgs):
             "use this for quoted Excel text and omit new_formula."
         ),
     )
-    formula_transform: FormulaTransform | None = Field(
+    formula_transform: CandidateFormulaTransform | None = Field(
         default=None,
         description=(
             "Allowlisted structural edit derived from the hash-guarded current formula. Use "
-            "unwrap_outer_if_else to remove a faulty outer IF wrapper while retaining its else "
-            "calculation; use unwrap_outer_if_then to retain its then calculation."
+            "remove_outer_if_keep_else_branch to delete a faulty outer IF and retain the formula "
+            "in its ELSE branch. Use remove_outer_if_keep_then_branch only when the THEN branch "
+            "itself is the calculation that must remain. The word keep names the branch returned."
         ),
     )
     rationale: str = Field(min_length=8, max_length=2_000)
@@ -186,7 +208,10 @@ class CandidateEditArgs(ToolArgs):
         if self.formula_transform is not None:
             if current_formula is None:
                 raise ValueError("A structural formula transform requires the current formula")
-            formula = transform_formula(current_formula, self.formula_transform)
+            formula = transform_formula(
+                current_formula,
+                FORMULA_TRANSFORM_OPERATIONS[self.formula_transform],
+            )
         else:
             formula = (
                 self.new_formula
@@ -446,7 +471,7 @@ class AgentToolRegistry:
     def _register_manager_tools(self) -> None:
         self._add(
             "stage_candidate",
-            "Stage a minimal, citation-grounded formula proposal. This never writes a workbook. Prefer formula_transform=unwrap_outer_if_else when removing a faulty outer IF wrapper; the controller derives the exact result from the hash-guarded current AST. Otherwise, for quoted Excel text omit new_formula and use new_formula_template with {DQ} for each literal double quote.",
+            "Stage a minimal, citation-grounded formula proposal. This never writes a workbook. Prefer formula_transform=remove_outer_if_keep_else_branch when deleting a faulty outer IF and keeping the formula in its ELSE branch; keep names the branch returned. The controller derives the exact result from the hash-guarded current AST. Otherwise, for quoted Excel text omit new_formula and use new_formula_template with {DQ} for each literal double quote.",
             StageCandidateArgs,
             self._stage_candidate,
         )
@@ -637,23 +662,11 @@ class AgentToolRegistry:
             if expectation.cell not in result.observations:
                 raise ValueError(f"Expected cell is missing from observations: {expectation.cell}")
             actual = result.observations[expectation.cell]
-            expected = expectation.expected
-            numeric = (
-                isinstance(actual, (int, float))
-                and not isinstance(actual, bool)
-                and isinstance(expected, (int, float))
-                and not isinstance(expected, bool)
-            )
-            if numeric:
-                assert isinstance(actual, (int, float)) and not isinstance(actual, bool)
-                assert isinstance(expected, (int, float)) and not isinstance(expected, bool)
-                matches = abs(float(actual) - float(expected)) <= expectation.tolerance
-            else:
-                matches = actual == expected
+            matches = self._matches_expectation(result.observations, expectation)
             comparisons.append(
                 {
                     "cell": expectation.cell,
-                    "expected": expected,
+                    "expected": expectation.expected,
                     "actual": actual,
                     "tolerance": expectation.tolerance,
                     "matches": matches,
@@ -799,10 +812,136 @@ class AgentToolRegistry:
             edits=tuple(edits),
             expected_invariants=args.expected_invariants,
         )
+        replayed_experiments = self._replay_candidate_against_manager_expectations(proposal)
         self.state.candidate = proposal
         self.state.candidate_history.append(proposal.proposal_id)
         self.state.falsifier_verdict = None
-        return {"proposal_id": proposal.proposal_id, **proposal.model_dump(mode="json")}
+        return {
+            "proposal_id": proposal.proposal_id,
+            "replayed_manager_expectations": replayed_experiments,
+            **proposal.model_dump(mode="json"),
+        }
+
+    def _replay_candidate_against_manager_expectations(
+        self, proposal: CandidateProposal
+    ) -> list[str]:
+        """Reject an internally inconsistent draft, without treating model expectations as policy."""
+
+        edits_by_sheet: dict[str, list[CandidateEdit]] = {}
+        for edit in proposal.edits:
+            edits_by_sheet.setdefault(edit.sheet.casefold(), []).append(edit)
+        replayed: list[str] = []
+        for evidence in self.state.experiments.values():
+            if evidence.actor != "audit-manager":
+                continue
+            request = RunExperimentArgs.model_validate(evidence.request)
+            sheet_edits = edits_by_sheet.get(request.sheet.casefold(), [])
+            if not sheet_edits or not request.expectations:
+                continue
+            edited_cells = {edit.cell for edit in sheet_edits}
+            direct_expectations = [
+                expectation
+                for expectation in request.expectations
+                if expectation.cell in edited_cells
+            ]
+            tested_candidate_target = any(
+                override.cell in edited_cells for override in request.formula_overrides
+            )
+            if not direct_expectations and not tested_candidate_target:
+                continue
+
+            merged_overrides: dict[str, FormulaOverride] = {
+                override.cell: FormulaOverride(
+                    override.cell,
+                    override.old_formula_sha256,
+                    override.new_formula,
+                )
+                for override in request.formula_overrides
+            }
+            for edit in sheet_edits:
+                # The currently staged proposal replaces any earlier trial formula at the
+                # same target while unrelated trial formulas remain part of the experiment.
+                merged_overrides[edit.cell] = FormulaOverride(
+                    edit.cell,
+                    edit.old_formula_sha256,
+                    edit.new_formula,
+                )
+            if len(merged_overrides) > 5:
+                raise ValueError(
+                    "Candidate replay exceeds the five-formula sandbox limit; human review "
+                    "is required."
+                )
+            replay_observations = tuple(
+                dict.fromkeys((*request.observations, *(edit.cell for edit in sheet_edits)))
+            )
+            if len(replay_observations) > 100:
+                raise ValueError(
+                    "Candidate replay exceeds the 100-observation sandbox limit; human review "
+                    "is required."
+                )
+            self._charge_workbook_execution()
+            replay = execute_experiment(
+                self.workbook,
+                sheet=request.sheet,
+                overrides=request.model_dump(mode="json")["overrides"],
+                observations=replay_observations,
+                formula_overrides=tuple(merged_overrides.values()),
+            )
+            if replay.workbook_sha256 != proposal.source_sha256:
+                raise ValueError("Candidate replay source hash does not match the proposal")
+            if replay.sheet.casefold() != request.sheet.casefold():
+                raise ValueError("Candidate replay returned a different worksheet")
+            if set(replay.applied_formula_overrides) != set(merged_overrides) or len(
+                replay.applied_formula_overrides
+            ) != len(merged_overrides):
+                raise ValueError("Candidate replay did not apply the exact guarded formula set")
+            for edit in sheet_edits:
+                replayed_hash = replay.formula_sha256.get(edit.cell)
+                expected_hash = hashlib.sha256(edit.new_formula.encode("utf-8")).hexdigest()
+                if replayed_hash != expected_hash:
+                    raise ValueError(
+                        f"Candidate replay formula hash does not match the proposal for {edit.cell}"
+                    )
+            failures = []
+            for expectation in request.expectations:
+                if expectation.cell not in replay.observations:
+                    failures.append(f"{expectation.cell} was not returned by the sandbox")
+                    continue
+                actual = replay.observations[expectation.cell]
+                if not self._matches_expectation(replay.observations, expectation):
+                    failures.append(
+                        f"{expectation.cell} expected {expectation.expected!r} but got {actual!r}"
+                    )
+            if failures:
+                raise ValueError(
+                    "Candidate contradicts already-registered experiment "
+                    f"{evidence.experiment_id}: {'; '.join(failures)}. Revise the formula "
+                    "before independent falsification."
+                )
+            replayed.append(evidence.experiment_id)
+        return replayed
+
+    @staticmethod
+    def _matches_expectation(
+        observations: dict[str, Any], expectation: ExpectedObservationArgs
+    ) -> bool:
+        if expectation.cell not in observations:
+            return False
+        actual = observations[expectation.cell]
+        expected = expectation.expected
+        if isinstance(actual, bool) or isinstance(expected, bool):
+            return type(actual) is type(expected) and actual == expected
+        numeric = (
+            isinstance(actual, (int, float))
+            and isinstance(expected, (int, float))
+        )
+        if numeric:
+            assert isinstance(actual, (int, float))
+            assert isinstance(expected, (int, float))
+            if not math.isfinite(float(actual)) or not math.isfinite(float(expected)):
+                return False
+            return abs(float(actual) - float(expected)) <= expectation.tolerance
+        return type(actual) is type(expected) and actual == expected
 
     def _falsify_candidate(self, args: ToolArgs) -> dict[str, Any]:
         if not isinstance(args, FalsifyCandidateArgs):
@@ -832,16 +971,20 @@ class AgentToolRegistry:
                 )[:4_000],
                 evidence_ids=tuple(sorted(evidence_ids)),
                 proposal_id=self.state.candidate.proposal_id,
+                reason_code="FALSIFIER_INCONCLUSIVE",
             )
         return verdict.model_dump(mode="json")
 
     def _submit_repair(self, raw: ToolArgs) -> dict[str, Any]:
         args = DecisionArgs.model_validate(raw)
-        self._known_evidence(args.evidence_ids)
-        self._require_policy_citation(args.evidence_ids)
         if self.state.candidate is None:
             raise ValueError("No candidate is staged")
-        evidence_ids = list(args.evidence_ids)
+        known = set(self.state.citations) | set(self.state.experiments)
+        # Opaque evidence handles are controller-owned. Ignore invented handles and bind the
+        # exact hash-checked proposal/falsifier evidence below instead of wasting a terminal turn
+        # on a recoverable model formatting mistake.
+        evidence_ids = [item for item in args.evidence_ids if item in known]
+        self._require_policy_citation(tuple(evidence_ids))
         controller_bound_evidence = [
             evidence_id for edit in self.state.candidate.edits for evidence_id in edit.evidence_ids
         ]
@@ -856,8 +999,7 @@ class AgentToolRegistry:
             validations = self._candidate_validation_experiments()
             if not validations:
                 raise ValueError("Single-agent repair requires one sandbox candidate validation")
-            if not set(validations) & set(args.evidence_ids):
-                raise ValueError("Repair decision must cite a candidate validation experiment")
+            controller_bound_evidence.extend(validations)
         # The model chooses whether to submit the surviving candidate and must still provide a
         # known policy citation. Binding the staged-candidate and falsifier evidence is mechanical
         # provenance work owned by the controller, not a formatting test for the model. Every
@@ -866,6 +1008,7 @@ class AgentToolRegistry:
             if evidence_id not in evidence_ids:
                 evidence_ids.append(evidence_id)
         self._known_evidence(tuple(evidence_ids))
+        self._require_policy_citation(tuple(evidence_ids))
         decision = AgentDecision(
             decision="REPAIR",
             proposal_id=self.state.candidate.proposal_id,
@@ -958,9 +1101,12 @@ class AgentToolRegistry:
 
     def _request_human(self, raw: ToolArgs) -> dict[str, Any]:
         args = RequestHumanArgs.model_validate(raw)
-        self._known_evidence(args.evidence_ids)
-        self._require_policy_citation(args.evidence_ids)
-        evidence_ids = list(args.evidence_ids)
+        known = set(self.state.citations) | set(self.state.experiments)
+        evidence_ids = [item for item in args.evidence_ids if item in known]
+        self._require_policy_citation(tuple(evidence_ids))
+        for evidence_id in [*self.state.citations, *self.state.experiments]:
+            if evidence_id not in evidence_ids:
+                evidence_ids.append(evidence_id)
         if not set(evidence_ids) & set(self.state.experiments):
             # The decision to escalate and its reason remain model-controlled. Attaching the
             # already-executed, hash-bound workbook evidence is mechanical provenance work; a
@@ -977,6 +1123,7 @@ class AgentToolRegistry:
             decision="ABSTAIN",
             explanation=args.reason,
             evidence_ids=tuple(evidence_ids),
+            reason_code="HUMAN_REVIEW",
         )
         self.state.decision = decision
         return decision.model_dump(mode="json")

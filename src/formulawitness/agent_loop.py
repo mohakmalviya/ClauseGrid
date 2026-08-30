@@ -50,6 +50,8 @@ class ToolCallingAgent:
         prompt_version: str,
         is_terminal: Callable[[], bool],
         terminal_tool_names: tuple[str, ...] = (),
+        terminal_turn_reserve: int = 1,
+        terminal_fallback: Callable[[str], None] | None = None,
         terminal_tool_call_reserve: int = 1,
         coordination_tool_names: tuple[str, ...] = (),
         coordination_tool_call_reserve: int = 0,
@@ -71,6 +73,10 @@ class ToolCallingAgent:
         if not set(terminal_tool_names).issubset(available_tools):
             raise ValueError("Terminal tools must be present in the actor's registry")
         self.terminal_tool_names = terminal_tool_names
+        if terminal_turn_reserve < 1:
+            raise ValueError("Terminal turn reserve must be at least one")
+        self.terminal_turn_reserve = terminal_turn_reserve
+        self.terminal_fallback = terminal_fallback
         if terminal_tool_call_reserve < 1:
             raise ValueError("Terminal tool-call reserve must be at least one")
         self.terminal_tool_call_reserve = terminal_tool_call_reserve
@@ -124,7 +130,9 @@ class ToolCallingAgent:
             input_budget_terminal = self._input_budget_requires_terminal(snapshot)
             tool_budget_terminal = self._tool_budget_requires_terminal(snapshot)
             final_turn = bool(self.terminal_tool_names) and (
-                turns_remaining == 1 or input_budget_terminal or tool_budget_terminal
+                turns_remaining <= self.terminal_turn_reserve
+                or input_budget_terminal
+                or tool_budget_terminal
             )
             experiment_mode = not final_turn and self._experiment_required(snapshot)
             coordination_mode = (
@@ -243,6 +251,10 @@ class ToolCallingAgent:
             )
             self.messages.append(turn.as_assistant_message())
             if not turn.tool_calls:
+                if final_turn and turns_remaining <= 1 and self._finish_with_fallback(
+                    "final_model_response_had_no_tool_call"
+                ):
+                    return
                 self.messages.append(
                     UserMessage(
                         content=(
@@ -343,6 +355,30 @@ class ToolCallingAgent:
                         )
                     )
                 )
+            if (
+                final_turn
+                and turns_remaining <= 1
+                and not self.is_terminal()
+                and self._finish_with_fallback("final_terminal_action_was_rejected")
+            ):
+                return
+
+    def _finish_with_fallback(self, reason: str) -> bool:
+        """End a depleted run in a structured fail-closed state without another model call."""
+
+        if self.terminal_fallback is None:
+            return False
+        self.terminal_fallback(reason)
+        if not self.is_terminal():
+            raise RuntimeError("Terminal fallback did not produce a terminal state")
+        self.trajectory.record_agent_event(
+            self.actor,
+            "TERMINAL_FALLBACK",
+            {"reason": reason},
+            model_id="controller",
+            prompt_version=self.prompt_version,
+        )
+        return True
 
     def _bounded_messages(
         self,
@@ -533,6 +569,17 @@ class ToolCallingAgent:
             return tuple(tool for tool in self.registry.specs if tool.name not in unavailable)
         allowed = set(self.terminal_tool_names if final_turn else self.coordination_tool_names)
         if final_turn and self.actor == "audit-manager":
+            state = getattr(self.registry, "state", None)
+            candidate = getattr(state, "candidate", None)
+            verdict = getattr(state, "falsifier_verdict", None)
+            if candidate is not None:
+                # Once a proposal exists, the controller knows which terminal actions are
+                # mechanically possible. Do not let a model spend its last turn selecting an
+                # invalid outcome after falsification has already settled that question.
+                if getattr(verdict, "status", None) == "SURVIVED":
+                    allowed.intersection_update({"submit_repair"})
+                else:
+                    allowed.intersection_update({"request_human"})
             filtered = allowed.difference(self._unavailable_progress_tools())
             # Keep at least one fail-closed terminal path even when its normal evidence
             # preconditions are unavailable; otherwise the controller could not stop safely.

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 import pytest
 
@@ -260,6 +260,193 @@ def test_final_turn_exposes_and_forces_only_terminal_tool(
     assert final.tool_choice == NamedToolChoice(name="report_falsification")
     assert final.parallel_tool_calls is False
     assert "final model turn" in final.messages[-1].content.lower()
+
+
+def _manager_state_with_falsifier_verdict(
+    status: Literal["BROKEN", "SURVIVED"],
+) -> AgentRunState:
+    state = AgentRunState(
+        run_id=f"terminal-{status.lower()}",
+        source_sha256="1" * 64,
+        policy_sha256="2" * 64,
+    )
+    state.candidate = CandidateProposal(
+        source_sha256=state.source_sha256,
+        policy_sha256=state.policy_sha256,
+        edits=(
+            CandidateEdit(
+                sheet="Sheet1",
+                cell="A1",
+                old_formula_sha256="3" * 64,
+                new_formula="=2",
+                rationale="Exercise state-aware terminal action selection.",
+                evidence_ids=("citation-123456789abc",),
+            ),
+        ),
+        expected_invariants=("Unrelated cells remain unchanged.",),
+    )
+    state.falsifier_verdict = FalsifierVerdict(
+        status=status,
+        proposal_id=state.candidate.proposal_id,
+        experiment_ids=("falsifier-check",),
+        counterexamples=("The candidate failed an independent check.",)
+        if status == "BROKEN"
+        else (),
+        remaining_risks=(),
+        explanation="Independent verification completed for the staged candidate.",
+    )
+    return state
+
+
+class CandidateTerminalRegistry:
+    def __init__(self, status: Literal["BROKEN", "SURVIVED"]) -> None:
+        self.specs = tuple(
+            _spec(name) for name in ("submit_repair", "finish_no_change", "request_human")
+        )
+        self.state = _manager_state_with_falsifier_verdict(status)
+
+    def execute(self, call: ToolCall) -> ToolEnvelope:
+        return ToolEnvelope(ok=True, tool=call.name, result={"accepted": True})
+
+
+def test_broken_candidate_final_mode_exposes_only_request_human(tmp_path: Path) -> None:
+    registry = CandidateTerminalRegistry("BROKEN")
+    loop = ToolCallingAgent(
+        actor="audit-manager",
+        model=CoordinationModel(),
+        registry=cast(AgentToolRegistry, registry),
+        budget=AgentBudgetLedger(
+            AgentRuntimeLimits(
+                manager_turn_limit=2,
+                falsifier_turn_limit=0,
+                model_call_limit=2,
+                tool_call_limit=2,
+                input_token_limit=1_000,
+                output_token_limit=1_000,
+                workbook_execution_limit=0,
+                retry_limit=0,
+                elapsed_time_limit_seconds=30,
+            )
+        ),
+        trajectory=Trajectory(tmp_path / "trajectory.jsonl", "broken-terminal"),
+        system_prompt="Test terminal actions after broken falsification.",
+        goal="Expose only a safe terminal action.",
+        prompt_version="broken-terminal-v1",
+        is_terminal=lambda: False,
+        terminal_tool_names=("submit_repair", "finish_no_change", "request_human"),
+    )
+
+    tools = loop._request_tools(final_turn=True)
+
+    assert [tool.name for tool in tools] == ["request_human"]
+
+
+def test_rejected_last_terminal_action_uses_fallback_without_extra_model_call(
+    tmp_path: Path,
+) -> None:
+    terminal = {"done": False}
+    fallback_reasons: list[str] = []
+
+    class RejectingTerminalRegistry:
+        specs = (_spec("request_human"),)
+
+        def execute(self, call: ToolCall) -> ToolEnvelope:
+            return ToolEnvelope(
+                ok=False,
+                tool=call.name,
+                error="Evidence guard rejected the terminal action",
+                error_type="ValueError",
+            )
+
+    class LastTurnModel:
+        def __init__(self) -> None:
+            self.requests: list[ModelRequest] = []
+
+        def complete(self, request: ModelRequest) -> ModelTurn:
+            self.requests.append(request)
+            return ModelTurn(
+                model="last-turn-test",
+                tool_calls=(ToolCall(call_id="terminal-20", name="request_human", arguments={}),),
+                finish_reason="tool_calls",
+                usage=ModelUsage(input_tokens=10, output_tokens=5, total_tokens=15),
+                elapsed_ms=1,
+            )
+
+    limits = AgentRuntimeLimits(
+        manager_turn_limit=20,
+        falsifier_turn_limit=0,
+        model_call_limit=25,
+        tool_call_limit=5,
+        input_token_limit=1_000,
+        output_token_limit=1_000,
+        workbook_execution_limit=0,
+        retry_limit=0,
+        elapsed_time_limit_seconds=30,
+    )
+    budget = AgentBudgetLedger(limits)
+    for _ in range(19):
+        budget.record_model_call("manager", input_tokens=0, output_tokens=0)
+    model = LastTurnModel()
+
+    def terminal_fallback(reason: str) -> None:
+        fallback_reasons.append(reason)
+        terminal["done"] = True
+
+    loop = ToolCallingAgent(
+        actor="audit-manager",
+        model=model,
+        registry=cast(AgentToolRegistry, RejectingTerminalRegistry()),
+        budget=budget,
+        trajectory=Trajectory(tmp_path / "trajectory.jsonl", "terminal-fallback"),
+        system_prompt="Test the last-turn fallback.",
+        goal="Stop safely after a rejected terminal action.",
+        prompt_version="terminal-fallback-v1",
+        is_terminal=lambda: terminal["done"],
+        terminal_tool_names=("request_human",),
+        terminal_fallback=terminal_fallback,
+    )
+
+    loop.run()
+
+    assert terminal["done"] is True
+    assert fallback_reasons == ["final_terminal_action_was_rejected"]
+    assert len(model.requests) == 1
+    assert model.requests[0].tool_choice == NamedToolChoice(name="request_human")
+    assert budget.snapshot()["manager_turns_used"] == 20
+    trace = (tmp_path / "trajectory.jsonl").read_text(encoding="utf-8")
+    assert '"event_type": "TERMINAL_FALLBACK"' in trace
+
+
+def test_survived_candidate_final_mode_exposes_only_submit_repair(tmp_path: Path) -> None:
+    registry = CandidateTerminalRegistry("SURVIVED")
+    loop = ToolCallingAgent(
+        actor="audit-manager",
+        model=CoordinationModel(),
+        registry=cast(AgentToolRegistry, registry),
+        budget=AgentBudgetLedger(
+            AgentRuntimeLimits(
+                manager_turn_limit=2,
+                falsifier_turn_limit=0,
+                model_call_limit=2,
+                tool_call_limit=2,
+                input_token_limit=1_000,
+                output_token_limit=1_000,
+                workbook_execution_limit=0,
+                retry_limit=0,
+                elapsed_time_limit_seconds=30,
+            )
+        ),
+        trajectory=Trajectory(tmp_path / "trajectory.jsonl", "survived-terminal"),
+        system_prompt="Test terminal actions after survived falsification.",
+        goal="Expose only repair submission.",
+        prompt_version="survived-terminal-v1",
+        is_terminal=lambda: False,
+        terminal_tool_names=("submit_repair", "finish_no_change", "request_human"),
+    )
+
+    tools = loop._request_tools(final_turn=True)
+
+    assert [tool.name for tool in tools] == ["submit_repair"]
 
 
 def test_terminal_tool_must_exist_in_registry(tmp_path: Path) -> None:

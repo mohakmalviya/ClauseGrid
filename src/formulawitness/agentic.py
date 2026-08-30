@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from .agent_budget import AgentBudgetLedger, AgentRuntimeLimits
+from .agent_budget import AgentBudgetExceeded, AgentBudgetLedger, AgentRuntimeLimits
 from .agent_loop import ChatModel, ToolCallingAgent
 from .agent_state import (
     AgentDecision,
@@ -33,6 +33,7 @@ from .artifacts import (
     write_json,
 )
 from .falsifier import FalsifierAgent
+from .model_client import ModelClientError
 from .models import AuditResult, JsonValue, Patch
 from .ooxml import changed_workbook_formulas, inspect_safety, patch_workbook, sha256_file
 from .policy_text import PolicyText
@@ -651,6 +652,43 @@ def run_agentic(
             "request_human",
         )
     )
+    def finish_manager_safely(reason: str) -> None:
+        """Convert a depleted terminal retry into a useful, structured public outcome."""
+
+        if state.decision is not None:
+            return
+        evidence_ids = tuple(sorted(set(state.citations) | set(state.experiments)))[:100]
+        verdict = state.falsifier_verdict
+        if verdict is not None and verdict.status == "BROKEN":
+            state.decision = AgentDecision(
+                decision="ABSTAIN",
+                explanation=(
+                    "The proposed repair failed independent checks and was rejected. "
+                    "The original workbook was left unchanged."
+                ),
+                evidence_ids=evidence_ids,
+                proposal_id=state.candidate.proposal_id if state.candidate else None,
+                reason_code="REPAIR_REJECTED",
+            )
+            return
+        state.decision = AgentDecision(
+            decision="ABSTAIN",
+            explanation=(
+                "The investigation reached its safety limit before a supported repair "
+                "completed. ClauseGrid made no correctness claim and left the workbook unchanged."
+            ),
+            evidence_ids=evidence_ids,
+            proposal_id=state.candidate.proposal_id if state.candidate else None,
+            reason_code="SAFETY_LIMIT_REACHED",
+        )
+        trajectory.record_agent_event(
+            "controller",
+            "GUARDRAIL",
+            {"action": "ABSTAIN", "reason": reason},
+            model_id=model_id,
+            prompt_version=MANAGER_PROMPT_VERSION,
+        )
+
     manager = ToolCallingAgent(
         actor="audit-manager",
         model=model,
@@ -662,6 +700,8 @@ def run_agentic(
         prompt_version=MANAGER_PROMPT_VERSION,
         is_terminal=lambda: state.decision is not None,
         terminal_tool_names=("submit_repair", "finish_no_change", "request_human"),
+        terminal_turn_reserve=2,
+        terminal_fallback=finish_manager_safely,
         terminal_tool_call_reserve=manager_terminal_reserve,
         coordination_tool_names=manager_coordination_tools,
         coordination_tool_call_reserve=manager_coordination_reserve,
@@ -675,10 +715,34 @@ def run_agentic(
         manager.run()
     except Exception as exc:  # noqa: BLE001 - controller must always fail closed to ABSTAIN
         if state.decision is None:
+            reason_code: Literal[
+                "SAFETY_LIMIT_REACHED", "MODEL_UNAVAILABLE", "RUNTIME_FAILURE"
+            ]
+            if isinstance(exc, AgentBudgetExceeded):
+                explanation = (
+                    "The investigation reached its safety limit before a supported repair "
+                    "completed. ClauseGrid made no correctness claim and left the workbook "
+                    "unchanged."
+                )
+                reason_code = "SAFETY_LIMIT_REACHED"
+            elif isinstance(exc, ModelClientError):
+                explanation = (
+                    "The managed AI service could not complete the investigation. "
+                    "The workbook was left unchanged."
+                )
+                reason_code = "MODEL_UNAVAILABLE"
+            else:
+                explanation = (
+                    "The investigation could not complete safely. "
+                    "The workbook was left unchanged."
+                )
+                reason_code = "RUNTIME_FAILURE"
             state.decision = AgentDecision(
                 decision="ABSTAIN",
-                explanation=f"Agent runtime stopped safely: {type(exc).__name__}: {exc}"[:4_000],
-                evidence_ids=tuple(sorted(set(state.citations) | set(state.experiments))),
+                explanation=explanation,
+                evidence_ids=tuple(sorted(set(state.citations) | set(state.experiments)))[:100],
+                proposal_id=state.candidate.proposal_id if state.candidate else None,
+                reason_code=reason_code,
             )
         trajectory.record_agent_event(
             "controller",

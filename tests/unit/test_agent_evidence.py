@@ -503,7 +503,7 @@ def test_candidate_structural_transform_derives_formula_from_guarded_source() ->
                     "sheet": "RebateCalc",
                     "cell": "P6",
                     "old_formula_sha256": old_hash,
-                    "formula_transform": "unwrap_outer_if_else",
+                    "formula_transform": "remove_outer_if_keep_else_branch",
                     "rationale": "Remove the faulty wrapper while preserving its else calculation.",
                     "evidence_ids": [citation_id],
                 }
@@ -517,6 +517,169 @@ def test_candidate_structural_transform_derives_formula_from_guarded_source() ->
     candidate = state.candidate.edits[0].new_formula
     assert candidate.startswith("=IF(AND(")
     assert 'K6<>"Y"' in candidate
+
+
+def test_candidate_is_replayed_against_registered_expected_output_before_staging() -> None:
+    manager, _, state, citation_id, old_hash = _registries()
+    defect = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "waiver-scope-defect",
+            "sheet": "RebateCalc",
+            "overrides": {"H6": 0.9, "I6": 0.05, "J6": 1, "K6": "Y"},
+            "observations": ["P6"],
+            "expectations": [{"cell": "P6", "expected": 0.6}],
+            "purpose": "Register the expected waiver-scope behavior before proposing a repair.",
+        },
+    )
+    assert defect.ok
+
+    wrong_branch = _call(
+        manager,
+        "stage_candidate",
+        {
+            "edits": [
+                {
+                    "sheet": "RebateCalc",
+                    "cell": "P6",
+                    "old_formula_sha256": old_hash,
+                    "formula_transform": "remove_outer_if_keep_then_branch",
+                    "rationale": "Deliberately retain the branch that returns a constant one.",
+                    "evidence_ids": [citation_id],
+                }
+            ],
+            "expected_invariants": ["The registered expected output must still pass"],
+        },
+    )
+
+    assert not wrong_branch.ok
+    assert "waiver-scope-defect" in str(wrong_branch.error)
+    assert "P6 expected 0.6 but got 1" in str(wrong_branch.error)
+    assert state.candidate is None
+
+    corrected = _call(
+        manager,
+        "stage_candidate",
+        {
+            "edits": [
+                {
+                    "sheet": "RebateCalc",
+                    "cell": "P6",
+                    "old_formula_sha256": old_hash,
+                    "formula_transform": "remove_outer_if_keep_else_branch",
+                    "rationale": "Retain the ordinary SLA calculation after removing waiver leakage.",
+                    "evidence_ids": [citation_id],
+                }
+            ],
+            "expected_invariants": ["The registered expected output must still pass"],
+        },
+    )
+
+    assert corrected.ok
+    assert corrected.result is not None
+    assert corrected.result["replayed_manager_expectations"] == ["waiver-scope-defect"]
+    assert state.candidate is not None
+
+
+def test_expected_observation_is_type_strict_and_tolerance_finite() -> None:
+    manager, _, state, _, old_hash = _registries()
+    typed = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "strict-bool-number",
+            "sheet": "RebateCalc",
+            "overrides": {},
+            "observations": ["P6"],
+            "expectations": [{"cell": "P6", "expected": True}],
+            "formula_overrides": [
+                {
+                    "cell": "P6",
+                    "old_formula_sha256": old_hash,
+                    "new_formula": "=1",
+                }
+            ],
+            "purpose": "Ensure a numeric one cannot satisfy a Boolean expectation.",
+        },
+    )
+
+    assert typed.ok
+    comparison = state.experiments["strict-bool-number"].observation["comparisons"][0]
+    assert comparison["actual"] == 1
+    assert comparison["expected"] is True
+    assert comparison["matches"] is False
+
+    infinite = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "infinite-tolerance",
+            "sheet": "RebateCalc",
+            "overrides": {"H6": 0.9},
+            "observations": ["P6"],
+            "expectations": [{"cell": "P6", "expected": 0.6, "tolerance": float("inf")}],
+            "purpose": "Reject a non-finite tolerance that would make every number match.",
+        },
+    )
+    assert not infinite.ok and "finite" in str(infinite.error)
+    assert "infinite-tolerance" not in state.experiments
+
+
+def test_candidate_replay_replaces_target_trial_and_preserves_unrelated_formula() -> None:
+    manager, _, state, citation_id, old_hash = _registries()
+    formulas = list_formulas(MUTANT)
+    q6_formula = formulas["RebateCalc!Q6"]
+    q6_hash = hashlib.sha256(q6_formula.encode("utf-8")).hexdigest()
+    trial = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "candidate-with-unrelated-proration",
+            "sheet": "RebateCalc",
+            "overrides": {
+                "B6": {"kind": "date", "value": "2026-01-01"},
+                "C6": {"kind": "date", "value": "2026-01-31"},
+                "D6": {"kind": "date", "value": "2026-01-01"},
+                "E6": 100000,
+                "F6": 0,
+                "G6": 0,
+                "H6": 0.9,
+                "I6": 0.05,
+                "J6": 2,
+                "K6": "Y",
+            },
+            "observations": ["P6", "R6"],
+            "expectations": [
+                {"cell": "P6", "expected": 0.6},
+                {"cell": "R6", "expected": 600},
+            ],
+            "formula_overrides": [
+                {
+                    "cell": "P6",
+                    "old_formula_sha256": old_hash,
+                    "new_formula": "=1",
+                },
+                {
+                    "cell": "Q6",
+                    "old_formula_sha256": q6_hash,
+                    "new_formula": "=0.5",
+                },
+            ],
+            "purpose": "Test a candidate target while retaining an unrelated proration trial.",
+        },
+    )
+    assert trial.ok
+
+    corrected = list_formulas(REFERENCE)["RebateCalc!P6"]
+    staged = _stage(manager, citation_id, old_hash, corrected)
+
+    assert staged.ok
+    assert staged.result is not None
+    assert staged.result["replayed_manager_expectations"] == [
+        "candidate-with-unrelated-proration"
+    ]
+    assert state.candidate is not None
 
 
 def test_no_change_requires_multiple_passing_branch_perturbations() -> None:
@@ -639,7 +802,8 @@ def test_falsifier_receives_manager_experiments_for_edited_cells(tmp_path: Path)
         },
     )
     assert experiment.ok
-    assert _stage(manager, citation_id, old_hash, "=1").ok
+    corrected = list_formulas(REFERENCE)["RebateCalc!P6"]
+    assert _stage(manager, citation_id, old_hash, corrected).ok
     assert state.candidate is not None
     falsifier = FalsifierAgent(
         model=InvalidTerminalVerdictModel(),
@@ -701,7 +865,8 @@ def test_inconclusive_falsification_stops_manager_without_more_model_turns() -> 
             "purpose": "Register evidence before an inconclusive independent check.",
         },
     ).ok
-    assert _stage(manager, citation_id, old_hash, "=1").ok
+    corrected = list_formulas(REFERENCE)["RebateCalc!P6"]
+    assert _stage(manager, citation_id, old_hash, corrected).ok
     assert state.candidate is not None
     proposal_id = state.candidate.proposal_id
     registry = AgentToolRegistry(
