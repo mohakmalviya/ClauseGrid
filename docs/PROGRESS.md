@@ -249,3 +249,21 @@
   flooring, and an unpenalized rebate above the cap. Dedicated mutations that remove each control
   are now killed, while C01-C03 remain clean. Workbook execution failures return structured
   `INCONCLUSIVE` evidence rather than being misreported as policy violations.
+
+## Checkpoint 17 - demo-first workbench and first-user walkthrough
+
+- Replaced the long landing-page stack with a full-width workbench whose two explicit modes are
+  recurring deterministic verification and optional AI-assisted investigation.
+- Added an above-the-fold M10 quick check, a stable empty-result region, compact supporting
+  explanations, expandable Policy Pack evidence, and responsive layouts that remove the earlier
+  narrow result column and nested-card sprawl.
+- Added a seven-step spotlight walkthrough with replay controls, Next, Back, Skip, Escape and arrow
+  keys, focus containment and restoration, resize tracking, mobile bottom-sheet behavior, and
+  first-visit persistence. The tour switches modes only while explaining them and restores the
+  user's prior mode when it closes.
+- Added roving keyboard focus to both tab groups, hid AI workflow and result state from recurring
+  verification, disabled mode changes during a running AI audit, and exposed runtime failures in
+  the status badge instead of always claiming readiness.
+- Browser checks ran the first-screen M10 path and confirmed the expected 26/27 result with exact
+  cell evidence, exercised both tab systems by keyboard, walked to the result explanation, and
+  verified mode restoration. The focused UI suite passes 28 tests; the complete suite passes 302.

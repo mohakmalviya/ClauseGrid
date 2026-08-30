@@ -230,6 +230,10 @@ clausegrid serve \
 
 Open [http://127.0.0.1:8765](http://127.0.0.1:8765) and leave the terminal running.
 
+The workbench opens in recurring verification mode. Use **Run the M10 quick check** for the
+shortest demo, switch to **Investigate new evidence** for the optional agent workflow, or select
+**Guided tour** at any time for the seven-step first-user walkthrough.
+
 To use another provider, change all three matching pieces:
 
 1. the environment variable containing its key;
@@ -319,7 +323,7 @@ pytest
 clausegrid eval
 ```
 
-The current release passed 293 automated tests. Its frozen deterministic benchmark detects all 12
+The current release passed 302 automated tests. Its frozen deterministic benchmark detects all 12
 single-formula mutants, preserves all three clean controls, and detects the hard multi-error case.
 
 ## Benchmark results

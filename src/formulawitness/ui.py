@@ -32,6 +32,7 @@ from .policy_pack import (
 from .policy_pack_runtime import verify_with_policy_pack
 from .public_benchmark import WORKBOOK_CASES
 from .trace import object_hash
+from .ui_page import build_html
 from .uploaded_inputs import (
     MAX_POLICY_BYTES,
     MAX_UPLOADS_PER_SERVER,
@@ -122,11 +123,15 @@ function render(data){current=data;const result=data.result;const state=data.sta
  $('falsifier').replaceChildren();if(v){$('falsifier').append(node('span',v.status,'status '+v.status),node('p',v.explanation));if(v.counterexamples?.length)$('falsifier').append(node('div',`Counterexamples: ${v.counterexamples.join('; ')}`,'danger'));if(v.remaining_risks?.length)$('falsifier').append(node('div',`Remaining risks: ${v.remaining_risks.join('; ')}`,'small'))}else $('falsifier').append(node('p','No independent falsifier run was required or completed.'));
  const approved=Boolean(result.approval_hash),survived=v?.status==='SURVIVED',browserApproval=runtimeConfig?.browser_approval_enabled===true,showApproval=browserApproval&&result.decision==='REPAIR'&&survived;$('approvalPanel').classList.toggle('hidden',!showApproval);$('approve').disabled=!showApproval||approved;$('approvalMessage').textContent=approved?`Approved: ${result.approval_hash}`:'Review every artifact before approval.';if(data.cleanup_warning)$('approvalMessage').textContent+=` ${data.cleanup_warning}`;renderDownloads(data.downloads)}
 $('benchmarkTab').onclick=()=>setInputMode('benchmark');$('uploadTab').onclick=()=>setInputMode('upload');
-$('verifyPack').onclick=async()=>{try{$('verifyPack').disabled=true;$('verifyPack').textContent='Verifying…';$('verifyMessage').className='small';$('verifyMessage').textContent='Replaying the frozen suite with deterministic code. No model is being called.';const data=await api('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:$('verifyCase').value})});renderVerification(data);$('verifyMessage').textContent=`Verification complete · ${data.verification.decision} · ${data.verification.model_calls} model calls.`}catch(e){$('verifyMessage').textContent=e.message;$('verifyMessage').className='danger'}finally{$('verifyPack').disabled=false;$('verifyPack').textContent='Run deterministic verification'}};
+$('verifyPack').onclick=async()=>{try{$('verifyPack').disabled=true;$('verifyPack').textContent='Verifying…';$('verifyMessage').className='small';$('verifyMessage').textContent='Replaying the frozen suite with deterministic code. No model is being called.';const data=await api('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:$('verifyCase').value})});renderVerification(data);$('verifyMessage').textContent=`Verification complete · ${data.verification.decision} · ${data.verification.model_calls} model calls.`}catch(e){$('verifyMessage').textContent=e.message;$('verifyMessage').className='danger'}finally{$('verifyPack').disabled=false;$('verifyPack').textContent='Run approved checks'}};
 $('audit').onclick=async()=>{try{$('audit').disabled=true;$('audit').textContent='Investigation running…';$('message').className='';let request;if(inputMode==='upload'){const uploadId=await uploadInputs();request={upload_id:uploadId}}else{request={case_id:$('case').value}}$('message').textContent='The audit manager is choosing evidence and experiments…';updateProgress({phase:'Starting safety checks'});let d=await api('/api/audit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});if(inputMode==='upload'){preparedUploadId=null;preparedUploadSignature=null}if(d.job_id)d=await waitForJob(d.status_url);render(d);$('message').textContent=`Investigation completed with ${d.result.decision}. Review the evidence below.`;$('results').scrollIntoView({behavior:'smooth',block:'start'});$('results').focus()}catch(e){if(inputMode==='upload'&&e.status===400){preparedUploadId=null;preparedUploadSignature=null}$('message').textContent=e.message;$('message').className='danger';$('statusDot').classList.remove('live');$('progressMeta').textContent='STOPPED · AUDIT FAILED CLOSED'}finally{$('audit').disabled=false;$('audit').textContent='Run AI investigation'}};
 $('approve').onclick=async()=>{try{$('approve').disabled=true;$('approvalMessage').className='small';$('approvalMessage').textContent='Revalidating evidence and writing a copied workbook…';const d=await api('/api/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({run_id:current.result.run_id,reviewer:$('reviewer').value})});render(d)}catch(e){$('approvalMessage').textContent=e.message;$('approvalMessage').className='danger'}finally{$('approve').disabled=Boolean(current?.result?.approval_hash)}};
-$('reset').onclick=()=>location.reload();init().catch(e=>{$('message').textContent=e.message;$('message').className='danger'});
+$('reset').onclick=()=>location.reload();
 </script></body></html>"""
+
+_LEGACY_SCRIPT_START = HTML.index("<script>") + len("<script>")
+_LEGACY_SCRIPT_END = HTML.rindex("</script>")
+HTML = build_html(HTML[_LEGACY_SCRIPT_START:_LEGACY_SCRIPT_END])
 
 
 DOWNLOAD_ALLOWLIST = frozenset(

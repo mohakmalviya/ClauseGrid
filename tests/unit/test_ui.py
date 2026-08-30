@@ -339,35 +339,35 @@ def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     assert "approve_agentic_proposal(" in handler_source
     assert "run_advanced(" not in handler_source
     assert "Run AI investigation" in HTML
-    assert "Run deterministic verification" in HTML
+    assert "Run approved checks" in HTML
     assert "Recurring audit · 0 AI calls" in HTML
     assert "Policy Pack hash" in HTML
-    assert "Test-suite hash" in HTML
-    assert "Workbook-mapping hash" in HTML
+    assert "Test suite hash" in HTML
+    assert "Workbook mapping hash" in HTML
     assert "Approval means an authorized interpretation" in HTML
-    assert "successor version" in HTML
+    assert "Publish a successor" in HTML
     assert "Independent falsifier verdict" in HTML
     assert "Legacy deterministic regression evidence" in HTML
-    assert "It is not model-agent performance" in HTML
-    assert HTML.index("Why ClauseGrid exists") < HTML.index("Run deterministic verification")
+    assert "It is not model agent performance" in HTML
+    assert HTML.index("Policy locked spreadsheet assurance") < HTML.index("Run approved checks")
     assert "Review real behavior" in HTML
     assert "Publish an immutable pack" in HTML
-    assert "Both reviewers attest one release hash" in HTML
+    assert "One frozen release binds rules tests mappings and engines" in HTML
     assert "this public demo is read-only" in HTML
     assert "if(v.failed_count)" in HTML
     assert "v.decision==='INCONCLUSIVE'" in HTML
     assert "Some checks could not run so no pass or fail was issued" in HTML
     assert "Audit without an LLM" in HTML
     assert "Keep every defect class" in HTML
-    assert "Upload workbook + policy" in HTML
-    assert "matching policy .pdf" in HTML
-    assert "public, synthetic, or approved data" in HTML
-    assert "Supported profile: calculation-focused .xlsx only" in HTML
-    assert "Why not just use Claude?" in HTML
-    assert "Claude can help once. ClauseGrid remembers the approved answer." in HTML
-    assert "Yes—Claude or another model can read a policy" in HTML
-    assert "AI helps draft. People own policy meaning." in HTML
-    assert HTML.index("Why not just use Claude?") < HTML.index("Run deterministic verification")
+    assert "Upload workbook and policy" in HTML
+    assert "Matching policy pdf" in HTML
+    assert "public synthetic or approved data" in HTML
+    assert "Supported profile calculation focused xlsx only" in HTML
+    assert "Why not just use Claude" in HTML
+    assert "AI can investigate ClauseGrid preserves the approved answer" in HTML
+    assert "Claude or another model can read a policy" in HTML
+    assert "AI proposes" in HTML
+    assert HTML.index("Run approved checks") < HTML.index("Why not just use Claude")
     assert 'role="tab"' in HTML
     assert 'role="progressbar"' in HTML
     assert 'aria-live="polite"' in HTML
@@ -387,10 +387,65 @@ def test_agent_result_ui_is_state_aware_and_full_width() -> None:
     assert "showApproval=browserApproval&&result.decision==='REPAIR'&&survived" in HTML
     assert "$('approvalPanel').classList.toggle('hidden',!showApproval)" in HTML
 
-    assert "main{width:100%;max-width:none" in HTML
-    assert ".results-grid{display:grid;grid-template-columns:1fr" in HTML
-    assert ".decision-panel{position:static" in HTML
-    assert ".decision-panel{position:sticky" not in HTML
+    assert (
+        ".app-shell { display: grid; grid-template-columns: var(--rail-width) minmax(0, 1fr); }"
+        in HTML
+    )
+    assert ".workspace {" in HTML
+    assert "width: 100%;" in HTML
+    assert ".results-grid { display: grid; grid-template-columns: 1fr;" in HTML
+    assert ".decision-panel { position: static;" in HTML
+    assert ".decision-panel { position: sticky;" not in HTML
+
+
+def test_first_visit_walkthrough_is_accessible_replayable_and_responsive() -> None:
+    assert 'id="startTour"' in HTML
+    assert 'id="railTourButton"' in HTML
+    assert 'id="tourLayer"' in HTML
+    assert 'role="dialog"' in HTML
+    assert 'aria-modal="true"' in HTML
+    assert 'data-tour="mode"' in HTML
+    assert 'data-tour="pack"' in HTML
+    assert 'data-tour="input"' in HTML
+    assert 'data-tour="run-ai"' in HTML
+    assert 'data-tour="trail"' in HTML
+    assert "target:'[data-tour=\"result\"]'" in HTML
+    assert "clausegrid.guidedTour.v1" in HTML
+    assert "new URLSearchParams(location.search).get('tour')==='off'" in HTML
+    assert "new ResizeObserver" in HTML
+    assert "event.key==='Escape'" in HTML
+    assert "event.key==='ArrowRight'" in HTML
+    assert "event.key==='ArrowLeft'" in HTML
+    assert "event.key!=='Tab'" in HTML
+    assert "$('appShell').inert=true" in HTML
+    assert "$('appShell').inert=false" in HTML
+    assert "document.querySelector('.skip-link').inert=true" in HTML
+    assert "scheduleAutoTour" in HTML
+    assert "@media (max-width: 640px)" in HTML
+    assert "inset: auto 0 0 0 !important;" in HTML
+    assert "max-height: calc(100dvh - 28px);" in HTML
+    assert "overflow-y: auto;" in HTML
+
+
+def test_workbench_has_two_explicit_modes_and_a_stable_empty_result() -> None:
+    assert 'id="modeRecurring"' in HTML
+    assert 'id="modeInvestigation"' in HTML
+    assert 'id="recurringPane"' in HTML
+    assert 'id="investigationPane"' in HTML
+    assert "function setWorkspaceMode(mode,options={})" in HTML
+    assert "AI calls for recurring audits" in HTML
+    assert "Your evidence will appear here" in HTML
+    assert ".verify-result {" in HTML
+    assert "min-height: 152px;" in HTML
+    assert 'id="quickAudit"' in HTML
+    assert "$('quickAudit').onclick=async()=>" in HTML
+    assert "$('auditFlow').classList.toggle('hidden',!investigating)" in HTML
+    assert "$('results').classList.toggle('hidden',!investigating||!hasAgentResult)" in HTML
+    assert "event.key==='Home'" in HTML
+    assert "event.key==='End'" in HTML
+    assert "$('modeRecurring').tabIndex=investigating?-1:0" in HTML
+    assert "$('runtimeState').textContent='Runtime unavailable'" in HTML
+    assert "pack.generated_test_count+pack.regression_test_count" in HTML
 
 
 def test_policy_pack_api_and_recurring_verification_never_call_model() -> None:
