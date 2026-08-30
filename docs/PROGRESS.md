@@ -184,3 +184,14 @@
   formula-cell value overrides and never staged a candidate. Both ended safely as `ABSTAIN`.
 - Kept the deployment default unchanged because catalog presence and one correct intermediate
   hypothesis do not satisfy the manager/falsifier acceptance contract.
+
+## Checkpoint 13 - Render cold-start recovery
+
+- Reproduced a transient Render free-tier routing response where the public origin returned plain
+  text `404 Not Found` before the same origin and every JSON API route returned `200`.
+- Added a health-first browser bootstrap and bounded retries for idempotent GET requests when the
+  hosting edge returns a non-JSON `404`, `502`, `503`, or `504` during startup.
+- Replaced unconditional JSON parsing with content-aware response decoding so a hosting error is
+  reported with its endpoint and status instead of crashing as an `Unexpected token` exception.
+- Kept POST and upload requests non-retrying to avoid duplicating audits or external processing
+  after an ambiguous network failure.

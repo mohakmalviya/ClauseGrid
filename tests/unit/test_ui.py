@@ -326,6 +326,10 @@ def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     assert "matching policy .pdf" in HTML
     assert "public, synthetic, or approved data" in HTML
     assert "Supported profile: calculation-focused .xlsx only" in HTML
+    assert "The hosted runtime is waking up. Retrying automatically" in HTML
+    assert "await api('/healthz')" in HTML
+    assert "const text=await response.text()" in HTML
+    assert "const j=await r.json()" not in HTML
 
 
 def test_audit_endpoint_runs_model_agent_and_returns_review_pack(tmp_path: Path) -> None:
