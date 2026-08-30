@@ -593,13 +593,9 @@ code { font-family: Consolas, monospace; font-size: var(--text-xs); word-break: 
 .before, .after { min-width: 0; padding: 11px; overflow-x: auto; background: #f4f2ed; font-family: Consolas, monospace; font-size: var(--text-sm); line-height: 1.55; overflow-wrap: normal; word-break: normal; white-space: pre; scrollbar-width: thin; }
 .before { border-left: 3px solid var(--fail); color: #8e2931; }
 .after { border-left: 3px solid var(--pass); color: #0b6843; }
-.outcome-panel .patch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 22px 0 0; padding: 0; overflow: hidden; border-radius: 12px; background: var(--line); }
+.outcome-panel .patch { display: grid; grid-template-columns: minmax(150px, .28fr) minmax(0, 1fr); gap: 1px; margin: 22px 0 0; padding: 0; overflow: hidden; border-radius: 12px; background: var(--line); }
 .outcome-panel .patch > b { grid-column: 1 / -1; padding: 13px 14px; background: #f2f0ea; font-size: var(--text-sm); }
 .outcome-panel .patch > .formula-label { margin: 0; padding: 10px 14px 5px; background: #fff; }
-.outcome-panel .patch > .formula-label:first-of-type { grid-column: 1; grid-row: 2; }
-.outcome-panel .patch > .formula-label:last-of-type { grid-column: 2; grid-row: 2; }
-.outcome-panel .patch > .before { grid-column: 1; grid-row: 3; }
-.outcome-panel .patch > .after { grid-column: 2; grid-row: 3; }
 .outcome-panel .patch > .patch-rationale { grid-column: 1 / -1; margin: 0; padding: 13px 14px; background: #fff; color: var(--ink-soft); font-size: var(--text-sm); line-height: 1.55; }
 .approval { border-color: #dfbd7f; background: #fff9ed !important; }
 .downloads a { display: inline-block; margin: 6px 6px 0 0; padding: 9px 11px; border: 1px solid #aebbd0; border-radius: 8px; color: var(--action-dark); background: #f7f8fc; font-size: var(--text-sm); font-weight: 750; text-decoration: none; }
@@ -784,7 +780,6 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
   #results { gap: 10px; margin-top: 24px; }
   .result-sheet, #results > .panel, .results-grid .panel { padding: 20px 17px; }
   .outcome-panel .patch { grid-template-columns: 1fr; }
-  #results .outcome-panel .patch > :is(b, .formula-label, .before, .after, .patch-rationale) { grid-column: 1; grid-row: auto; }
   .verify-details, .upload-grid, .grid { grid-template-columns: 1fr; }
   .workflow-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .step { flex-direction: column; gap: 5px; padding: 9px 3px; text-align: center; overflow-wrap: anywhere; }

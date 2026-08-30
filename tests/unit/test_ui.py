@@ -398,14 +398,8 @@ def test_agent_result_ui_is_state_aware_full_width_and_responsive() -> None:
     assert ".decision-panel { position: static;" in HTML
     assert ".decision-panel { position: sticky;" not in HTML
     assert (
-        ".outcome-panel .patch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));"
+        ".outcome-panel .patch { display: grid; grid-template-columns: minmax(150px, .28fr) minmax(0, 1fr);"
         in HTML
-    )
-    assert ".outcome-panel .patch > .before { grid-column: 1; grid-row: 3; }" in HTML
-    assert ".outcome-panel .patch > .after { grid-column: 2; grid-row: 3; }" in HTML
-    assert (
-        "#results .outcome-panel .patch > :is(b, .formula-label, .before, .after, .patch-rationale)"
-        " { grid-column: 1; grid-row: auto; }" in HTML
     )
 
 
