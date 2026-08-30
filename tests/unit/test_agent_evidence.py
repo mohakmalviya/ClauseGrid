@@ -402,11 +402,15 @@ def test_repair_decision_requires_policy_and_current_falsifier_evidence() -> Non
         manager,
         "submit_repair",
         {
-            "explanation": "The exact policy citation and falsifier experiment support repair.",
-            "evidence_ids": [citation_id, "current-survival"],
+            "explanation": (
+                "The exact policy citation and surviving falsifier verdict support repair."
+            ),
+            "evidence_ids": [citation_id],
         },
     )
     assert accepted.ok
+    assert accepted.result is not None
+    assert set(accepted.result["evidence_ids"]) == {citation_id, "current-survival"}
 
 
 def test_human_escalation_requires_policy_and_executed_workbook_evidence() -> None:
@@ -449,10 +453,15 @@ def test_human_escalation_requires_policy_and_executed_workbook_evidence() -> No
         "request_human",
         {
             "reason": "The executed result leaves a material policy ambiguity for a reviewer.",
-            "evidence_ids": [citation_id, "human-escalation-observation"],
+            "evidence_ids": [citation_id],
         },
     )
     assert accepted.ok
+    assert accepted.result is not None
+    assert set(accepted.result["evidence_ids"]) == {
+        citation_id,
+        "human-escalation-observation",
+    }
 
 
 def test_candidate_quote_template_reconstructs_and_validates_excel_formula() -> None:

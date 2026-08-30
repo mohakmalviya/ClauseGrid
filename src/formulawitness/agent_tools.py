@@ -825,26 +825,36 @@ class AgentToolRegistry:
         self._require_policy_citation(args.evidence_ids)
         if self.state.candidate is None:
             raise ValueError("No candidate is staged")
+        evidence_ids = list(args.evidence_ids)
+        controller_bound_evidence = [
+            evidence_id for edit in self.state.candidate.edits for evidence_id in edit.evidence_ids
+        ]
         if self._require_falsifier:
             verdict = self.state.falsifier_verdict
             if verdict is None or verdict.proposal_id != self.state.candidate.proposal_id:
                 raise ValueError("Current candidate has not been independently falsified")
             if verdict.status != "SURVIVED":
                 raise ValueError(f"Repair cannot be submitted after {verdict.status} falsification")
-            missing_verdict_evidence = set(verdict.experiment_ids) - set(args.evidence_ids)
-            if missing_verdict_evidence:
-                raise ValueError("Repair decision must cite every falsifier experiment")
+            controller_bound_evidence.extend(verdict.experiment_ids)
         else:
             validations = self._candidate_validation_experiments()
             if not validations:
                 raise ValueError("Single-agent repair requires one sandbox candidate validation")
             if not set(validations) & set(args.evidence_ids):
                 raise ValueError("Repair decision must cite a candidate validation experiment")
+        # The model chooses whether to submit the surviving candidate and must still provide a
+        # known policy citation. Binding the staged-candidate and falsifier evidence is mechanical
+        # provenance work owned by the controller, not a formatting test for the model. Every
+        # automatically attached id is revalidated against current hash-bound state.
+        for evidence_id in controller_bound_evidence:
+            if evidence_id not in evidence_ids:
+                evidence_ids.append(evidence_id)
+        self._known_evidence(tuple(evidence_ids))
         decision = AgentDecision(
             decision="REPAIR",
             proposal_id=self.state.candidate.proposal_id,
             explanation=args.explanation,
-            evidence_ids=args.evidence_ids,
+            evidence_ids=tuple(evidence_ids),
         )
         self.state.decision = decision
         return decision.model_dump(mode="json")
@@ -934,15 +944,23 @@ class AgentToolRegistry:
         args = RequestHumanArgs.model_validate(raw)
         self._known_evidence(args.evidence_ids)
         self._require_policy_citation(args.evidence_ids)
-        if not set(args.evidence_ids) & set(self.state.experiments):
+        evidence_ids = list(args.evidence_ids)
+        if not set(evidence_ids) & set(self.state.experiments):
+            # The decision to escalate and its reason remain model-controlled. Attaching the
+            # already-executed, hash-bound workbook evidence is mechanical provenance work; a
+            # model should not burn every terminal turn merely because it narrated an experiment
+            # but omitted its opaque id from the structured array.
+            evidence_ids.extend(self.state.experiments)
+        if not set(evidence_ids) & set(self.state.experiments):
             raise ValueError(
                 "Human escalation must cite an executed workbook experiment; continue "
                 "investigating instead of using request_human as a progress message"
             )
+        self._known_evidence(tuple(evidence_ids))
         decision = AgentDecision(
             decision="ABSTAIN",
             explanation=args.reason,
-            evidence_ids=args.evidence_ids,
+            evidence_ids=tuple(evidence_ids),
         )
         self.state.decision = decision
         return decision.model_dump(mode="json")
