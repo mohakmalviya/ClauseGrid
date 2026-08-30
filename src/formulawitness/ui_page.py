@@ -217,8 +217,6 @@ summary:focus-visible, [tabindex]:focus-visible {
 .opening-quick:hover:not(:disabled) { background: #c8e653; }
 .opening-tour { border: 1px solid rgba(255,255,255,.24); background: transparent; color: #fff; }
 .opening-tour:hover:not(:disabled) { background: rgba(255,255,255,.08); }
-.opening-why { margin-left: 5px; color: var(--signal); font-size: var(--text-ui); font-weight: 800; text-underline-offset: 4px; }
-.opening-why:hover { color: #fff; }
 .proof-list { display: grid; gap: 1px; border: 1px solid rgba(255,255,255,.12); }
 .proof-item {
   display: grid;
@@ -574,7 +572,7 @@ code { font-family: Consolas, monospace; font-size: var(--text-xs); word-break: 
 .danger { color: var(--fail) !important; }
 .small { color: var(--ink-soft); font-size: var(--text-sm); }
 
-.support-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(4, auto); column-gap: 14px; row-gap: 0; align-items: stretch; margin-top: 18px; }
+.support-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(4, auto); column-gap: 14px; row-gap: 0; align-items: stretch; margin: 0 0 18px; }
 .support-card { display: grid; grid-row: span 4; grid-template-rows: subgrid; min-width: 0; align-self: stretch; padding: clamp(20px, 2.2vw, 30px); border: 1px solid var(--line); border-radius: var(--radius); background: rgba(255, 253, 248, .94); }
 .support-card h2 { margin: 6px 0 11px; font-family: Georgia, serif; font-size: clamp(23px, 2vw, 31px); line-height: 1.12; text-wrap: balance; }
 .support-card > p { margin: 0; color: var(--ink-soft); font-size: var(--text-body); line-height: 1.65; }
@@ -753,7 +751,7 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
   .step { padding: 10px 10px 10px 32px; border-right: 0; border-bottom: 1px solid var(--line); text-align: left; }
   .step::before { top: 13px; }
   .step:last-child { border-bottom: 0; }
-  .support-grid { gap: 10px; margin-top: 10px; }
+  .support-grid { gap: 10px; margin: 0 0 10px; }
   .support-card { padding: 20px 17px; }
   .agent-pair { grid-template-columns: 1fr; }
   .agent-arrow { transform: rotate(90deg); text-align: center; }
@@ -822,7 +820,7 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
           <span class="eyebrow">Policy locked spreadsheet assurance</span>
           <h1 id="openingTitle">Prove every spreadsheet follows the approved policy</h1>
           <p>ClauseGrid checks workbook formulas against rules that qualified people already approved and shows the exact evidence behind every result. It does not ask an AI model to redefine the policy on every recurring audit.</p>
-          <div class="opening-actions"><button type="button" class="opening-quick" id="quickAudit" disabled>Run the M10 quick check</button><button type="button" class="opening-tour" id="openingTour">Show me around</button><a class="opening-why" href="#howItWorks">How this differs from Claude →</a></div>
+          <div class="opening-actions"><button type="button" class="opening-quick" id="quickAudit" disabled>Run the M10 quick check</button><button type="button" class="opening-tour" id="openingTour">Show me around</button></div>
         </div>
         <aside class="proof-list" aria-label="ClauseGrid assurances">
           <div class="proof-item"><i>✓</i><div><b>Source file unchanged</b><span>All checks run on controlled copies</span></div></div>
@@ -831,6 +829,21 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
         </aside>
       </section>
       <div class="trust-chain" aria-label="Assurance chain"><span>exact policy clause</span><span>human approved examples</span><span>frozen executable pack</span><span>repeatable evidence</span></div>
+
+      <section class="support-grid" id="howItWorks">
+        <article class="support-card">
+          <span class="section-kicker">Why not just use Claude</span>
+          <h2>AI can investigate ClauseGrid preserves the approved answer</h2>
+          <p>Claude or another model can read a policy and suggest a formula That is useful ClauseGrid adds the control a chat does not keep by itself qualified people approve concrete examples once and deterministic code repeats those checks the same way every time</p>
+          <div class="difference-flow"><div><b>AI proposes</b><span>Find clauses and draft possible interpretations</span></div><div><b>People approve</b><span>Policy and controls owners decide concrete expected behavior</span></div><div><b>Code verifies</b><span>The frozen pack owns recurring pass or fail with no model call</span></div></div>
+        </article>
+        <article class="support-card">
+          <span class="section-kicker">Agent engineering</span>
+          <h2>Two agent roles challenge unfamiliar evidence before approval</h2>
+          <p>Agents are optional and cannot silently change policy meaning They investigate new workbooks run experiments and challenge proposed repairs Approved tests still control the final pass or fail decision</p>
+          <div class="agent-pair"><div class="agent-node"><b>Audit manager</b><span>Reads evidence runs experiments and proposes an exact formula change</span></div><div class="agent-arrow">→</div><div class="agent-node"><b>Fresh context falsifier</b><span>Searches for counterexamples and blocks unsupported proposals</span></div></div>
+        </article>
+      </section>
 
       <section class="surface-primary audit-workbench" id="auditWorkspace" data-tour="workspace" aria-labelledby="workspaceTitle">
         <div class="workbench-head">
@@ -928,21 +941,6 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
         <details class="panel result-detail"><summary>Reproducible sandbox experiments</summary><div style="overflow:auto"><table><thead><tr><th>ID</th><th>Actor</th><th>Purpose</th><th>Observed result</th></tr></thead><tbody id="experiments"></tbody></table></div></details>
         <details class="panel result-detail"><summary>Independent falsifier verdict</summary><div id="falsifier"></div></details>
         <div class="panel approval hidden" id="approvalPanel"><h2>Private human approval</h2><p>This applies only to the exact copied workbook repair above It does not approve or change Policy Pack meaning Review the citations experiments falsifier result and proposal hash before authorizing a copy</p><div class="grid"><div><label for="reviewer">Reviewer label</label><input id="reviewer" value="hackathon-reviewer"></div><div><label>Source SHA 256</label><code id="sourceHash"></code><label style="margin-top:12px">Proposal hash</label><code id="proposalHash"></code></div></div><div class="actions"><button id="approve">Approve exact repair proposal</button></div><div id="approvalMessage" class="small" role="status" aria-live="polite"></div><div id="downloads" class="downloads"></div></div>
-      </section>
-
-      <section class="support-grid" id="howItWorks">
-        <article class="support-card">
-          <span class="section-kicker">Why not just use Claude</span>
-          <h2>AI can investigate ClauseGrid preserves the approved answer</h2>
-          <p>Claude or another model can read a policy and suggest a formula That is useful ClauseGrid adds the control a chat does not keep by itself qualified people approve concrete examples once and deterministic code repeats those checks the same way every time</p>
-          <div class="difference-flow"><div><b>AI proposes</b><span>Find clauses and draft possible interpretations</span></div><div><b>People approve</b><span>Policy and controls owners decide concrete expected behavior</span></div><div><b>Code verifies</b><span>The frozen pack owns recurring pass or fail with no model call</span></div></div>
-        </article>
-        <article class="support-card">
-          <span class="section-kicker">Agent engineering</span>
-          <h2>Two agent roles challenge unfamiliar evidence before approval</h2>
-          <p>Agents are optional and cannot silently change policy meaning They investigate new workbooks run experiments and challenge proposed repairs Approved tests still control the final pass or fail decision</p>
-          <div class="agent-pair"><div class="agent-node"><b>Audit manager</b><span>Reads evidence runs experiments and proposes an exact formula change</span></div><div class="agent-arrow">→</div><div class="agent-node"><b>Fresh context falsifier</b><span>Searches for counterexamples and blocks unsupported proposals</span></div></div>
-        </article>
       </section>
 
       <details class="surface-primary support-details" id="policyPackSection">

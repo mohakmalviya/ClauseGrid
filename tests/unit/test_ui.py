@@ -368,7 +368,8 @@ def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     assert "AI can investigate ClauseGrid preserves the approved answer" in HTML
     assert "Claude or another model can read a policy" in HTML
     assert "AI proposes" in HTML
-    assert HTML.index("Run approved checks") < HTML.index("Why not just use Claude")
+    assert HTML.index('aria-label="Assurance chain"') < HTML.index('id="howItWorks"')
+    assert HTML.index('id="howItWorks"') < HTML.index('id="auditWorkspace"')
     assert 'role="tab"' in HTML
     assert 'role="progressbar"' in HTML
     assert 'aria-live="polite"' in HTML
@@ -465,7 +466,8 @@ def test_primary_navigation_and_active_pack_live_in_top_bar() -> None:
     assert "--rail-width" not in HTML
     assert '<nav class="appbar-nav" aria-label="Primary navigation">' in HTML
     assert '<a href="#howItWorks">Why ClauseGrid</a>' in HTML
-    assert 'class="opening-why" href="#howItWorks">How this differs from Claude' in HTML
+    assert "How this differs from Claude" not in HTML
+    assert HTML.count('href="#howItWorks"') == 1
     for anchor in (
         "#start",
         "#auditWorkspace",
