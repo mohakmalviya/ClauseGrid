@@ -6,23 +6,26 @@ is disabled. It is not a production multi-tenant deployment.
 
 ## Render Blueprint
 
-Prerequisites: the private GitHub repository, a Render account that can access it, and a Qubrid
-API key. Render supports private Git repositories and Docker-based web services; its proxy forwards
-public traffic to the port supplied in `PORT`.
+Prerequisites: the private GitHub repository, a Render account that can access it, and an API key
+for the selected model provider. Render supports private Git repositories and Docker-based web
+services; its proxy forwards public traffic to the port supplied in `PORT`.
 
 1. Push the repository revision you intend to demo.
 2. In Render, create a **Blueprint**, connect the private GitHub repository, and select
    `render.yaml`.
-3. Supply `QUBRID_API_KEY` when prompted. Do not put it in Git, Docker build arguments, or the
-   image.
+3. Supply the selected provider's key value as `CLAUSEGRID_API_KEY` when prompted. Do not put it in
+   Git, Docker build arguments, or the image.
 4. Deploy and open the generated `https://...onrender.com` URL.
 5. Check `GET /healthz`, load the UI, select M10, and run one audit. The POST returns `202`; the UI
    polls an unguessable job URL until the result is complete.
 
-The Blueprint fixes the provider/model to `qubrid` and `deepseek-ai/DeepSeek-V3.2`. The deployment entry point reads
-`RENDER_EXTERNAL_URL`, binds `0.0.0.0:$PORT`, and stores transient artifacts under
-`/tmp/formulawitness`. Render environment variables are configured at runtime, not embedded into the
-container.
+The Blueprint starts with `qubrid` and `deepseek-ai/DeepSeek-V3.2`, but these are ordinary
+`CLAUSEGRID_PROVIDER` and `CLAUSEGRID_MODEL` environment values. Change them to any documented
+preset without rebuilding the image; keep the matching key value in `CLAUSEGRID_API_KEY`. For a
+custom OpenAI-compatible gateway set `CLAUSEGRID_PROVIDER=openai-compatible` and add
+`CLAUSEGRID_BASE_URL`. The deployment entry point reads `RENDER_EXTERNAL_URL`, binds
+`0.0.0.0:$PORT`, and stores transient artifacts under `/tmp/clausegrid`. Environment variables are
+configured at runtime, not embedded into the container.
 
 The selected model remains a demo profile rather than a production recommendation. Public users may
 see a safe abstention, and a live audit can take several minutes. Use the repeated blind `agent-eval`
@@ -48,8 +51,10 @@ Run the image with runtime environment variables:
 
 ```powershell
 docker run --rm -p 10000:10000 `
-  -e QUBRID_API_KEY `
-  -e FORMULAWITNESS_PUBLIC_ORIGIN=https://demo.example `
+  -e CLAUSEGRID_API_KEY `
+  -e CLAUSEGRID_PROVIDER=qubrid `
+  -e CLAUSEGRID_MODEL=deepseek-ai/DeepSeek-V3.2 `
+  -e CLAUSEGRID_PUBLIC_ORIGIN=https://demo.example `
   -e PORT=10000 `
   clausegrid:demo
 ```
@@ -64,7 +69,7 @@ The exact public Host is deliberately enforced, so a local HTTP smoke request mu
 - Defaults allow six audits globally and two per client per rolling hour.
 - Modifying requests require the configured HTTPS Origin.
 - Browser approval is disabled. `/api/approve` additionally requires
-  `Authorization: Bearer $FORMULAWITNESS_ADMIN_TOKEN`; an administrative client must also send the
+  `Authorization: Bearer $CLAUSEGRID_ADMIN_TOKEN`; an administrative client must also send the
   exact configured `Origin` header.
 - Connections have a bounded socket read/write timeout and JSON request bodies are capped at 20 KB.
 - Provider credentials and the administrator token stay server-side.

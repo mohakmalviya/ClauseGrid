@@ -47,8 +47,8 @@ def _add_model_options(parser: argparse.ArgumentParser) -> None:
         choices=tuple(PROVIDER_PRESETS),
         default="qubrid",
         help=(
-            "Model API provider. 'claude' is an alias for Anthropic; "
-            "openai-compatible requires --base-url and --api-key-env"
+            "Model API provider. 'claude' is an alias for Anthropic. Use "
+            "openai-compatible with --base-url and --api-key-env for any compatible gateway."
         ),
     )
     parser.add_argument("--base-url")

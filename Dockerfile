@@ -18,8 +18,8 @@ COPY evals/results.json ./evals/results.json
 COPY policies ./policies
 COPY workbooks ./workbooks
 RUN python -m pip install --no-cache-dir --no-deps . \
-    && mkdir -p /tmp/formulawitness \
-    && chown -R formulawitness:formulawitness /tmp/formulawitness
+    && mkdir -p /tmp/clausegrid \
+    && chown -R formulawitness:formulawitness /tmp/clausegrid
 
 USER 10001:10001
 EXPOSE 10000

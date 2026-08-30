@@ -6,15 +6,15 @@ services:
     healthCheckPath: /healthz
     autoDeploy: true
     envVars:
-      - key: QUBRID_API_KEY
+      - key: CLAUSEGRID_API_KEY
         sync: false
-      - key: FORMULAWITNESS_PROVIDER
+      - key: CLAUSEGRID_PROVIDER
         value: qubrid
-      - key: FORMULAWITNESS_MODEL
+      - key: CLAUSEGRID_MODEL
         value: deepseek-ai/DeepSeek-V3.2
-      - key: FORMULAWITNESS_MAX_AUDITS_PER_HOUR
+      - key: CLAUSEGRID_MAX_AUDITS_PER_HOUR
         value: "6"
-      - key: FORMULAWITNESS_MAX_AUDITS_PER_CLIENT_HOUR
+      - key: CLAUSEGRID_MAX_AUDITS_PER_CLIENT_HOUR
         value: "2"
-      - key: FORMULAWITNESS_ADMIN_TOKEN
+      - key: CLAUSEGRID_ADMIN_TOKEN
         generateValue: true

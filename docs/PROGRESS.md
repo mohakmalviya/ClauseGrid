@@ -143,3 +143,15 @@
 - Browser smoke used the real M10 `.xlsx` and four-page policy PDF, reported 22 formulas and four
   sheets with exact hashes, completed fail-closed, rendered correctly at desktop/mobile widths, and
   produced no browser console errors. This is implementation evidence, not a model accuracy score.
+
+## Checkpoint 10 - provider-neutral deployment configuration
+
+- Preserved native Anthropic Messages transport and the existing OpenAI-compatible boundary, then
+  added explicit presets for OpenRouter, Groq, Together, Gemini, Mistral, and xAI.
+- Added one provider-neutral hosting secret, `CLAUSEGRID_API_KEY`, selected by server-side
+  `CLAUSEGRID_PROVIDER` and `CLAUSEGRID_MODEL` values. Custom compatible gateways additionally use
+  `CLAUSEGRID_BASE_URL`; secret values never enter command arguments or browser configuration.
+- Retained provider-specific local credential variables and legacy deployment-variable fallbacks so
+  existing scripts and deployments remain usable during migration.
+- Added unit coverage for every preset, native Anthropic selection, generic-secret isolation,
+  custom endpoints, and deployment argument construction.

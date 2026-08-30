@@ -12,6 +12,12 @@ budgets, evidence checks, traces, and human approval boundary remain the same.
 | `nvidia-nim` | `https://integrate.api.nvidia.com/v1` | `NVIDIA_NIM_API_KEY` | OpenAI-compatible chat completions |
 | `opencode` | `https://opencode.ai/zen/v1` | `OPENCODE_API_KEY` | OpenAI-compatible chat completions |
 | `qubrid` | `https://platform.qubrid.com/v1` | `QUBRID_API_KEY` | OpenAI-compatible chat completions |
+| `openrouter` | `https://openrouter.ai/api/v1` | `OPENROUTER_API_KEY` | OpenAI-compatible chat completions |
+| `groq` | `https://api.groq.com/openai/v1` | `GROQ_API_KEY` | OpenAI-compatible chat completions |
+| `together` | `https://api.together.ai/v1` | `TOGETHER_API_KEY` | OpenAI-compatible chat completions |
+| `gemini` | `https://generativelanguage.googleapis.com/v1beta/openai` | `GEMINI_API_KEY` | Gemini OpenAI compatibility layer |
+| `mistral` | `https://api.mistral.ai/v1` | `MISTRAL_API_KEY` | OpenAI-compatible chat completions |
+| `xai` | `https://api.x.ai/v1` | `XAI_API_KEY` | OpenAI-compatible chat completions |
 | `openai-compatible` | required `--base-url` | required `--api-key-env` | Custom OpenAI-compatible endpoint |
 
 Claude is Anthropic's model family, so `claude` is an alias for `anthropic`, not a second API-key
@@ -50,6 +56,14 @@ $env:QUBRID_API_KEY = '<credential>'
 clausegrid agent workbooks\mutants\M10_supplier_rebate.xlsx `
   --provider qubrid --model 'deepseek-ai/DeepSeek-V3.2' --allow-external-processing
 
+$env:OPENROUTER_API_KEY = '<credential>'
+clausegrid agent workbooks\mutants\M10_supplier_rebate.xlsx `
+  --provider openrouter --model '<provider/model-id>' --allow-external-processing
+
+$env:GEMINI_API_KEY = '<credential>'
+clausegrid agent workbooks\mutants\M10_supplier_rebate.xlsx `
+  --provider gemini --model '<gemini-model-id>' --allow-external-processing
+
 $env:LOCAL_GATEWAY_KEY = '<credential-or-local-placeholder>'
 clausegrid agent workbooks\mutants\M10_supplier_rebate.xlsx `
   --provider openai-compatible --base-url http://127.0.0.1:9000/v1 `
@@ -60,6 +74,11 @@ clausegrid agent workbooks\mutants\M10_supplier_rebate.xlsx `
 history. Remote endpoints always require `--allow-external-processing` before the credential is
 read. The local browser interface displays provider/model metadata but never accepts or receives a
 credential.
+
+For Render and other hosts, `CLAUSEGRID_API_KEY` is a provider-neutral secret slot. Set
+`CLAUSEGRID_PROVIDER` and `CLAUSEGRID_MODEL`, then place that selected provider's key value in
+`CLAUSEGRID_API_KEY`. For a custom gateway also set `CLAUSEGRID_PROVIDER=openai-compatible` and
+`CLAUSEGRID_BASE_URL`. The key value is never copied into process arguments or returned to the UI.
 
 ## Validation status
 
@@ -74,10 +93,7 @@ latest compatibility probe, `big-pickle`, `hy3-free`, `ling-3.0-flash-fin-free`,
 validation; each model still needs repeated blind end-to-end evaluation because tool behavior,
 availability, context limits, and quality differ by model.
 
-The checked-in public-demo profile uses NVIDIA's exact
-`nvidia/nemotron-3.5-lightning-30b-a3b` identifier with its published `temperature=1`, `top_p=0.95`,
-and thinking-enabled chat template. ClauseGrid bounds the reasoning budget at 2,048 tokens per
-turn and serializes provider-returned parallel calls locally because the hosted endpoint has ignored
-`parallel_tool_calls=false` in observed runs. See the
-[official NVIDIA model page](https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b).
-This profile is a deployment choice, not proof of repeated blind accuracy.
+Provider support establishes transport compatibility, not model fitness. Every selected model must
+honor mandatory tool calls and survive the blind end-to-end evaluation before it is described as
+qualified. ClauseGrid fails closed when a nominally compatible endpoint returns prose, malformed
+tool JSON, undeclared tools, empty completions, or repeated provider errors.

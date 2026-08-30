@@ -17,6 +17,12 @@ from formulawitness.model_client import ModelConfigurationError, OpenAITransport
         ("nvidia-nim", "NVIDIA_NIM_API_KEY", "nvidia-nim", OpenAITransport),
         ("opencode", "OPENCODE_API_KEY", "opencode", OpenAITransport),
         ("qubrid", "QUBRID_API_KEY", "qubrid", OpenAITransport),
+        ("openrouter", "OPENROUTER_API_KEY", "openrouter", OpenAITransport),
+        ("groq", "GROQ_API_KEY", "groq", OpenAITransport),
+        ("together", "TOGETHER_API_KEY", "together", OpenAITransport),
+        ("gemini", "GEMINI_API_KEY", "gemini", OpenAITransport),
+        ("mistral", "MISTRAL_API_KEY", "mistral", OpenAITransport),
+        ("xai", "XAI_API_KEY", "xai", OpenAITransport),
     ),
 )
 def test_provider_presets_load_their_own_environment_key(
@@ -58,6 +64,25 @@ def test_generic_provider_requires_explicit_endpoint_and_key_name() -> None:
             base_url="http://127.0.0.1:9000/v1",
             api_key_env=None,
         )
+
+
+def test_preset_accepts_a_generic_deployment_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CLAUSEGRID_API_KEY", "generic-provider-secret")
+
+    client, canonical = providers.build_model_client(
+        provider="anthropic",
+        model="claude-model-id",
+        base_url=None,
+        api_key_env="CLAUSEGRID_API_KEY",
+    )
+    try:
+        assert canonical == "anthropic"
+        assert isinstance(client._transport, AnthropicTransport)
+        assert client.config.api_key.get_secret_value() == "generic-provider-secret"
+    finally:
+        client.close()
 
 
 def test_missing_preset_key_names_the_expected_environment_variable() -> None:

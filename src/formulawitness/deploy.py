@@ -9,30 +9,63 @@ from .cli import main as cli_main
 from .providers import QUBRID_DEFAULT_MODEL
 
 
-def _positive_int(name: str, default: int) -> int:
-    raw = os.environ.get(name, str(default))
+def _environment(primary: str, legacy: str | None = None, default: str | None = None) -> str | None:
+    """Read current branding first while preserving existing deployment variables."""
+
+    value = os.environ.get(primary)
+    if value is None and legacy is not None:
+        value = os.environ.get(legacy)
+    if value is None:
+        value = default
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
+def _positive_int(primary: str, legacy: str | None, default: int) -> int:
+    raw = _environment(primary, legacy, str(default))
+    assert raw is not None
     try:
         value = int(raw)
     except ValueError as exc:
-        raise SystemExit(f"{name} must be an integer") from exc
+        raise SystemExit(f"{primary} must be an integer") from exc
     if value < 1:
-        raise SystemExit(f"{name} must be positive")
+        raise SystemExit(f"{primary} must be positive")
     return value
 
 
 def _deployment_args() -> list[str]:
     """Build the public-server arguments entirely from non-secret environment metadata."""
 
-    origin = os.environ.get("FORMULAWITNESS_PUBLIC_ORIGIN") or os.environ.get("RENDER_EXTERNAL_URL")
+    origin = _environment(
+        "CLAUSEGRID_PUBLIC_ORIGIN", "FORMULAWITNESS_PUBLIC_ORIGIN"
+    ) or _environment("RENDER_EXTERNAL_URL")
     if not origin:
-        raise SystemExit("FORMULAWITNESS_PUBLIC_ORIGIN is required")
-    provider = os.environ.get("FORMULAWITNESS_PROVIDER", "qubrid")
-    model = os.environ.get("FORMULAWITNESS_MODEL", QUBRID_DEFAULT_MODEL)
-    port = _positive_int("PORT", 10_000)
-    artifacts = Path(os.environ.get("FORMULAWITNESS_ARTIFACT_ROOT", "/tmp/formulawitness"))
-    max_global = _positive_int("FORMULAWITNESS_MAX_AUDITS_PER_HOUR", 6)
-    max_client = _positive_int("FORMULAWITNESS_MAX_AUDITS_PER_CLIENT_HOUR", 2)
-    return [
+        raise SystemExit("CLAUSEGRID_PUBLIC_ORIGIN is required")
+    provider = _environment("CLAUSEGRID_PROVIDER", "FORMULAWITNESS_PROVIDER", "qubrid")
+    model = _environment("CLAUSEGRID_MODEL", "FORMULAWITNESS_MODEL", QUBRID_DEFAULT_MODEL)
+    assert provider is not None and model is not None
+    base_url = _environment("CLAUSEGRID_BASE_URL", "FORMULAWITNESS_BASE_URL")
+    explicit_key_env = _environment("CLAUSEGRID_API_KEY_ENV", "FORMULAWITNESS_API_KEY_ENV")
+    generic_key_env = "CLAUSEGRID_API_KEY" if _environment("CLAUSEGRID_API_KEY") else None
+    api_key_env = explicit_key_env or generic_key_env
+    admin_token_env = "CLAUSEGRID_ADMIN_TOKEN" if _environment("CLAUSEGRID_ADMIN_TOKEN") else None
+    port = _positive_int("PORT", None, 10_000)
+    artifact_value = _environment(
+        "CLAUSEGRID_ARTIFACT_ROOT", "FORMULAWITNESS_ARTIFACT_ROOT", "/tmp/clausegrid"
+    )
+    assert artifact_value is not None
+    artifacts = Path(artifact_value)
+    max_global = _positive_int(
+        "CLAUSEGRID_MAX_AUDITS_PER_HOUR", "FORMULAWITNESS_MAX_AUDITS_PER_HOUR", 6
+    )
+    max_client = _positive_int(
+        "CLAUSEGRID_MAX_AUDITS_PER_CLIENT_HOUR",
+        "FORMULAWITNESS_MAX_AUDITS_PER_CLIENT_HOUR",
+        2,
+    )
+    args = [
         "serve",
         "--host",
         "0.0.0.0",
@@ -52,6 +85,13 @@ def _deployment_args() -> list[str]:
         model,
         "--allow-external-processing",
     ]
+    if base_url:
+        args.extend(["--base-url", base_url])
+    if api_key_env:
+        args.extend(["--api-key-env", api_key_env])
+    if admin_token_env:
+        args.extend(["--admin-token-env", admin_token_env])
+    return args
 
 
 def main() -> int:

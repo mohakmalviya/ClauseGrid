@@ -196,15 +196,18 @@ belong to the deterministic legacy workflows; they are not model-agent accuracy 
 
 The repository includes a Docker image and Render Blueprint for a constrained synthetic-data demo.
 The public service disables browser approval and accepts only bundled cases. Rotate any credential
-that has appeared in chat or logs, then configure `QUBRID_API_KEY` as a Render secret. See
+that has appeared in chat or logs, then put the selected provider's key value in the Render secret
+`CLAUSEGRID_API_KEY`. Set `CLAUSEGRID_PROVIDER` and `CLAUSEGRID_MODEL` to the matching preset and
+exact model ID. Use `CLAUSEGRID_BASE_URL` only with `openai-compatible`. See
 [DEPLOYMENT.md](DEPLOYMENT.md) for the deployment and security controls.
 
 ## 10. Troubleshooting
 
-### `QUBRID_API_KEY` is unset
+### The provider API key is unset
 
-Set it in the same terminal that starts ClauseGrid. Environment variables set in another shell
-are not inherited.
+For local CLI use, set the provider's documented variable such as `OPENAI_API_KEY`,
+`ANTHROPIC_API_KEY`, or `QUBRID_API_KEY` in the same terminal that starts ClauseGrid. For hosted
+deployment, set `CLAUSEGRID_API_KEY`. Environment variables set in another shell are not inherited.
 
 ### Remote model processing requires consent
 

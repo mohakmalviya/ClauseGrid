@@ -30,7 +30,8 @@ The archived hackathon-format comparison reports $0 API cost only for the legacy
 
 Requirements: Python 3.11+ and PowerShell. Legacy deterministic evaluation remains offline. The
 model-directed commands support Qubrid, OpenAI, native Anthropic/Claude, DeepSeek, NVIDIA NIM,
-OpenCode Zen, and custom OpenAI-compatible endpoints. Credentials are read from provider-specific environment variables;
+OpenCode Zen, OpenRouter, Groq, Together, Gemini, Mistral, xAI, and custom OpenAI-compatible
+endpoints. Credentials are read from provider-specific environment variables;
 the key is never accepted as a CLI argument or persisted. Provider cost is recorded as `Not
 reported` unless the provider supplies it.
 
@@ -115,8 +116,9 @@ approval is disabled; the public site demonstrates investigation and falsificati
 write authorization.
 
 1. Push the private repository to GitHub and create a Render Blueprint from `render.yaml`.
-2. Enter `QUBRID_API_KEY` as the Blueprint's secret when Render asks for it.
-3. Deploy. Render supplies `RENDER_EXTERNAL_URL`; the container binds to Render's `PORT` on
+2. Enter the selected provider's key value as the Blueprint's `CLAUSEGRID_API_KEY` secret.
+3. Set `CLAUSEGRID_PROVIDER` and `CLAUSEGRID_MODEL` to the matching provider and exact model ID.
+4. Deploy. Render supplies `RENDER_EXTERNAL_URL`; the container binds to Render's `PORT` on
    `0.0.0.0` and exposes `/healthz`.
 
 The service is intentionally single-instance and stores run artifacts in `/tmp`; jobs and downloads

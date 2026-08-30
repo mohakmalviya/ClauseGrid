@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added server-side provider presets for OpenRouter, Groq, Together, Gemini, Mistral, and xAI, plus
+  a provider-neutral `CLAUSEGRID_API_KEY` deployment secret and configurable custom gateway URL.
 - Renamed the product and primary command to ClauseGrid while retaining the legacy
   `formulawitness` import namespace and CLI alias for artifact and automation compatibility.
 - Added private local `.xlsx` + matching policy `.pdf` uploads with pre-model compatibility checks,

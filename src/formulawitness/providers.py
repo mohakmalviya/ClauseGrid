@@ -56,6 +56,42 @@ PROVIDER_PRESETS: dict[str, ProviderPreset] = {
         "QUBRID_API_KEY",
         "openai-compatible",
     ),
+    "openrouter": ProviderPreset(
+        "openrouter",
+        "https://openrouter.ai/api/v1",
+        "OPENROUTER_API_KEY",
+        "openai-compatible",
+    ),
+    "groq": ProviderPreset(
+        "groq",
+        "https://api.groq.com/openai/v1",
+        "GROQ_API_KEY",
+        "openai-compatible",
+    ),
+    "together": ProviderPreset(
+        "together",
+        "https://api.together.ai/v1",
+        "TOGETHER_API_KEY",
+        "openai-compatible",
+    ),
+    "gemini": ProviderPreset(
+        "gemini",
+        "https://generativelanguage.googleapis.com/v1beta/openai",
+        "GEMINI_API_KEY",
+        "openai-compatible",
+    ),
+    "mistral": ProviderPreset(
+        "mistral",
+        "https://api.mistral.ai/v1",
+        "MISTRAL_API_KEY",
+        "openai-compatible",
+    ),
+    "xai": ProviderPreset(
+        "xai",
+        "https://api.x.ai/v1",
+        "XAI_API_KEY",
+        "openai-compatible",
+    ),
     "openai-compatible": ProviderPreset("openai-compatible", None, None, "openai-compatible"),
 }
 
