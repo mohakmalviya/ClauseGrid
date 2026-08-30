@@ -216,3 +216,12 @@
 - Live Render preflight accepted the synthetic workbook/policy pair as 22 formulas across four
   sheets and four PDF pages. Anonymous config/results omitted runtime identity, and direct public
   requests for proposal, report, and raw trajectory artifacts returned `404`.
+
+## Checkpoint 15 - explicit AI-assistant differentiation
+
+- Added an above-the-fold comparison that answers the expected objection directly: Claude or
+  another AI assistant can analyze the files and propose a formula, while ClauseGrid is the
+  enforced assurance system around that model.
+- The public copy now distinguishes recommendation generation from exact citations, executable
+  counterexamples, fresh-context falsification, source preservation, and human-controlled writes
+  without claiming that the underlying model lacks spreadsheet-analysis capability.

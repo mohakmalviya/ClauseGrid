@@ -343,6 +343,11 @@ def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     assert "matching policy .pdf" in HTML
     assert "public, synthetic, or approved data" in HTML
     assert "Supported profile: calculation-focused .xlsx only" in HTML
+    assert "Why not just use Claude?" in HTML
+    assert "Claude can propose. ClauseGrid requires proof." in HTML
+    assert "Yes—Claude can read a spreadsheet and policy" in HTML
+    assert "The difference is enforcement" in HTML
+    assert HTML.index("Why not just use Claude?") < HTML.index("Run agent audit")
     assert "The hosted runtime is waking up. Retrying automatically" in HTML
     assert "await api('/healthz')" in HTML
     assert "const text=await response.text()" in HTML
