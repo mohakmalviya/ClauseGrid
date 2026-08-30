@@ -9,9 +9,9 @@ services:
       - key: CLAUSEGRID_API_KEY
         sync: false
       - key: CLAUSEGRID_PROVIDER
-        value: deepseek
+        value: qubrid
       - key: CLAUSEGRID_MODEL
-        value: deepseek-v4-flash
+        value: deepseek-ai/DeepSeek-V4-Flash
       - key: CLAUSEGRID_MAX_AUDITS_PER_HOUR
         value: "6"
       - key: CLAUSEGRID_MAX_AUDITS_PER_CLIENT_HOUR

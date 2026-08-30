@@ -115,9 +115,9 @@ approval is disabled; the public site demonstrates investigation and falsificati
 write authorization.
 
 1. Push the private repository to GitHub and create a Render Blueprint from `render.yaml`.
-2. Enter a fresh official DeepSeek key as the Blueprint's `CLAUSEGRID_API_KEY` secret.
-3. The Blueprint selects `deepseek` and `deepseek-v4-flash`; change both values together if you
-   deliberately qualify a different provider/model route.
+2. Enter a fresh Qubrid key as the Blueprint's `CLAUSEGRID_API_KEY` secret.
+3. The Blueprint selects `qubrid` and `deepseek-ai/DeepSeek-V4-Flash`; change both values together
+   if you deliberately choose a different provider/model route.
 4. Deploy. Render supplies `RENDER_EXTERNAL_URL`; the container binds to Render's `PORT` on
    `0.0.0.0` and exposes `/healthz`.
 
