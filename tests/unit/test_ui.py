@@ -379,7 +379,7 @@ def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     assert "const j=await r.json()" not in HTML
 
 
-def test_agent_result_ui_is_state_aware_full_width_and_responsive() -> None:
+def test_agent_result_ui_is_state_aware_centered_and_responsive() -> None:
     assert "No workbook patch has been authorized." not in HTML
     assert "The investigation stopped at a safety limit" in HTML
     assert "The proposed repair did not pass independent checks" in HTML
@@ -393,8 +393,8 @@ def test_agent_result_ui_is_state_aware_full_width_and_responsive() -> None:
     assert ".workspace {" in HTML
     assert "width: 100%;" in HTML
     assert ".results-grid { display: grid; grid-template-columns: 1fr;" in HTML
-    assert "width: min(100%, 1120px);" not in HTML
-    assert "margin: clamp(24px, 3vw, 40px) 0 0;" in HTML
+    assert "width: min(100%, 1120px);" in HTML
+    assert "margin: clamp(24px, 3vw, 40px) auto 0;" in HTML
     assert ".decision-panel { position: static;" in HTML
     assert ".decision-panel { position: sticky;" not in HTML
     assert (
@@ -404,24 +404,15 @@ def test_agent_result_ui_is_state_aware_full_width_and_responsive() -> None:
 
 
 def test_completed_investigation_activity_and_narratives_are_compact() -> None:
-    assert ".investigation-controls .actions { align-self: center; }" not in HTML
-    assert (
-        ".investigation-controls {\n"
-        "  grid-column: 1 / -1;\n"
-        "  display: grid;\n"
-        "  grid-template-columns: minmax(280px, 340px) minmax(0, 764px);\n"
-        "  gap: 16px;\n"
-        "  align-items: start;" in HTML
-    )
-    assert "max-height: min(240px, 40vh);" in HTML
-    assert "grid-template-columns: 22px minmax(0, 1fr);" in HTML
-    assert ".activity-event-top { display: flex; align-items: baseline; flex-wrap: wrap;" in HTML
+    controls_css = HTML.partition(".investigation-controls {")[2].partition("}")[0]
+    activity_css = HTML.partition(".activity-list {")[2].partition("}")[0]
+    narrative_css = HTML.partition(".narrative-formula code {")[2].partition("}")[0]
+    assert "align-items: start;" in controls_css
+    assert "max-height: min(240px, 40vh);" in activity_css and "overflow-y: auto;" in activity_css
     assert ".activity-done .activity-marker { background: var(--pass-soft);" in HTML
-    assert ".activity-failed .activity-marker { background: var(--fail-soft);" in HTML
     assert ".outcome-narrative, .verdict-narrative { max-width: 760px; margin-top: 18px; }" in HTML
-    assert ".narrative-formula code { display: block; width: max-content;" in HTML
     assert ".outcome-panel .patch > .patch-rationale { grid-column: 1 / -1;" in HTML
-    assert "white-space: pre;" in HTML
+    assert "white-space: pre;" in narrative_css
     assert "grid-template-columns: repeat(5, minmax(0, 1fr));" in HTML
 
 

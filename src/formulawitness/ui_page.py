@@ -551,7 +551,8 @@ code { font-family: Consolas, monospace; font-size: var(--text-xs); word-break: 
 #results {
   display: grid;
   gap: 16px;
-  margin: clamp(24px, 3vw, 40px) 0 0;
+  width: min(100%, 1120px);
+  margin: clamp(24px, 3vw, 40px) auto 0;
   scroll-margin-top: calc(var(--header-height) + 18px);
 }
 .results-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
