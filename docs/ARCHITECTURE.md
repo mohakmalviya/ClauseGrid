@@ -45,8 +45,13 @@ tools, enforces budgets, and prevents irreversible model actions.
   single-agent mode, separate approval, copy-on-write publication, changed-formula validation, and
   replay of the candidate experiments on the copied workbook.
 - `policy_text.py`: policy-only PDF retrieval with exact mechanically verified citations. It does not
-  import the frozen supplier rule compiler.
+  import the frozen supplier rule compiler. `policy_worker.py` and `policy_extract.py` isolate
+  untrusted PDF text extraction behind a wall-clock process boundary plus POSIX resource limits or
+  a fail-closed Windows Job Object.
 - `workbook_tools.py`: template-neutral manifest, region, formula, and dependency inspection.
+- `uploaded_inputs.py`: private/local raw upload staging, workbook/formula preflight, policy PDF
+  readability validation, immutable hashes, server-generated paths, single-use claims, expiry, and
+  ephemeral cleanup. Semantic policy/workbook correspondence remains an agent judgment.
 - `experiment_worker.py`: separate no-network formula process receiving explicit sheet/cell inputs,
   observations, and hash-guarded candidate formulas. It imports no policy, benchmark, or evaluator.
 - `trace.py`: schema-v3 raw observable model/tool/observation events in a tamper-evident hash chain.
@@ -57,6 +62,8 @@ tools, enforces budgets, and prevents irreversible model actions.
 ## Authority boundary
 
 The model can read bounded evidence, run a formula candidate in the sandbox, and stage typed data.
+Sandbox strings remain literal text; dates use an explicit `{kind: "date", value: "YYYY-MM-DD"}`
+representation so the evaluator never guesses value types from formatting or string shape.
 It cannot access paths, shell, Python execution, environment variables, arbitrary networking,
 evaluator files, approval, or workbook-write tools. The API client runs in the controller process;
 the workbook worker receives a minimal environment without API credentials.
@@ -84,6 +91,11 @@ NIM smoke is implementation evidence, not a benchmark score.
 
 ## Known scope
 
+The local browser can feed this same generic runtime a private compatible `.xlsx` plus its matching
+policy `.pdf`; the anonymous public demo remains synthetic-only. The synthetic benchmark is retained
+for fair reproducible measurement and is not mixed with custom-run outcomes.
+
 FormulaWitness executes a documented nonvolatile formula subset rather than Excel itself. Macros,
 external links, embedded objects, connections, volatile/network formulas, unsupported syntax,
-ambiguous policy meaning, stale hashes, broad changes, and exhausted budgets fail closed.
+cross-sheet formula chains, ambiguous policy meaning, stale hashes, broad changes, and exhausted
+budgets fail closed. Qualified cross-sheet raw inputs remain available to sandbox experiments.

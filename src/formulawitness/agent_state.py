@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .formula import Parser
+from .formula import validate_formula_subset
 from .trace import object_hash
 
 
@@ -38,7 +38,7 @@ class CandidateEdit(StrictRecord):
     def formula_must_parse(cls, value: str) -> str:
         if not value.startswith("="):
             raise ValueError("Candidate formula must start with '='")
-        Parser(value).parse()
+        validate_formula_subset(value)
         return value
 
     @property

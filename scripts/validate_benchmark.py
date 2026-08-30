@@ -15,7 +15,7 @@ from evals.sealed.cases import held_out_cases
 from evals.sealed.oracle import evaluate_policy
 from formulawitness.formula import evaluate_cells
 from formulawitness.ooxml import calculation_cells, formula_map, inspect_safety
-from formulawitness.policy import CORE_OUTPUTS, INPUT_CELL_MAP
+from formulawitness.policy import CORE_OUTPUTS, workbook_input_overrides
 
 
 def differs(actual: dict[str, Any], expected: dict[str, Any]) -> bool:
@@ -44,11 +44,7 @@ def main() -> None:
         changed = [cell for cell in CORE_OUTPUTS if formulas[cell] != pristine_formulas[cell]]
         kills = 0
         for case in cases:
-            overrides = {
-                INPUT_CELL_MAP[name]: value
-                for name, value in case.inputs.items()
-                if name in INPUT_CELL_MAP
-            }
+            overrides = workbook_input_overrides(case.inputs)
             outputs, _ = evaluate_cells(values, formulas, overrides)
             if differs(outputs, evaluate_policy(case.inputs)):
                 kills += 1

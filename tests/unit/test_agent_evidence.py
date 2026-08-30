@@ -110,6 +110,89 @@ def test_only_one_unchanged_manager_baseline_is_accepted() -> None:
     )
 
 
+def test_experiment_can_perturb_a_qualified_cross_sheet_raw_input() -> None:
+    manager, _, _, _, _ = _registries()
+
+    result = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "qualified-tier-input",
+            "sheet": "RebateCalc",
+            "overrides": {"TierSchedule!B7": 0.123},
+            "observations": ["N6"],
+            "purpose": "Perturb a cross-sheet lookup input to test causal tier behavior.",
+        },
+    )
+
+    assert result.ok and isinstance(result.result, dict)
+    observation = result.result["observation"]
+    assert observation["observations"]["N6"] == 0.123
+
+
+def test_experiment_cannot_override_a_cross_sheet_formula_as_raw_input() -> None:
+    manager, _, _, _, _ = _registries()
+
+    result = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "qualified-formula-input",
+            "sheet": "RebateCalc",
+            "overrides": {"Checks!E10": "PASS"},
+            "observations": ["P6"],
+            "purpose": "Attempt to replace a cross-sheet formula cache as if it were raw input.",
+        },
+    )
+
+    assert not result.ok
+    assert "cannot replace formula cell" in str(result.error)
+
+
+def test_candidate_cannot_introduce_a_cross_sheet_formula_chain() -> None:
+    manager, _, _, citation_id, old_hash = _registries()
+
+    result = _stage(manager, citation_id, old_hash, "=Checks!E10")
+
+    assert not result.ok
+    assert "Cross-sheet formula-to-formula dependencies" in str(result.error)
+
+
+def test_candidate_cannot_reference_a_missing_sheet() -> None:
+    manager, _, _, citation_id, old_hash = _registries()
+
+    result = _stage(manager, citation_id, old_hash, "=Missing!A1+1")
+
+    assert not result.ok
+    assert "worksheet that does not exist" in str(result.error)
+
+
+def test_direct_formula_experiment_cannot_use_cross_sheet_formula_cache() -> None:
+    manager, _, _, _, old_hash = _registries()
+
+    result = _call(
+        manager,
+        "run_experiment",
+        {
+            "experiment_id": "cached-cross-sheet-formula",
+            "sheet": "RebateCalc",
+            "overrides": {"K6": "INVALID"},
+            "observations": ["P6"],
+            "formula_overrides": [
+                {
+                    "cell": "P6",
+                    "old_formula_sha256": old_hash,
+                    "new_formula": '=Checks!E10="PASS"',
+                }
+            ],
+            "purpose": "Attempt to rely on a stale cached formula from another sheet.",
+        },
+    )
+
+    assert not result.ok
+    assert "Cross-sheet formula-to-formula dependencies" in str(result.error)
+
+
 def _registries() -> tuple[AgentToolRegistry, AgentToolRegistry, AgentRunState, str, str]:
     policy = PolicyText(POLICY)
     state = AgentRunState(

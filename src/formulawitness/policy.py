@@ -11,7 +11,7 @@ from typing import Any, Literal, cast
 
 from pypdf import PdfReader
 
-from .formula import evaluate_cells, excel_serial
+from .formula import evaluate_cells, normalize_override_value
 from .models import Rule, RuleIR, SourceSpan
 
 RULE_SPECS = (
@@ -129,6 +129,7 @@ INPUT_CELL_MAP = {
     "critical_incidents": "J6",
     "critical_waiver": "K6",
 }
+DATE_INPUT_NAMES = frozenset({"period_start", "period_end", "contract_start"})
 CORE_OUTPUTS = ("L6", "M6", "N6", "O6", "P6", "Q6", "R6", "S6", "T6")
 
 RULE_CLARIFIERS = {
@@ -435,15 +436,27 @@ def verify_rule_sources(values: dict[str, Any], rules: list[Rule]) -> None:
             raise PolicyAmbiguityError(f"TierSchedule row {index} conflicts with cited rule RB-102")
 
 
-def evaluate_approved_rules(inputs: dict[str, Any], rules: list[Rule]) -> dict[str, Any]:
-    raw: dict[str, Any] = {}
-    for name, cell in INPUT_CELL_MAP.items():
-        value = inputs[name]
-        raw[cell] = (
-            excel_serial(value)
-            if name in {"period_start", "period_end", "contract_start"}
+def workbook_input_overrides(inputs: dict[str, Any]) -> dict[str, Any]:
+    """Map typed benchmark inputs to explicit workbook sandbox values."""
+
+    overrides: dict[str, Any] = {}
+    for name, value in inputs.items():
+        cell = INPUT_CELL_MAP.get(name)
+        if cell is None:
+            continue
+        overrides[cell] = (
+            {"kind": "date", "value": value}
+            if name in DATE_INPUT_NAMES and isinstance(value, str)
             else value
         )
+    return overrides
+
+
+def evaluate_approved_rules(inputs: dict[str, Any], rules: list[Rule]) -> dict[str, Any]:
+    raw = {
+        cell: normalize_override_value(value)
+        for cell, value in workbook_input_overrides(inputs).items()
+    }
     lookup_ir = next(item for item in compile_rule_ir(rules) if item.target == "N6")
     lower_bounds = cast(list[Any], lookup_ir.parameters["lower_bounds"])
     rates = cast(list[Any], lookup_ir.parameters["rates"])

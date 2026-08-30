@@ -10,8 +10,15 @@ import time
 from pathlib import Path
 from typing import Any
 
-from .formula import FormulaError, Parser, evaluate_cells, json_value
-from .ooxml import calculation_cells, inspect_safety, workbook_sheet_names
+from .formula import (
+    FormulaError,
+    evaluate_cells,
+    json_value,
+    normalize_override_value,
+    validate_formula_dependency_graph,
+    validate_formula_subset,
+)
+from .ooxml import calculation_cells, inspect_safety, workbook_formula_map, workbook_sheet_names
 
 CELL_RE = re.compile(r"^[A-Z]{1,3}[1-9]\d*$")
 MAX_OVERRIDES = 100
@@ -39,12 +46,34 @@ def _sheet(requested: Any, available: tuple[str, ...]) -> str:
     return matches[0]
 
 
-def _bounded_mapping(value: Any, limit: int, label: str) -> dict[str, Any]:
+def _override_reference(value: Any, active_sheet: str, available: tuple[str, ...]) -> str:
+    raw = str(value).replace("$", "")
+    if "!" not in raw:
+        return _cell(raw)
+    requested_sheet, raw_cell = raw.rsplit("!", 1)
+    actual_sheet = _sheet(requested_sheet.strip("'"), available)
+    cell = _cell(raw_cell)
+    if actual_sheet.casefold() == active_sheet.casefold():
+        return cell
+    return f"{actual_sheet.upper()}!{cell}"
+
+
+def _bounded_mapping(
+    value: Any,
+    limit: int,
+    label: str,
+    *,
+    active_sheet: str,
+    available_sheets: tuple[str, ...],
+) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise TypeError(f"{label} must be an object keyed by cell address")
     if len(value) > limit:
         raise ValueError(f"{label} exceeds the {limit}-cell limit")
-    return {_cell(cell): cell_value for cell, cell_value in value.items()}
+    return {
+        _override_reference(cell, active_sheet, available_sheets): cell_value
+        for cell, cell_value in value.items()
+    }
 
 
 def main() -> int:
@@ -56,11 +85,22 @@ def main() -> int:
 
         restrict_file_access(readable_files=(workbook,), writable_roots=(Path.cwd(),))
         safety = inspect_safety(workbook)
-        sheet = _sheet(request["sheet"], workbook_sheet_names(workbook))
+        sheet_names = workbook_sheet_names(workbook)
+        sheet = _sheet(request["sheet"], sheet_names)
         values, formulas = calculation_cells(workbook, sheet)
-        overrides = _bounded_mapping(request.get("overrides", {}), MAX_OVERRIDES, "overrides")
+        overrides = _bounded_mapping(
+            request.get("overrides", {}),
+            MAX_OVERRIDES,
+            "overrides",
+            active_sheet=sheet,
+            available_sheets=sheet_names,
+        )
+        overrides = {cell: normalize_override_value(value) for cell, value in overrides.items()}
+        workbook_formulas = workbook_formula_map(workbook)
+        all_formula_references = {reference.upper() for reference in workbook_formulas}
         for cell in overrides:
-            if cell in formulas:
+            qualified_cell = cell if "!" in cell else f"{sheet}!{cell}"
+            if qualified_cell.upper() in all_formula_references:
                 raise ValueError(
                     f"Value override cannot replace formula cell {cell}; use formula_overrides"
                 )
@@ -93,11 +133,19 @@ def main() -> int:
             candidate = str(item.get("new_formula", ""))
             if not candidate.startswith("="):
                 raise FormulaError(f"Formula override must start with '=' for {cell}")
-            Parser(candidate).parse()
+            validate_formula_subset(candidate)
             staged_formulas[cell] = candidate
             applied.append(cell)
 
-        calculated, dependencies = evaluate_cells(values, staged_formulas, overrides)
+        candidate_workbook_formulas = dict(workbook_formulas)
+        candidate_workbook_formulas.update(
+            {f"{sheet}!{cell}": formula for cell, formula in staged_formulas.items()}
+        )
+        validate_formula_dependency_graph(candidate_workbook_formulas, sheet_names)
+
+        calculated, dependencies = evaluate_cells(
+            values, staged_formulas, overrides, active_sheet=sheet
+        )
         observed: dict[str, Any] = {}
         for cell in observations:
             if cell in calculated:

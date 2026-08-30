@@ -994,7 +994,7 @@ def approve_agentic_proposal(
                 replay = execute_experiment(
                     pending,
                     sheet=request.sheet,
-                    overrides=request.overrides,
+                    overrides=request.model_dump(mode="json")["overrides"],
                     observations=request.observations,
                 )
                 if replay.observations != expected_observations:

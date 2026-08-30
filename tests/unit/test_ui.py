@@ -1,3 +1,4 @@
+import hashlib
 import inspect
 import json
 import shutil
@@ -11,6 +12,7 @@ from urllib.request import Request, urlopen
 
 import pytest
 
+import formulawitness.ui as ui_module
 from formulawitness.agent_types import ModelRequest, ModelTurn, ModelUsage, ToolCall
 from formulawitness.cli import build_parser
 from formulawitness.models import AuditResult
@@ -21,16 +23,22 @@ from formulawitness.ui import (
     SlidingWindowRateLimiter,
     _agent_review_payload,
     _is_loopback_host,
+    _start_upload_reaper,
     _summary_payload,
     make_handler,
     serve,
 )
+from tests.integration.test_agentic_runtime import InvestigatorFalsifierScript
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class AbstainingUiModel:
+    def __init__(self) -> None:
+        self.calls = 0
+
     def complete(self, request: ModelRequest) -> ModelTurn:
+        self.calls += 1
         assert request.tool_choice == "required"
         return ModelTurn(
             model="scripted-ui-agent",
@@ -139,6 +147,58 @@ def test_review_server_requires_explicit_model_and_loopback_binding() -> None:
         )
 
 
+def test_background_upload_reaper_runs_without_an_incoming_request() -> None:
+    called = threading.Event()
+    stop, thread = _start_upload_reaper(called.set, retention_seconds=0)
+    try:
+        assert called.wait(timeout=2)
+    finally:
+        stop.set()
+        thread.join(timeout=5)
+
+
+def test_server_shutdown_cleans_the_private_temporary_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cleanup_called = False
+    server_closed = False
+
+    class Runtime:
+        def cleanup(self) -> None:
+            nonlocal cleanup_called
+            cleanup_called = True
+
+    class Handler:
+        _private_runtime = Runtime()
+        _reap_expired_uploads = staticmethod(lambda: None)
+
+    class Server:
+        def __init__(self, _address: object, _handler: object):
+            pass
+
+        def serve_forever(self) -> None:
+            return
+
+        def server_close(self) -> None:
+            nonlocal server_closed
+            server_closed = True
+
+    monkeypatch.setattr(ui_module, "make_handler", lambda *_args, **_kwargs: Handler)
+    monkeypatch.setattr(ui_module, "ThreadingHTTPServer", Server)
+
+    serve(
+        ROOT,
+        "127.0.0.1",
+        8765,
+        model=object(),  # type: ignore[arg-type]
+        provider="scripted-provider",
+        model_id="scripted-model",
+    )
+
+    assert server_closed is True
+    assert cleanup_called is True
+
+
 def test_public_config_and_rate_limiter_fail_closed() -> None:
     with pytest.raises(ValueError, match="HTTPS origin"):
         PublicServerConfig(origin="http://demo.example")
@@ -217,6 +277,7 @@ def test_public_audit_is_same_origin_asynchronous_and_disables_browser_approval(
         config = request("/api/config")
         assert config["public_demo"] is True
         assert config["browser_approval_enabled"] is False
+        assert config["private_uploads_enabled"] is False
         queued = request("/api/audit", method="POST", body={"case_id": "M10"})
         assert queued["status"] == "queued"
         for _ in range(100):
@@ -261,6 +322,10 @@ def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     assert "Why it is needed" in HTML
     assert "Who it is for" in HTML
     assert "How to try it" in HTML
+    assert "Upload workbook + policy" in HTML
+    assert "matching policy .pdf" in HTML
+    assert "public, synthetic, or approved data" in HTML
+    assert "Supported profile: calculation-focused .xlsx only" in HTML
 
 
 def test_audit_endpoint_runs_model_agent_and_returns_review_pack(tmp_path: Path) -> None:
@@ -311,3 +376,722 @@ def test_audit_endpoint_runs_model_agent_and_returns_review_pack(tmp_path: Path)
     assert payload["proposal_hash"]
     assert "trajectory.jsonl" in payload["downloads"]
     assert "proposal.json" in payload["downloads"]
+
+
+def test_private_upload_pair_runs_against_exact_workbook_and_policy_hashes(
+    tmp_path: Path,
+) -> None:
+    workbook = ROOT / "workbooks/mutants/M10_supplier_rebate.xlsx"
+    policy = ROOT / "policies/supplier_rebate_sla_policy.pdf"
+    private_root = tmp_path / "private"
+    handler = make_handler(
+        ROOT,
+        model=AbstainingUiModel(),
+        provider="scripted-provider",
+        model_id="scripted-ui-agent",
+        configured_artifact_root=tmp_path / "benchmark-artifacts",
+        configured_private_root=private_root,
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+
+    def raw_upload(path: str, content: bytes, content_type: str) -> dict[str, Any]:
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}{path}",
+                data=content,
+                headers={"Content-Type": content_type},
+                method="POST",
+            ),
+            timeout=10,
+        ) as response:
+            return cast(dict[str, Any], json.loads(response.read()))
+
+    try:
+        staged = raw_upload(
+            "/api/uploads/workbook",
+            workbook.read_bytes(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        assert staged["ready"] is False
+        assert staged["workbook_sha256"] == hashlib.sha256(workbook.read_bytes()).hexdigest()
+
+        ready = raw_upload(
+            f"/api/uploads/{staged['upload_id']}/policy",
+            policy.read_bytes(),
+            "application/pdf",
+        )
+        assert ready["ready"] is True
+        assert ready["policy_sha256"] == hashlib.sha256(policy.read_bytes()).hexdigest()
+
+        conflicting_request = Request(
+            f"http://127.0.0.1:{port}/api/audit",
+            data=json.dumps({"case_id": "M10", "upload_id": staged["upload_id"]}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with pytest.raises(HTTPError) as captured:
+            urlopen(conflicting_request, timeout=10)
+        assert captured.value.code == 400
+
+        audit_request = Request(
+            f"http://127.0.0.1:{port}/api/audit",
+            data=json.dumps({"upload_id": staged["upload_id"]}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(audit_request, timeout=10) as response:
+            queued = json.loads(response.read())
+        for _ in range(100):
+            with urlopen(f"http://127.0.0.1:{port}{queued['status_url']}", timeout=10) as response:
+                job = json.loads(response.read())
+            if job["status"] == "complete":
+                break
+            time.sleep(0.01)
+        else:
+            pytest.fail("Uploaded audit job did not finish")
+
+        assert job["result"]["result"]["source_sha256"] == ready["workbook_sha256"]
+        assert job["result"]["result"]["rules_sha256"] == ready["policy_sha256"]
+        assert list((private_root / "uploads").iterdir()) == []
+        assert any((private_root / "runs").iterdir())
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_duplicate_policy_attachment_cannot_untrack_a_ready_upload(tmp_path: Path) -> None:
+    workbook = ROOT / "workbooks/mutants/M10_supplier_rebate.xlsx"
+    policy = ROOT / "policies/supplier_rebate_sla_policy.pdf"
+    private_root = tmp_path / "private"
+    handler = make_handler(
+        ROOT,
+        model=AbstainingUiModel(),
+        provider="scripted-provider",
+        model_id="scripted-ui-agent",
+        configured_artifact_root=tmp_path / "benchmark-artifacts",
+        configured_private_root=private_root,
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+
+    def post(path: str, data: bytes, content_type: str) -> dict[str, Any]:
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}{path}",
+                data=data,
+                headers={"Content-Type": content_type},
+                method="POST",
+            ),
+            timeout=10,
+        ) as response:
+            return cast(dict[str, Any], json.loads(response.read()))
+
+    try:
+        staged = post(
+            "/api/uploads/workbook",
+            workbook.read_bytes(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        policy_path = f"/api/uploads/{staged['upload_id']}/policy"
+        post(policy_path, policy.read_bytes(), "application/pdf")
+        with pytest.raises(HTTPError) as duplicate:
+            post(policy_path, policy.read_bytes(), "application/pdf")
+        assert duplicate.value.code == 400
+
+        queued = post(
+            "/api/audit",
+            json.dumps({"upload_id": staged["upload_id"]}).encode(),
+            "application/json",
+        )
+        assert queued["job_id"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_uncommitted_repaired_workbook_is_not_downloadable(tmp_path: Path) -> None:
+    artifact_root = tmp_path / "artifacts"
+    handler = make_handler(
+        ROOT,
+        model=AbstainingUiModel(),
+        provider="scripted-provider",
+        model_id="scripted-ui-agent",
+        configured_artifact_root=artifact_root,
+        configured_private_root=tmp_path / "private",
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+    try:
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}/api/audit",
+                data=json.dumps({"case_id": "M10"}).encode(),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            ),
+            timeout=10,
+        ) as response:
+            queued = json.loads(response.read())
+        for _ in range(200):
+            with urlopen(f"http://127.0.0.1:{port}{queued['status_url']}", timeout=10) as response:
+                job = json.loads(response.read())
+            if job["status"] == "complete":
+                break
+            time.sleep(0.01)
+        else:
+            pytest.fail("Audit did not finish")
+
+        run_id = job["result"]["result"]["run_id"]
+        run_dir = artifact_root / run_id
+        (run_dir / "repaired.xlsx").write_bytes(b"uncommitted")
+        (run_dir / "report.json").write_text(
+            json.dumps({"approval_hash": "0" * 64, "output_workbook": "repaired.xlsx"}),
+            encoding="utf-8",
+        )
+        with pytest.raises(HTTPError) as download:
+            urlopen(f"http://127.0.0.1:{port}/download/{run_id}/repaired.xlsx", timeout=10)
+        assert download.value.code == 404
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+@pytest.mark.parametrize("tampered_file", ["workbook.xlsx", "policy.pdf"])
+def test_private_upload_hash_swap_fails_before_the_model_is_called(
+    tmp_path: Path, tampered_file: str
+) -> None:
+    workbook = ROOT / "workbooks/mutants/M10_supplier_rebate.xlsx"
+    policy = ROOT / "policies/supplier_rebate_sla_policy.pdf"
+    private_root = tmp_path / "private"
+    model = AbstainingUiModel()
+    handler = make_handler(
+        ROOT,
+        model=model,
+        provider="scripted-provider",
+        model_id="scripted-ui-agent",
+        configured_artifact_root=tmp_path / "benchmark-artifacts",
+        configured_private_root=private_root,
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+
+    def post(path: str, data: bytes, content_type: str) -> dict[str, Any]:
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}{path}",
+                data=data,
+                headers={"Content-Type": content_type},
+                method="POST",
+            ),
+            timeout=10,
+        ) as response:
+            return cast(dict[str, Any], json.loads(response.read()))
+
+    try:
+        staged = post(
+            "/api/uploads/workbook",
+            workbook.read_bytes(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        post(
+            f"/api/uploads/{staged['upload_id']}/policy",
+            policy.read_bytes(),
+            "application/pdf",
+        )
+        target = private_root / "uploads" / staged["upload_id"] / tampered_file
+        if tampered_file == "workbook.xlsx":
+            target.write_bytes((ROOT / "workbooks/mutants/M09_supplier_rebate.xlsx").read_bytes())
+        else:
+            target.write_bytes(b"%PDF-1.7\nchanged after preflight")
+
+        queued = post(
+            "/api/audit",
+            json.dumps({"upload_id": staged["upload_id"]}).encode(),
+            "application/json",
+        )
+        for _ in range(200):
+            with urlopen(f"http://127.0.0.1:{port}{queued['status_url']}", timeout=10) as response:
+                job = json.loads(response.read())
+            if job["status"] == "failed":
+                break
+            time.sleep(0.01)
+        else:
+            pytest.fail("Hash-swapped upload did not fail closed")
+
+        assert model.calls == 0
+        assert list((private_root / "uploads").iterdir()) == []
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_public_mode_rejects_private_workbook_uploads(tmp_path: Path) -> None:
+    handler = make_handler(
+        ROOT,
+        model=AbstainingUiModel(),
+        provider="scripted-provider",
+        model_id="scripted-ui-agent",
+        public_config=PublicServerConfig(origin="https://demo.example"),
+        configured_artifact_root=tmp_path / "artifacts",
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+    request = Request(
+        f"http://127.0.0.1:{port}/api/uploads/workbook",
+        data=b"not-used",
+        headers={
+            "Host": "demo.example",
+            "Origin": "https://demo.example",
+            "Content-Type": ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        },
+        method="POST",
+    )
+    try:
+        with pytest.raises(HTTPError) as captured:
+            urlopen(request, timeout=10)
+        assert captured.value.code == 403
+        error = json.loads(captured.value.read())
+        assert "disabled on the public demo" in error["error"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_malformed_uploaded_policy_fails_as_bad_request_and_discards_workbook(
+    tmp_path: Path,
+) -> None:
+    workbook = ROOT / "workbooks/mutants/M10_supplier_rebate.xlsx"
+    private_root = tmp_path / "private"
+    handler = make_handler(
+        ROOT,
+        model=AbstainingUiModel(),
+        provider="scripted-provider",
+        model_id="scripted-ui-agent",
+        configured_artifact_root=tmp_path / "benchmark-artifacts",
+        configured_private_root=private_root,
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+    try:
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}/api/uploads/workbook",
+                data=workbook.read_bytes(),
+                headers={
+                    "Content-Type": (
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+                },
+                method="POST",
+            ),
+            timeout=10,
+        ) as response:
+            staged = json.loads(response.read())
+
+        malformed = Request(
+            f"http://127.0.0.1:{port}/api/uploads/{staged['upload_id']}/policy",
+            data=b"%PDF-1.7\nnot a valid PDF",
+            headers={"Content-Type": "application/pdf"},
+            method="POST",
+        )
+        with pytest.raises(HTTPError) as captured:
+            urlopen(malformed, timeout=10)
+        assert captured.value.code == 400
+        assert json.loads(captured.value.read())["error"] == (
+            "Policy PDF could not be parsed safely"
+        )
+        assert list((private_root / "uploads").iterdir()) == []
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_abandoned_pending_uploads_expire_before_capacity_is_reused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workbook = ROOT / "workbooks/mutants/M10_supplier_rebate.xlsx"
+    private_root = tmp_path / "private"
+    monkeypatch.setattr(ui_module, "UPLOAD_TTL_SECONDS", 0)
+    handler = make_handler(
+        ROOT,
+        model=AbstainingUiModel(),
+        provider="scripted-provider",
+        model_id="scripted-ui-agent",
+        configured_artifact_root=tmp_path / "benchmark-artifacts",
+        configured_private_root=private_root,
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+
+    def upload_workbook() -> dict[str, Any]:
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}/api/uploads/workbook",
+                data=workbook.read_bytes(),
+                headers={
+                    "Content-Type": (
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+                },
+                method="POST",
+            ),
+            timeout=10,
+        ) as response:
+            return cast(dict[str, Any], json.loads(response.read()))
+
+    try:
+        first = upload_workbook()
+        second = upload_workbook()
+
+        assert first["upload_id"] != second["upload_id"]
+        assert {path.name for path in (private_root / "uploads").iterdir()} == {second["upload_id"]}
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_private_upload_repair_is_retained_until_approval_then_downloadable(
+    tmp_path: Path,
+) -> None:
+    workbook = ROOT / "workbooks/mutants/M10_supplier_rebate.xlsx"
+    policy = ROOT / "policies/supplier_rebate_sla_policy.pdf"
+    private_root = tmp_path / "private"
+    handler = make_handler(
+        ROOT,
+        model=InvestigatorFalsifierScript(),
+        provider="scripted-provider",
+        model_id="scripted-repair-agent",
+        configured_artifact_root=tmp_path / "benchmark-artifacts",
+        configured_private_root=private_root,
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+
+    def post(path: str, data: bytes, content_type: str) -> dict[str, Any]:
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}{path}",
+                data=data,
+                headers={"Content-Type": content_type},
+                method="POST",
+            ),
+            timeout=10,
+        ) as response:
+            return cast(dict[str, Any], json.loads(response.read()))
+
+    try:
+        staged = post(
+            "/api/uploads/workbook",
+            workbook.read_bytes(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        ready = post(
+            f"/api/uploads/{staged['upload_id']}/policy",
+            policy.read_bytes(),
+            "application/pdf",
+        )
+        queued = post(
+            "/api/audit",
+            json.dumps({"upload_id": staged["upload_id"]}).encode(),
+            "application/json",
+        )
+        for _ in range(200):
+            with urlopen(f"http://127.0.0.1:{port}{queued['status_url']}", timeout=10) as response:
+                job = json.loads(response.read())
+            if job["status"] == "complete":
+                break
+            time.sleep(0.01)
+        else:
+            pytest.fail("Uploaded repair audit did not finish")
+
+        review = job["result"]
+        assert review["result"]["decision"] == "REPAIR"
+        assert review["result"]["source_sha256"] == ready["workbook_sha256"]
+        assert len(list((private_root / "uploads").iterdir())) == 1
+
+        replay = Request(
+            f"http://127.0.0.1:{port}/api/audit",
+            data=json.dumps({"upload_id": staged["upload_id"]}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with pytest.raises(HTTPError) as captured:
+            urlopen(replay, timeout=10)
+        assert captured.value.code == 400
+        assert "unknown or still requires" in json.loads(captured.value.read())["error"]
+
+        approved = post(
+            "/api/approve",
+            json.dumps({"run_id": review["result"]["run_id"], "reviewer": "ui-reviewer"}).encode(),
+            "application/json",
+        )
+        assert approved["result"]["approval_hash"]
+        assert "repaired.xlsx" in approved["downloads"]
+        assert list((private_root / "uploads").iterdir()) == []
+
+        with urlopen(
+            f"http://127.0.0.1:{port}/download/{review['result']['run_id']}/repaired.xlsx",
+            timeout=10,
+        ) as response:
+            repaired = response.read()
+        assert repaired.startswith(b"PK")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_cleanup_failure_does_not_leave_uploaded_audit_job_running(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workbook = ROOT / "workbooks/mutants/M10_supplier_rebate.xlsx"
+    policy = ROOT / "policies/supplier_rebate_sla_policy.pdf"
+    private_root = tmp_path / "private"
+
+    def fail_cleanup(_upload: object) -> None:
+        raise OSError("simulated locked upload")
+
+    monkeypatch.setattr(ui_module, "remove_upload", fail_cleanup)
+    handler = make_handler(
+        ROOT,
+        model=AbstainingUiModel(),
+        provider="scripted-provider",
+        model_id="scripted-ui-agent",
+        configured_artifact_root=tmp_path / "benchmark-artifacts",
+        configured_private_root=private_root,
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+
+    def post(path: str, data: bytes, content_type: str) -> dict[str, Any]:
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}{path}",
+                data=data,
+                headers={"Content-Type": content_type},
+                method="POST",
+            ),
+            timeout=10,
+        ) as response:
+            return cast(dict[str, Any], json.loads(response.read()))
+
+    try:
+        staged = post(
+            "/api/uploads/workbook",
+            workbook.read_bytes(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        post(
+            f"/api/uploads/{staged['upload_id']}/policy",
+            policy.read_bytes(),
+            "application/pdf",
+        )
+        queued = post(
+            "/api/audit",
+            json.dumps({"upload_id": staged["upload_id"]}).encode(),
+            "application/json",
+        )
+        for _ in range(200):
+            with urlopen(f"http://127.0.0.1:{port}{queued['status_url']}", timeout=10) as response:
+                job = json.loads(response.read())
+            if job["status"] != "running" and job["status"] != "queued":
+                break
+            time.sleep(0.01)
+        else:
+            pytest.fail("Uploaded audit remained non-terminal after cleanup failed")
+
+        assert job["status"] == "complete"
+        assert job["result"]["result"]["decision"] == "ABSTAIN"
+        assert job["result"]["cleanup_pending"] is True
+        assert "deletion is queued for retry" in job["result"]["cleanup_warning"]
+        assert len(list((private_root / "uploads").iterdir())) == 1
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_approval_reports_and_tracks_a_temporary_input_cleanup_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workbook = ROOT / "workbooks/mutants/M10_supplier_rebate.xlsx"
+    policy = ROOT / "policies/supplier_rebate_sla_policy.pdf"
+    private_root = tmp_path / "private"
+    handler = make_handler(
+        ROOT,
+        model=InvestigatorFalsifierScript(),
+        provider="scripted-provider",
+        model_id="scripted-repair-agent",
+        configured_artifact_root=tmp_path / "benchmark-artifacts",
+        configured_private_root=private_root,
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+
+    def post(path: str, data: bytes, content_type: str) -> dict[str, Any]:
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}{path}",
+                data=data,
+                headers={"Content-Type": content_type},
+                method="POST",
+            ),
+            timeout=10,
+        ) as response:
+            return cast(dict[str, Any], json.loads(response.read()))
+
+    try:
+        staged = post(
+            "/api/uploads/workbook",
+            workbook.read_bytes(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        post(
+            f"/api/uploads/{staged['upload_id']}/policy",
+            policy.read_bytes(),
+            "application/pdf",
+        )
+        queued = post(
+            "/api/audit",
+            json.dumps({"upload_id": staged["upload_id"]}).encode(),
+            "application/json",
+        )
+        for _ in range(200):
+            with urlopen(f"http://127.0.0.1:{port}{queued['status_url']}", timeout=10) as response:
+                job = json.loads(response.read())
+            if job["status"] == "complete":
+                break
+            time.sleep(0.01)
+        else:
+            pytest.fail("Uploaded repair audit did not finish")
+        review = job["result"]
+        assert review["result"]["decision"] == "REPAIR"
+
+        def fail_cleanup(_upload: object) -> None:
+            raise OSError("simulated locked upload")
+
+        monkeypatch.setattr(ui_module, "remove_upload", fail_cleanup)
+        approved = post(
+            "/api/approve",
+            json.dumps({"run_id": review["result"]["run_id"], "reviewer": "ui-reviewer"}).encode(),
+            "application/json",
+        )
+
+        assert approved["result"]["approval_hash"]
+        assert approved["cleanup_pending"] is True
+        assert "deletion is queued for retry" in approved["cleanup_warning"]
+        assert len(list((private_root / "uploads").iterdir())) == 1
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_retained_uploaded_repair_expires_before_human_approval(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workbook = ROOT / "workbooks/mutants/M10_supplier_rebate.xlsx"
+    policy = ROOT / "policies/supplier_rebate_sla_policy.pdf"
+    private_root = tmp_path / "private"
+    handler = make_handler(
+        ROOT,
+        model=InvestigatorFalsifierScript(),
+        provider="scripted-provider",
+        model_id="scripted-repair-agent",
+        configured_artifact_root=tmp_path / "benchmark-artifacts",
+        configured_private_root=private_root,
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    port = int(server.server_address[1])
+
+    def post(path: str, data: bytes, content_type: str) -> dict[str, Any]:
+        with urlopen(
+            Request(
+                f"http://127.0.0.1:{port}{path}",
+                data=data,
+                headers={"Content-Type": content_type},
+                method="POST",
+            ),
+            timeout=10,
+        ) as response:
+            return cast(dict[str, Any], json.loads(response.read()))
+
+    try:
+        staged = post(
+            "/api/uploads/workbook",
+            workbook.read_bytes(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        post(
+            f"/api/uploads/{staged['upload_id']}/policy",
+            policy.read_bytes(),
+            "application/pdf",
+        )
+        queued = post(
+            "/api/audit",
+            json.dumps({"upload_id": staged["upload_id"]}).encode(),
+            "application/json",
+        )
+        for _ in range(200):
+            with urlopen(f"http://127.0.0.1:{port}{queued['status_url']}", timeout=10) as response:
+                job = json.loads(response.read())
+            if job["status"] == "complete":
+                break
+            time.sleep(0.01)
+        else:
+            pytest.fail("Uploaded repair audit did not finish")
+
+        review = job["result"]
+        assert review["result"]["decision"] == "REPAIR"
+        assert len(list((private_root / "uploads").iterdir())) == 1
+
+        monkeypatch.setattr(ui_module, "UPLOAD_TTL_SECONDS", 0)
+        approval = Request(
+            f"http://127.0.0.1:{port}/api/approve",
+            data=json.dumps(
+                {"run_id": review["result"]["run_id"], "reviewer": "ui-reviewer"}
+            ).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with pytest.raises(HTTPError) as captured:
+            urlopen(approval, timeout=10)
+        assert captured.value.code == 400
+        assert json.loads(captured.value.read())["error"] == (
+            "Uploaded audit input is no longer available"
+        )
+        assert list((private_root / "uploads").iterdir()) == []
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)

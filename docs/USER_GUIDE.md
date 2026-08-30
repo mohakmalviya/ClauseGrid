@@ -75,8 +75,32 @@ Start the local review server:
   --allow-external-processing
 ```
 
-Open <http://127.0.0.1:8765>, select `M10`, and start an audit. Keep the terminal open while using
-the site. The local UI accepts only bundled synthetic cases; use the CLI for your own workbook.
+Open <http://127.0.0.1:8765>. You can select `M10`, or choose **Upload workbook + policy** and select
+both a compatible `.xlsx` workbook and the matching text-readable policy `.pdf`. The custom path is
+available only on the loopback/private UI. It rejects unsupported content before any model call,
+shows workbook/policy hashes and the accepted sheet/formula profile, and never substitutes the
+bundled synthetic policy for a user file.
+
+Before upload, confirm that the files contain public, synthetic, or approved data and may be sent to
+the configured provider. Selected cells, formulas, policy passages, and tool observations can appear
+in the evidence trace. Each prepared upload is single-use. Pending and review inputs expire after 30
+minutes, and deletion is attempted sooner after a non-repair result or approval. If Windows or
+another operating system temporarily blocks deletion, the result shows a cleanup warning and the
+server retries; its complete OS-temporary runtime is removed when the server stops. Download any
+evidence you need before closing it. Keep the terminal open while using the site.
+
+Compatibility is intentionally narrower than Excel. The calculation-focused profile rejects
+drawings, comments, charts/media, embedded objects, and other relationships outside its explicit
+allowlist. Conditional formatting, data validation, and worksheet extension lists are rejected
+because their formula contexts are not executed by the deterministic evaluator. Sandbox experiments
+can override same-sheet or qualified raw inputs such as `Inputs!A1`,
+but preflight rejects cross-sheet formula chains because the current worker recalculates one formula
+sheet at a time. A readable policy PDF is necessary but does not mechanically prove it governs the
+workbook; the manager must establish that link from evidence or abstain.
+
+Experiment strings are always literal text. A date is explicit and unambiguous:
+`{"kind":"date","value":"2026-01-01"}`. The worker converts only that tagged representation to an
+Excel date serial; it never guesses that an ISO-shaped identifier is a date.
 
 The completed page shows:
 
@@ -92,7 +116,7 @@ turn number, elapsed time, and last tool while it runs. Browser runs use a bound
 compacted evidence and reserved falsifier turns; CLI runs retain their explicitly configured limits.
 A browser refresh does not accelerate the provider.
 
-## 5. Audit your own workbook
+## 5. Audit your own workbook from the CLI
 
 First run the local safety inspection, which does not call a model:
 

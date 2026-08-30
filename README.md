@@ -43,11 +43,23 @@ $env:QUBRID_API_KEY = '<set outside the repository>'
   --allow-external-processing
 ```
 
-Open `http://127.0.0.1:8765`, run M10, and inspect the model-selected policy citations,
-sandbox experiments, independent falsifier verdict, exact formula diff, proposal hash, and raw JSONL
-trajectory. If and only if a repair survives falsification, enter a local reviewer label to approve the
-exact proposal and write a copied workbook. Provider, model, endpoint, and credential configuration
-are server-side; the unauthenticated demo server refuses non-loopback binding.
+Open `http://127.0.0.1:8765`, then either run M10 or select **Upload workbook + policy** to privately
+stage a compatible `.xlsx` together with its governing text-readable `.pdf`. Custom inputs pass
+OOXML, formula-profile, PDF, size, and hash preflight before the model is called. They live under an
+isolated OS-temporary runtime rather than the repository. Deletion is attempted before exposing a
+non-repair result or successful approval; an operating-system deletion failure is shown explicitly
+and queued for retry instead of leaving the job running. Inspect the model-selected policy citations, sandbox experiments, independent falsifier
+verdict, exact formula diff, proposal hash, and raw JSONL trajectory. If and only if a repair survives
+falsification, enter a local reviewer label to approve the exact proposal and write a copied workbook.
+Provider, model, endpoint, and credential configuration are server-side; the unauthenticated demo
+server refuses non-loopback binding.
+
+Real-file mode requires both files. FormulaWitness will not silently compare an uploaded workbook
+against the bundled synthetic supplier policy. The browser also requires confirmation that the data
+is public, synthetic, or approved for processing by the configured model provider. Pending uploads
+and retained review inputs expire after 30 minutes, and browser retries reuse the same prepared
+upload. Stopping the server removes the complete temporary runtime. This private upload mode is
+intentionally unavailable on the anonymous public deployment.
 
 Direct CLI equivalents:
 
@@ -127,10 +139,13 @@ The `agent` command runs a real model-controlled loop:
 
 ## Safety boundary
 
-- Ordinary `.xlsx` only; `.xlsm`, VBA, OLE/ActiveX, DDE, external links, Power Query/connections, volatile formulas, and network refreshes are rejected.
+- Calculation-focused `.xlsx` only; `.xlsm`, VBA, OLE/ActiveX, DDE, external links, Power Query/connections, drawings, conditional formatting, data validation, worksheet extensions, volatile formulas, and network refreshes are rejected.
 - The source hash is checked before and after every run; repairs are copy-on-write.
-- The evaluator supports arithmetic, comparisons, direct/qualified cell references, ranges, and `IF`, `AND`, `OR`, `MAX`, `MIN`, `ROUND`, and ordered `LOOKUP`. Anything else fails closed.
+- The evaluator supports arithmetic, comparisons, bounded direct/qualified cell references and ranges, plus `IF`, `AND`, `OR`, `MAX`, `MIN`, `ROUND`, ordered `LOOKUP`, and literal equality `COUNTIF`. The uploaded workbook's initial calculation is executed during preflight; anything outside this profile fails closed before a custom browser run spends model tokens.
+- Experiments can vary same-sheet inputs or qualified raw inputs such as `Inputs!A1`. Cross-sheet formula-to-formula chains are rejected during upload preflight because the current sandbox recalculates one formula sheet at a time.
 - Approval is immutable and hash-bound. A stale or unexpected old formula cannot be patched.
+- Repaired bytes are not offered for download unless the approval commit marker is valid and binds
+  their exact SHA-256 hash.
 - Public rule execution labels visible cases. Held-out vectors and the independent oracle live under `evals/sealed`, outside the installed repair package; evaluation gives each repair process only staged workbook/policy inputs and applies a file-capability guard that denies ordinary access to evaluator files.
 
 This is a focused assurance prototype, not a general Excel replacement. Its main real-world failure mode is ambiguous or conflicting policy language; such rules must produce an abstention and human clarification rather than an invented oracle.

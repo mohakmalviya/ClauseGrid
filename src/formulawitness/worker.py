@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .formula import evaluate_cells
 from .ooxml import calculation_cells, inspect_safety
-from .policy import CORE_OUTPUTS, INPUT_CELL_MAP
+from .policy import CORE_OUTPUTS, workbook_input_overrides
 
 
 def main() -> int:
@@ -25,12 +25,10 @@ def main() -> int:
         input_cases = request.get("cases", [request.get("inputs", {})])
         results = []
         for inputs in input_cases:
-            overrides = {
-                INPUT_CELL_MAP[name]: value
-                for name, value in inputs.items()
-                if name in INPUT_CELL_MAP
-            }
-            calculated, dependencies = evaluate_cells(values, formulas, overrides)
+            overrides = workbook_input_overrides(inputs)
+            calculated, dependencies = evaluate_cells(
+                values, formulas, overrides, active_sheet="RebateCalc"
+            )
             results.append(
                 {
                     "inputs": inputs,

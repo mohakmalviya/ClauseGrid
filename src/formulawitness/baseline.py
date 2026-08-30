@@ -19,6 +19,7 @@ from .policy import (
     evaluate_approved_rules,
     extract_rules,
     verify_citations,
+    workbook_input_overrides,
     write_rules_yaml,
 )
 from .public_benchmark import visible_cases
@@ -126,11 +127,7 @@ def _simulate_cases(
     ledger.charge_cases(len(cases))
     records: list[dict[str, Any]] = []
     for case in cases:
-        overrides = {
-            INPUT_CELL_MAP[name]: value
-            for name, value in case.inputs.items()
-            if name in INPUT_CELL_MAP
-        }
+        overrides = workbook_input_overrides(case.inputs)
         outputs, _ = evaluate_cells(values, formulas, overrides)
         actual = {cell: outputs[cell] for cell in CORE_OUTPUTS}
         expected = evaluate_approved_rules(case.inputs, rules)

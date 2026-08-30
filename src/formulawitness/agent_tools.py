@@ -21,7 +21,7 @@ from .agent_state import (
     FalsifierVerdict,
 )
 from .agent_types import ToolCall, ToolSpec
-from .formula import FormulaTransform, transform_formula
+from .formula import FormulaTransform, transform_formula, validate_formula_dependency_graph
 from .models import FormulaOverride
 from .policy_text import PolicyText
 from .runner import execute_experiment
@@ -77,6 +77,10 @@ class FormulaOverrideArgs(ToolArgs):
 
 
 CellAddress = Annotated[str, Field(pattern=r"^[A-Z]{1,3}[1-9]\d*$")]
+OverrideCellAddress = Annotated[
+    str,
+    Field(pattern=r"^(?:(?:'[^']+'|[A-Za-z_][A-Za-z0-9_. ]*)!)?[A-Z]{1,3}[1-9]\d*$"),
+]
 
 
 class ExpectedObservationArgs(ToolArgs):
@@ -85,10 +89,23 @@ class ExpectedObservationArgs(ToolArgs):
     tolerance: float = Field(default=0.0, ge=0.0)
 
 
+class DateOverrideArgs(ToolArgs):
+    kind: Literal["date"]
+    value: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
 class RunExperimentArgs(ToolArgs):
     experiment_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
     sheet: str = Field(min_length=1, max_length=128)
-    overrides: dict[str, str | int | float | bool | None] = Field(max_length=100)
+    overrides: dict[OverrideCellAddress, DateOverrideArgs | str | int | float | bool | None] = (
+        Field(
+            max_length=100,
+            description=(
+                "Input values keyed by A1 or Sheet!A1; formula cells require formula_overrides. "
+                "Strings are literal text. Dates must use {kind: 'date', value: 'YYYY-MM-DD'}."
+            ),
+        )
+    )
     observations: tuple[CellAddress, ...] = Field(min_length=1, max_length=100)
     expectations: tuple[ExpectedObservationArgs, ...] = Field(default=(), max_length=100)
     formula_overrides: tuple[FormulaOverrideArgs, ...] = Field(default=(), max_length=5)
@@ -590,18 +607,18 @@ class AgentToolRegistry:
                     "Duplicate experiment design already exists; change inputs, formula, "
                     "observations, or expectations instead of renaming it"
                 )
+        request = args.model_dump(mode="json")
         self._charge_workbook_execution()
         result = execute_experiment(
             self.workbook,
             sheet=args.sheet,
-            overrides=args.overrides,
+            overrides=request["overrides"],
             observations=args.observations,
             formula_overrides=tuple(
                 FormulaOverride(item.cell, item.old_formula_sha256, item.new_formula)
                 for item in args.formula_overrides
             ),
         )
-        request = args.model_dump(mode="json")
         observation = asdict(result)
         comparisons = []
         for expectation in args.expectations:
@@ -743,6 +760,7 @@ class AgentToolRegistry:
         ):
             raise ValueError("Candidate limit reached for this comparison mode")
         formulas = list_formulas(self.workbook)
+        candidate_formulas = dict(formulas)
         edits: list[CandidateEdit] = []
         for requested_edit in args.edits:
             self._known_evidence(requested_edit.evidence_ids)
@@ -757,7 +775,12 @@ class AgentToolRegistry:
             edit = requested_edit.to_candidate_edit(current)
             if current == edit.new_formula:
                 raise ValueError(f"Candidate does not change the formula at {reference}")
+            candidate_formulas[reference] = edit.new_formula
             edits.append(edit)
+        manifest = workbook_manifest(self.workbook)
+        validate_formula_dependency_graph(
+            candidate_formulas, (sheet.name for sheet in manifest.sheets)
+        )
         proposal = CandidateProposal(
             source_sha256=self.state.source_sha256,
             policy_sha256=self.state.policy_sha256,

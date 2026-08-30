@@ -2,11 +2,13 @@ import ast
 import hashlib
 import subprocess
 from pathlib import Path
+from xml.etree import ElementTree as ET
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
 
 from formulawitness.models import FormulaOverride
-from formulawitness.ooxml import formula_map, sha256_file
+from formulawitness.ooxml import MAIN, formula_map, sha256_file
 from formulawitness.runner import ExecutionFailed, _execute_request, execute_experiment
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -15,6 +17,26 @@ WORKBOOK = ROOT / "workbooks/reference/supplier_rebate_pristine.xlsx"
 
 def _formula_hash(formula: str) -> str:
     return hashlib.sha256(formula.encode("utf-8")).hexdigest()
+
+
+def _self_qualified_dependency_workbook(tmp_path: Path) -> Path:
+    target = tmp_path / "self-qualified.xlsx"
+    changed = False
+    with ZipFile(WORKBOOK) as source, ZipFile(target, "w", ZIP_DEFLATED) as output:
+        for info in source.infolist():
+            payload = source.read(info)
+            if not changed and info.filename.startswith("xl/worksheets/"):
+                root = ET.fromstring(payload)
+                for cell in root.findall(".//x:c", {"x": MAIN}):
+                    formula = cell.find("x:f", {"x": MAIN})
+                    if cell.attrib.get("r") == "M6" and formula is not None:
+                        formula.text = "RebateCalc!L6+1"
+                        payload = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+                        changed = True
+                        break
+            output.writestr(info, payload)
+    assert changed
+    return target
 
 
 def test_generic_experiment_uses_explicit_cells_without_policy_mappings() -> None:
@@ -30,6 +52,18 @@ def test_generic_experiment_uses_explicit_cells_without_policy_mappings() -> Non
     assert result.observations == {"L6": 100, "E6": 123}
     assert result.dependencies["L6"] == ["E6", "F6", "G6"]
     assert result.applied_formula_overrides == ()
+
+
+def test_generic_experiment_round_trips_a_tagged_date_override() -> None:
+    result = execute_experiment(
+        WORKBOOK,
+        sheet="RebateCalc",
+        overrides={"B6": {"kind": "date", "value": "2026-01-03"}},
+        observations=["B6", "Q6"],
+    )
+
+    assert result.observations["B6"] == 46_025
+    assert isinstance(result.observations["Q6"], (int, float))
 
 
 def test_formula_override_is_guarded_and_remains_sandbox_only() -> None:
@@ -49,6 +83,28 @@ def test_formula_override_is_guarded_and_remains_sandbox_only() -> None:
     assert result.applied_formula_overrides == ("L6",)
     assert sha256_file(WORKBOOK) == before_hash
     assert formula_map(WORKBOOK)["L6"] == source_formula
+
+
+def test_self_qualified_dependencies_use_live_raw_and_formula_overrides(tmp_path: Path) -> None:
+    workbook = _self_qualified_dependency_workbook(tmp_path)
+    raw_result = execute_experiment(
+        workbook,
+        sheet="RebateCalc",
+        overrides={"E6": 123},
+        observations=["M6"],
+    )
+    source_formula = formula_map(workbook)["L6"]
+    formula_result = execute_experiment(
+        workbook,
+        sheet="RebateCalc",
+        overrides={},
+        observations=["M6"],
+        formula_overrides=[FormulaOverride("L6", _formula_hash(source_formula), "=1")],
+    )
+
+    assert raw_result.observations["M6"] == 124
+    assert formula_result.observations["M6"] == 2
+    assert formula_result.dependencies["M6"] == ["L6"]
 
 
 def test_formula_override_rejects_a_stale_old_formula_hash() -> None:

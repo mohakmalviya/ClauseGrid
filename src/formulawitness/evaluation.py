@@ -19,7 +19,7 @@ from .ooxml import (
     inspect_safety,
     sha256_file,
 )
-from .policy import CORE_OUTPUTS, INPUT_CELL_MAP
+from .policy import CORE_OUTPUTS, workbook_input_overrides
 from .public_benchmark import DEFECT_FAMILIES, MAX_PATCH_CELLS, WORKBOOK_CASES
 
 
@@ -37,11 +37,7 @@ def sealed_semantic_check(workbook: Path) -> tuple[bool, int, str | None]:
     values, formulas = calculation_cells(workbook)
     passed = 0
     for case in held_out_cases():
-        overrides = {
-            INPUT_CELL_MAP[name]: value
-            for name, value in case.inputs.items()
-            if name in INPUT_CELL_MAP
-        }
+        overrides = workbook_input_overrides(case.inputs)
         try:
             outputs, _ = evaluate_cells(values, formulas, overrides)
         except FormulaError as exc:

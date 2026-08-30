@@ -118,3 +118,28 @@
   waiver-scope diagnosis in 170.5 seconds, but invented invalid experiment cells, exhausted 30
   manager turns, and never staged or falsified a candidate. DeepSeek is therefore an integration
   default, not a task-qualified or production model.
+
+## Checkpoint 9 - private real-workbook input path
+
+- Added a local/private browser path that requires the user's `.xlsx` and governing text-readable
+  `.pdf`; the bundled synthetic policy is never substituted for a custom workbook.
+- Added pre-model OOXML relationship/content-type allowlists, XML-entity, workbook-size,
+  formula-count/text, exact executable-subset, dependency-cycle, range, address, shared-string,
+  isolated PDF-readability, and aggregate discovery-output checks.
+- Hardened the final input gate to parse every accepted package part as UTF-8 XML, allow only
+  store/deflate ZIP methods, reject conditional-format/data-validation/extension formula contexts,
+  and execute the complete supported formula graph once before model tokens are spent.
+- Bound every accepted input to exact workbook and policy hashes, a server-generated single-use ID,
+  isolated OS-temporary storage, a 30-minute expiry, the resulting run, and exact approval.
+- Added qualified cross-sheet raw-input experiments and rejected cross-sheet formula-to-formula
+  chains that the current one-sheet recalculation worker cannot evaluate safely.
+- Added explicit tagged dates, dependency-ordered evaluation, and active-sheet reference
+  normalization so experiments cannot confuse cached values with live candidate dependencies.
+- Verified both terminal lifecycles: deletion is attempted before a non-repair job or approval is
+  exposed; repair inputs otherwise remain only through review, and the copied repaired workbook
+  remains downloadable from isolated run artifacts. Simulated operating-system deletion failures
+  produce a terminal result with an explicit warning and bounded retry queue rather than a job stuck
+  in `running`.
+- Browser smoke used the real M10 `.xlsx` and four-page policy PDF, reported 22 formulas and four
+  sheets with exact hashes, completed fail-closed, rendered correctly at desktop/mobile widths, and
+  produced no browser console errors. This is implementation evidence, not a model accuracy score.

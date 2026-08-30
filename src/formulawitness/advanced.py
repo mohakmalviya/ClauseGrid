@@ -23,7 +23,6 @@ from .models import AuditResult, Patch, Rule, TestCase
 from .ooxml import calculation_cells, inspect_safety, patch_workbook, sha256_file
 from .policy import (
     CORE_OUTPUTS,
-    INPUT_CELL_MAP,
     PolicyAmbiguityError,
     ambiguity_gate,
     compile_rule_formulas,
@@ -31,6 +30,7 @@ from .policy import (
     extract_rules,
     verify_citations,
     verify_rule_sources,
+    workbook_input_overrides,
     write_rules_yaml,
 )
 from .public_benchmark import visible_cases
@@ -109,9 +109,7 @@ def _mismatches(expected: dict[str, Any], actual: dict[str, Any]) -> list[str]:
 def _execute_in_memory(
     values: dict[str, Any], formulas: dict[str, str], case: TestCase
 ) -> dict[str, Any]:
-    overrides = {
-        INPUT_CELL_MAP[name]: value for name, value in case.inputs.items() if name in INPUT_CELL_MAP
-    }
+    overrides = workbook_input_overrides(case.inputs)
     outputs, _ = evaluate_cells(values, formulas, overrides)
     return {cell: outputs[cell] for cell in CORE_OUTPUTS}
 

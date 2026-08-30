@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import math
 import re
 import zipfile
 from collections.abc import Iterable, Sequence
@@ -19,10 +20,80 @@ CONTENT = "http://schemas.openxmlformats.org/package/2006/content-types"
 NS = {"x": MAIN, "r": REL, "pr": PKG_REL, "ct": CONTENT}
 ET.register_namespace("", MAIN)
 ET.register_namespace("r", REL)
+MAX_WORKSHEETS = 128
+MAX_CELL_RECORDS = 250_000
+MAX_SHARED_STRING_CHARS = 2_000_000
+MAX_FORMULA_RECORDS = 2_000
+MAX_FORMULA_CHARS = 8_192
+UNSUPPORTED_WORKSHEET_CONTAINERS = frozenset({"conditionalFormatting", "dataValidations", "extLst"})
+CELL_ADDRESS_RE = re.compile(r"^(?P<column>[A-Z]{1,3})(?P<row>[1-9]\d*)$")
+ALLOWED_RELATIONSHIP_TYPES = frozenset(
+    {
+        "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties",
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet",
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings",
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/calcChain",
+    }
+)
+ALLOWED_CONTENT_TYPES = frozenset(
+    {
+        "application/vnd.openxmlformats-package.relationships+xml",
+        "application/vnd.openxmlformats-package.core-properties+xml",
+        "application/vnd.openxmlformats-officedocument.extended-properties+xml",
+        "application/vnd.openxmlformats-officedocument.custom-properties+xml",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sharedstrings+xml",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.calcchain+xml",
+        "application/vnd.openxmlformats-officedocument.theme+xml",
+        "application/xml",
+        "text/xml",
+    }
+)
 
 
 class WorkbookRejected(ValueError):
     pass
+
+
+def _valid_cell_address(address: str) -> bool:
+    match = CELL_ADDRESS_RE.fullmatch(address)
+    if match is None:
+        return False
+    column = 0
+    for character in match.group("column"):
+        column = column * 26 + (ord(character) - ord("A") + 1)
+    return column <= 16_384 and int(match.group("row")) <= 1_048_576
+
+
+def _parse_xml(payload: bytes, label: str) -> ET.Element:
+    try:
+        decoded = payload.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise WorkbookRejected(f"Workbook XML must use UTF-8 encoding: {label}") from exc
+    lowered = decoded.casefold()
+    if "<!doctype" in lowered or "<!entity" in lowered:
+        raise WorkbookRejected(f"Workbook XML declarations are unsupported: {label}")
+    try:
+        return ET.fromstring(payload)
+    except ET.ParseError as exc:
+        raise WorkbookRejected(f"Workbook XML is invalid: {label}") from exc
+
+
+def _numeric_cell_value(text: str) -> int | float:
+    try:
+        number = float(text)
+    except ValueError as exc:
+        raise WorkbookRejected("Worksheet numeric cell is invalid") from exc
+    if not math.isfinite(number):
+        raise WorkbookRejected("Worksheet numeric cell must be finite")
+    return int(number) if number.is_integer() else number
 
 
 def sha256_file(path: Path) -> str:
@@ -59,8 +130,17 @@ def inspect_safety(path: Path, max_uncompressed: int = 25_000_000) -> dict[str, 
                 raise WorkbookRejected("Workbook package contains an unsafe part path")
             if info.flag_bits & 0x1:
                 raise WorkbookRejected("Encrypted workbook package parts are unsupported")
+            if info.compress_type not in {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}:
+                raise WorkbookRejected("Workbook package uses an unsupported compression method")
             if info.file_size > 1_000_000 and info.compress_size * 200 < info.file_size:
                 raise WorkbookRejected("Workbook package contains an excessive compression ratio")
+            if info.is_dir():
+                continue
+            if not normalized.casefold().endswith((".xml", ".rels")):
+                raise WorkbookRejected(
+                    f"Workbook package part is outside the XML-only safe profile: {normalized}"
+                )
+            _parse_xml(archive.read(info), info.filename)
         names = {info.filename.lower() for info in infos}
         required = {
             "[content_types].xml",
@@ -82,25 +162,28 @@ def inspect_safety(path: Path, max_uncompressed: int = 25_000_000) -> dict[str, 
         if matches:
             raise WorkbookRejected(f"Unsupported active or external content: {matches[0]}")
         for info in infos:
-            if info.filename.endswith(".rels"):
-                root = ET.fromstring(archive.read(info))
+            if info.filename.casefold().endswith(".rels"):
+                root = _parse_xml(archive.read(info), info.filename)
                 for relationship in root:
                     if relationship.attrib.get("TargetMode", "").lower() == "external":
                         raise WorkbookRejected("External relationships are not accepted")
+                    relationship_type = relationship.attrib.get("Type", "")
+                    if relationship_type not in ALLOWED_RELATIONSHIP_TYPES:
+                        label = relationship_type.rsplit("/", 1)[-1] or "missing"
+                        raise WorkbookRejected(
+                            f"Workbook relationship type is outside the safe profile: {label}"
+                        )
         if not required <= names:
             raise WorkbookRejected("Workbook package is missing required OOXML parts")
-        content_types = ET.fromstring(archive.read("[Content_Types].xml"))
-        unsafe_content_types = {
-            str(item.attrib.get("ContentType", "")).casefold()
-            for item in content_types
-            if any(
-                marker in str(item.attrib.get("ContentType", "")).casefold()
-                for marker in ("macroenabled", "vbaproject", "oleobject", "activex")
-            )
+        content_types = _parse_xml(archive.read("[Content_Types].xml"), "[Content_Types].xml")
+        declared_content_types = {
+            str(item.attrib.get("ContentType", "")).casefold() for item in content_types
         }
-        if unsafe_content_types:
-            raise WorkbookRejected("Workbook declares an unsupported active content type")
-        package_relationships = ET.fromstring(archive.read("_rels/.rels"))
+        unsupported_content_types = declared_content_types - ALLOWED_CONTENT_TYPES
+        if unsupported_content_types:
+            label = min(unsupported_content_types)
+            raise WorkbookRejected(f"Workbook content type is outside the safe profile: {label}")
+        package_relationships = _parse_xml(archive.read("_rels/.rels"), "_rels/.rels")
         office_documents = [
             relationship
             for relationship in package_relationships
@@ -111,11 +194,54 @@ def inspect_safety(path: Path, max_uncompressed: int = 25_000_000) -> dict[str, 
             or office_documents[0].attrib.get("Target", "").lstrip("/") != "xl/workbook.xml"
         ):
             raise WorkbookRejected("Workbook package has an invalid office-document relationship")
-        workbook_root = ET.fromstring(archive.read("xl/workbook.xml"))
+        workbook_root = _parse_xml(archive.read("xl/workbook.xml"), "xl/workbook.xml")
         if workbook_root.find("x:definedNames", NS) is not None:
             raise WorkbookRejected("Defined names are outside the supported workbook profile")
-        _sheet_paths(archive)
+        sheet_paths = _sheet_paths(archive)
+        if len(sheet_paths) > MAX_WORKSHEETS:
+            raise WorkbookRejected(f"Workbook exceeds the {MAX_WORKSHEETS}-worksheet limit")
+        total_cells = 0
+        for target in sheet_paths.values():
+            sheet_root = _parse_xml(archive.read(target), target)
+            unsupported_containers = sorted(
+                {
+                    element.tag.rsplit("}", 1)[-1]
+                    for element in sheet_root.iter()
+                    if element.tag.rsplit("}", 1)[-1] in UNSUPPORTED_WORKSHEET_CONTAINERS
+                }
+            )
+            if unsupported_containers:
+                raise WorkbookRejected(
+                    "Unsupported worksheet formula-bearing content: "
+                    + ", ".join(unsupported_containers)
+                )
+            total_cells += len(sheet_root.findall(".//x:c", NS))
+            if total_cells > MAX_CELL_RECORDS:
+                raise WorkbookRejected(f"Workbook exceeds the {MAX_CELL_RECORDS}-cell record limit")
+            for cell in sheet_root.findall(".//x:c", NS):
+                value = cell.find("x:v", NS)
+                if (
+                    value is not None
+                    and value.text is not None
+                    and cell.attrib.get("t") not in {"s", "str", "b"}
+                ):
+                    _numeric_cell_value(value.text)
+        if "xl/sharedstrings.xml" in names:
+            shared_root = _parse_xml(archive.read("xl/sharedStrings.xml"), "xl/sharedStrings.xml")
+            shared_characters = sum(
+                len(node.text or "") for node in shared_root.iter(f"{{{MAIN}}}t")
+            )
+            if shared_characters > MAX_SHARED_STRING_CHARS:
+                raise WorkbookRejected(
+                    "Workbook shared strings exceed the extracted-text safety limit"
+                )
         formulas = _archive_formula_map(archive)
+        if len(formulas) > MAX_FORMULA_RECORDS:
+            raise WorkbookRejected(
+                f"Workbook exceeds the {MAX_FORMULA_RECORDS}-formula safety limit"
+            )
+        if any(len(formula) > MAX_FORMULA_CHARS for formula in formulas.values()):
+            raise WorkbookRejected("Workbook formula exceeds the formula text safety limit")
         unsafe_function = re.compile(
             r"\b(?:CALL|EVALUATE|EXEC|REGISTER\.ID|INDIRECT|OFFSET|NOW|TODAY|RAND|RANDBETWEEN|WEBSERVICE|RTD|HYPERLINK|FILTERXML|STOCKHISTORY)\s*\(",
             re.IGNORECASE,
@@ -140,8 +266,10 @@ def inspect_safety(path: Path, max_uncompressed: int = 25_000_000) -> dict[str, 
 
 
 def _sheet_paths(archive: zipfile.ZipFile) -> dict[str, str]:
-    workbook = ET.fromstring(archive.read("xl/workbook.xml"))
-    relationships = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+    workbook = _parse_xml(archive.read("xl/workbook.xml"), "xl/workbook.xml")
+    relationships = _parse_xml(
+        archive.read("xl/_rels/workbook.xml.rels"), "xl/_rels/workbook.xml.rels"
+    )
     relationship_rows = {rel.attrib["Id"]: rel.attrib for rel in relationships}
     if len(relationship_rows) != len(list(relationships)):
         raise WorkbookRejected("Workbook contains duplicate relationship identifiers")
@@ -178,13 +306,17 @@ def _sheet_paths(archive: zipfile.ZipFile) -> dict[str, str]:
 def _archive_formula_map(archive: zipfile.ZipFile) -> dict[str, str]:
     result: dict[str, str] = {}
     for sheet_name, target in _sheet_paths(archive).items():
-        root = ET.fromstring(archive.read(target))
+        root = _parse_xml(archive.read(target), target)
         seen_cells: set[str] = set()
         for cell in root.findall(".//x:c", NS):
             address = cell.attrib.get("r", "").upper()
             if not address or address in seen_cells:
                 raise WorkbookRejected(
                     f"Worksheet contains a duplicate or missing cell address: {sheet_name}"
+                )
+            if not _valid_cell_address(address):
+                raise WorkbookRejected(
+                    f"Worksheet cell address is outside the Excel grid: {address}"
                 )
             seen_cells.add(address)
             formula = cell.find("x:f", NS)
@@ -210,8 +342,57 @@ def workbook_sheet_names(path: Path) -> tuple[str, ...]:
 def _shared_strings(archive: zipfile.ZipFile) -> list[str]:
     if "xl/sharedStrings.xml" not in archive.namelist():
         return []
-    root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
-    return ["".join(node.text or "" for node in item.iter(f"{{{MAIN}}}t")) for item in root]
+    root = _parse_xml(archive.read("xl/sharedStrings.xml"), "xl/sharedStrings.xml")
+    strings = ["".join(node.text or "" for node in item.iter(f"{{{MAIN}}}t")) for item in root]
+    if sum(len(value) for value in strings) > MAX_SHARED_STRING_CHARS:
+        raise WorkbookRejected("Workbook shared strings exceed the extracted-text safety limit")
+    return strings
+
+
+def _sheet_cell_maps(
+    root: ET.Element, strings: Sequence[str]
+) -> tuple[dict[str, Any], dict[str, str]]:
+    values: dict[str, Any] = {}
+    formulas: dict[str, str] = {}
+    for cell in root.findall(".//x:c", NS):
+        address = cell.attrib.get("r", "").upper()
+        if not address or address in values:
+            raise WorkbookRejected("Worksheet contains a duplicate or missing cell address")
+        if not _valid_cell_address(address):
+            raise WorkbookRejected(f"Worksheet cell address is outside the Excel grid: {address}")
+        formula = cell.find("x:f", NS)
+        value = cell.find("x:v", NS)
+        if formula is not None and formula.attrib:
+            raise WorkbookRejected("Shared, array, and data-table formulas are unsupported")
+        if formula is not None and formula.text is not None:
+            formulas[address] = "=" + formula.text
+        if cell.attrib.get("t") == "inlineStr":
+            inline = cell.find("x:is", NS)
+            values[address] = (
+                None
+                if inline is None
+                else "".join(node.text or "" for node in inline.iter(f"{{{MAIN}}}t"))
+            )
+            continue
+        if value is None or value.text is None:
+            values[address] = None
+            continue
+        kind = cell.attrib.get("t")
+        if kind == "s":
+            try:
+                shared_index = int(value.text)
+            except ValueError as exc:
+                raise WorkbookRejected("Shared-string index is invalid") from exc
+            if shared_index < 0 or shared_index >= len(strings):
+                raise WorkbookRejected("Shared-string index is outside the string table")
+            values[address] = strings[shared_index]
+        elif kind == "str":
+            values[address] = value.text
+        elif kind == "b":
+            values[address] = value.text == "1"
+        else:
+            values[address] = _numeric_cell_value(value.text)
+    return values, formulas
 
 
 def sheet_cells(path: Path, sheet_name: str) -> tuple[dict[str, Any], dict[str, str]]:
@@ -219,42 +400,27 @@ def sheet_cells(path: Path, sheet_name: str) -> tuple[dict[str, Any], dict[str, 
         target = _sheet_paths(archive).get(sheet_name)
         if not target:
             raise WorkbookRejected(f"Required sheet missing: {sheet_name}")
-        root = ET.fromstring(archive.read(target))
+        return _sheet_cell_maps(_parse_xml(archive.read(target), target), _shared_strings(archive))
+
+
+def workbook_calculation_cells(path: Path) -> tuple[dict[str, Any], dict[str, str]]:
+    """Read every sheet once into fully qualified values and formulas."""
+
+    values: dict[str, Any] = {}
+    formulas: dict[str, str] = {}
+    with zipfile.ZipFile(path) as archive:
+        sheet_paths = _sheet_paths(archive)
         strings = _shared_strings(archive)
-        values: dict[str, Any] = {}
-        formulas: dict[str, str] = {}
-        for cell in root.findall(".//x:c", NS):
-            address = cell.attrib.get("r", "").upper()
-            if not address or address in values:
-                raise WorkbookRejected("Worksheet contains a duplicate or missing cell address")
-            formula = cell.find("x:f", NS)
-            value = cell.find("x:v", NS)
-            if formula is not None and formula.attrib:
-                raise WorkbookRejected("Shared, array, and data-table formulas are unsupported")
-            if formula is not None and formula.text is not None:
-                formulas[address] = "=" + formula.text
-            if cell.attrib.get("t") == "inlineStr":
-                inline = cell.find("x:is", NS)
-                values[address] = (
-                    None
-                    if inline is None
-                    else "".join(node.text or "" for node in inline.iter(f"{{{MAIN}}}t"))
-                )
-                continue
-            if value is None or value.text is None:
-                values[address] = None
-                continue
-            kind = cell.attrib.get("t")
-            if kind == "s":
-                values[address] = strings[int(value.text)]
-            elif kind == "str":
-                values[address] = value.text
-            elif kind == "b":
-                values[address] = value.text == "1"
-            else:
-                number = float(value.text)
-                values[address] = int(number) if number.is_integer() else number
-        return values, formulas
+        for sheet_name, target in sheet_paths.items():
+            sheet_values, sheet_formulas = _sheet_cell_maps(
+                _parse_xml(archive.read(target), target), strings
+            )
+            prefix = sheet_name.upper()
+            values.update({f"{prefix}!{address}": value for address, value in sheet_values.items()})
+            formulas.update(
+                {f"{prefix}!{address}": formula for address, formula in sheet_formulas.items()}
+            )
+    return values, formulas
 
 
 def calculation_cells(
@@ -387,7 +553,7 @@ def patch_workbook(
             patched_references.add(qualified_reference)
             sheet_path = sheet_paths[sheet_name]
             sheet_root = modified_roots.setdefault(
-                sheet_path, ET.fromstring(input_zip.read(sheet_path))
+                sheet_path, _parse_xml(input_zip.read(sheet_path), sheet_path)
             )
             cells = {
                 cell.attrib.get("r", "").upper(): cell for cell in sheet_root.findall(".//x:c", NS)
@@ -405,9 +571,11 @@ def patch_workbook(
             if cached is not None:
                 cell.remove(cached)
 
-        workbook_root = ET.fromstring(input_zip.read("xl/workbook.xml"))
-        rels_root = ET.fromstring(input_zip.read("xl/_rels/workbook.xml.rels"))
-        content_root = ET.fromstring(input_zip.read("[Content_Types].xml"))
+        workbook_root = _parse_xml(input_zip.read("xl/workbook.xml"), "xl/workbook.xml")
+        rels_root = _parse_xml(
+            input_zip.read("xl/_rels/workbook.xml.rels"), "xl/_rels/workbook.xml.rels"
+        )
+        content_root = _parse_xml(input_zip.read("[Content_Types].xml"), "[Content_Types].xml")
         for relationship in list(rels_root):
             if relationship.attrib.get("Type", "").endswith("/calcChain"):
                 rels_root.remove(relationship)
@@ -424,7 +592,7 @@ def patch_workbook(
         # Formula caches can otherwise expose values calculated from the old candidate.
         for sheet_path in sheet_paths.values():
             sheet_root = modified_roots.setdefault(
-                sheet_path, ET.fromstring(input_zip.read(sheet_path))
+                sheet_path, _parse_xml(input_zip.read(sheet_path), sheet_path)
             )
             for cell in sheet_root.findall(".//x:c", NS):
                 if cell.find("x:f", NS) is not None:
