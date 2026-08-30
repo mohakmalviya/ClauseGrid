@@ -225,3 +225,27 @@
 - The public copy now distinguishes recommendation generation from exact citations, executable
   counterexamples, fresh-context falsification, source preservation, and human-controlled writes
   without claiming that the underlying model lacks spreadsheet-analysis capability.
+
+## Checkpoint 16 - approved Policy Pack and zero-model recurring verification
+
+- Added a version-controlled supplier-rebate Policy Pack release with clearly labelled synthetic
+  policy-owner and controls-review approvals, generated boundary tests, and a permanent
+  waiver-scope regression case whose expected output cannot be supplied by configuration.
+- Added an independent Decimal/date `RuleIR` oracle that imports no spreadsheet formula evaluator,
+  removing the prior common-mode risk from approved expected outcomes.
+- Added an approval-bound release hash covering the exact rules, full test suite, mapping, declared
+  versions, and deterministic implementation hashes. Both distinct demo roles attest that release;
+  stale approvals fail closed. Separate test-suite and Mapping Pack hashes remain visible.
+- Added deterministic recurring verification bound to the workbook and engine. The CLI and
+  `/api/verify` report the actual `model_calls: 0` and verify that source bytes remain unchanged.
+- Added a public read-only explanation of the required production governance workflow: edge-case
+  classification, distinct human roles, immutable successor versions, incorrect-policy withdrawal,
+  and affected-audit replay. The page explicitly says the demo has no writable version or audit
+  registry and does not misrepresent anonymous Render interactions as production approval.
+- Added tests comparing the new oracle to the sealed semantic reference, validating pack quorum and
+  hash stability, proving repeatable no-model verification, and requiring the approved suite to
+  detect all twelve public formula mutants.
+- Added active-constraint cases for negative-before-floor eligible spend, post-period active-day
+  flooring, and an unpenalized rebate above the cap. Dedicated mutations that remove each control
+  are now killed, while C01-C03 remain clean. Workbook execution failures return structured
+  `INCONCLUSIVE` evidence rather than being misreported as policy violations.

@@ -5,6 +5,11 @@ Public mode is a constrained demonstration behind an HTTPS proxy; browser approv
 The Render profile enables temporary `.xlsx`/`.pdf` uploads for public, synthetic, or explicitly
 approved data. It is not a production multi-tenant deployment.
 
+The site also exposes a committed, read-only synthetic Policy Pack and `/api/verify`. That endpoint
+replays the approved deterministic suite and reports `model_calls: 0`; it does not use the configured
+provider key. Pack mutations and approvals remain disabled publicly because `/tmp` and in-process
+identity are not durable governance.
+
 ## Render Blueprint
 
 Prerequisites: the private GitHub repository, a Render account that can access it, and an API key
@@ -17,8 +22,9 @@ services; its proxy forwards public traffic to the port supplied in `PORT`.
 3. Supply the selected provider's key value as `CLAUSEGRID_API_KEY` when prompted. Do not put it in
    Git, Docker build arguments, or the image.
 4. Deploy and open the generated `https://...onrender.com` URL.
-5. Check `GET /healthz`, load the UI, select M10 or upload a compatible workbook/policy pair, and run
-   one audit. The POST returns `202`; the UI polls an unguessable job URL until completion.
+5. Check `GET /healthz`, load the UI, run deterministic M10 verification, then optionally run the AI
+   investigation or upload a compatible workbook/policy pair. `/api/verify` returns directly; the
+   AI-audit POST returns `202` and the UI polls an unguessable job URL until completion.
 
 The Blueprint starts with the user-selected Qubrid route and
 `deepseek-ai/DeepSeek-V4-Flash`. These are ordinary `CLAUSEGRID_PROVIDER` and `CLAUSEGRID_MODEL`
@@ -85,6 +91,8 @@ The exact public Host is deliberately enforced, so a local HTTP smoke request mu
   aggregate legacy scorecard is copied for the UI summary.
 - Public failures return generic text and a job ID; details are logged server-side.
 - The image runs as UID/GID 10001.
+- `/api/policy-pack` exposes only the synthetic release manifest, cited public policy text, hashes,
+  and test metadata. It contains no provider credential or confidential customer policy.
 
 ## Deliberate operational limits
 

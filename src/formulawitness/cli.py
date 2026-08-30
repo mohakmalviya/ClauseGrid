@@ -114,6 +114,19 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     inspect_parser = subparsers.add_parser("inspect", help="Run fail-closed workbook safety checks")
     inspect_parser.add_argument("workbook", type=Path)
+    pack_status_parser = subparsers.add_parser(
+        "pack-status", help="Show the active controlled Policy Pack and its immutable hashes"
+    )
+    pack_status_parser.add_argument(
+        "--config", type=Path, default=_root() / "policy_packs/supplier-rebate-sla/v1.json"
+    )
+    verify_pack_parser = subparsers.add_parser(
+        "verify-pack", help="Verify a known workbook with the approved pack and zero model calls"
+    )
+    verify_pack_parser.add_argument("workbook", type=Path)
+    verify_pack_parser.add_argument(
+        "--config", type=Path, default=_root() / "policy_packs/supplier-rebate-sla/v1.json"
+    )
     baseline_parser = subparsers.add_parser(
         "baseline", help="Run the legacy deterministic direct baseline"
     )
@@ -215,6 +228,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "inspect":
         print(json.dumps(inspect_safety(args.workbook), indent=2))
         return 0
+    if args.command in {"pack-status", "verify-pack"}:
+        from .policy_pack import materialize_policy_pack
+
+        pack = materialize_policy_pack(root, args.config)
+        if args.command == "pack-status":
+            print(json.dumps(pack.public_manifest(), indent=2, default=str))
+            return 0
+        from .policy_pack_runtime import verify_with_policy_pack
+
+        verification = verify_with_policy_pack(args.workbook, pack)
+        print(json.dumps(verification, indent=2, default=str))
+        return 0 if verification["decision"] == "PASS" else 1
     if args.command in {"baseline", "advanced"}:
         runner = run_baseline if args.command == "baseline" else run_advanced
         audit_result = runner(args.workbook, args.policy, args.artifacts, reviewer=args.reviewer)

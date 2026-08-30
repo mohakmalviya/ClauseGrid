@@ -1,5 +1,41 @@
 # Architecture
 
+## Approved recurring-audit flow
+
+```text
+policy PDF -> cited Rule IR -> concrete examples -> policy owner + controls review
+                                              |
+                                              v
+                              immutable Policy Pack + Test Suite + Mapping Pack
+                                              |
+known workbook version -----------------------+
+        |                                     |
+        v                                     v
+separate spreadsheet evaluator      independent Decimal/date policy oracle
+        |                                     |
+        +---------------- compare -------------+
+                           |
+             deterministic PASS / FAIL evidence
+                    model calls: zero
+```
+
+`policy_pack.py` materializes the committed controlled supplier-rebate release. Its approved release
+hash covers policy semantics, every generated and regression test, workbook mapping, declared
+versions, and hashes of the deterministic compiler, oracle, generator, runner, formula evaluator,
+and verifier. Both demo approvals must attest that exact hash. `policy_oracle.py` executes the
+approved `RuleIR` directly and deliberately imports no spreadsheet formula code.
+`policy_pack_runtime.py` executes the workbook in the existing isolated worker and binds the verdict
+to the workbook, pack, mapping, suite, and engine hashes.
+
+This is an intentionally narrow vertical slice, not a generic natural-language policy compiler.
+The public pack uses synthetic demo-role approvals. A production governance service needs
+authenticated maker/checker identities, transactional activation, durable pack history, and an
+index of audits affected by superseded or withdrawn versions.
+
+New edge cases do not silently patch active truth. They are classified as an existing-rule test
+gap, policy ambiguity/change, workbook mapping drift, engine limitation, or bad source data. Only a
+reviewed immutable successor becomes active; old evidence remains reproducible by its hashes.
+
 ## Model-directed system flow
 
 ```text

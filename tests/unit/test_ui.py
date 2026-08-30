@@ -233,6 +233,7 @@ def test_public_audit_is_same_origin_asynchronous_and_disables_browser_approval(
     (tmp_path / policy_relative).parent.mkdir(parents=True)
     shutil.copy2(ROOT / workbook_relative, tmp_path / workbook_relative)
     shutil.copy2(ROOT / policy_relative, tmp_path / policy_relative)
+    shutil.copytree(ROOT / "policy_packs", tmp_path / "policy_packs")
     handler = make_handler(
         tmp_path,
         model=AbstainingUiModel(),
@@ -330,28 +331,145 @@ def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     assert "run_agentic(" in handler_source
     assert "approve_agentic_proposal(" in handler_source
     assert "run_advanced(" not in handler_source
-    assert "Run agent audit" in HTML
+    assert "Run AI investigation" in HTML
+    assert "Run deterministic verification" in HTML
+    assert "Recurring audit · 0 AI calls" in HTML
+    assert "Policy Pack hash" in HTML
+    assert "Test-suite hash" in HTML
+    assert "Workbook-mapping hash" in HTML
+    assert "Approval means an authorized interpretation" in HTML
+    assert "successor version" in HTML
     assert "Independent falsifier verdict" in HTML
     assert "Legacy deterministic regression evidence" in HTML
     assert "It is not model-agent performance" in HTML
-    assert HTML.index("Why ClauseGrid exists") < HTML.index("Run agent audit")
-    assert "The problem" in HTML
-    assert "Why it is needed" in HTML
-    assert "Who it is for" in HTML
-    assert "How to try it" in HTML
+    assert HTML.index("Why ClauseGrid exists") < HTML.index("Run deterministic verification")
+    assert "Review real behavior" in HTML
+    assert "Publish an immutable pack" in HTML
+    assert "Both reviewers attest one release hash" in HTML
+    assert "this public demo is read-only" in HTML
+    assert "if(v.failed_count)" in HTML
+    assert "v.decision==='INCONCLUSIVE'" in HTML
+    assert "A policy violation was observed, but coverage was incomplete" in HTML
+    assert "Audit without an LLM" in HTML
+    assert "Keep every defect class" in HTML
     assert "Upload workbook + policy" in HTML
     assert "matching policy .pdf" in HTML
     assert "public, synthetic, or approved data" in HTML
     assert "Supported profile: calculation-focused .xlsx only" in HTML
     assert "Why not just use Claude?" in HTML
-    assert "Claude can propose. ClauseGrid requires proof." in HTML
-    assert "Yes—Claude can read a spreadsheet and policy" in HTML
-    assert "The difference is enforcement" in HTML
-    assert HTML.index("Why not just use Claude?") < HTML.index("Run agent audit")
+    assert "Claude can help once. ClauseGrid remembers the approved answer." in HTML
+    assert "Yes—Claude or another model can read a policy" in HTML
+    assert "AI helps draft. People own policy meaning." in HTML
+    assert HTML.index("Why not just use Claude?") < HTML.index("Run deterministic verification")
+    assert 'role="tab"' in HTML
+    assert 'role="progressbar"' in HTML
+    assert 'aria-live="polite"' in HTML
     assert "The hosted runtime is waking up. Retrying automatically" in HTML
     assert "await api('/healthz')" in HTML
     assert "const text=await response.text()" in HTML
     assert "const j=await r.json()" not in HTML
+
+
+def test_policy_pack_api_and_recurring_verification_never_call_model() -> None:
+    class NeverCalledModel:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def complete(self, _request: ModelRequest) -> ModelTurn:
+            self.calls += 1
+            raise AssertionError("deterministic Policy Pack verification called the model")
+
+    model = NeverCalledModel()
+    handler = make_handler(
+        ROOT,
+        model=cast(Any, model),
+        provider="must-remain-unused",
+        model_id="must-remain-unused",
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    def request(path: str, *, body: dict[str, object] | None = None) -> dict[str, Any]:
+        data = None if body is None else json.dumps(body).encode()
+        headers = {} if body is None else {"Content-Type": "application/json"}
+        response = urlopen(
+            Request(
+                f"http://127.0.0.1:{port}{path}",
+                data=data,
+                headers=headers,
+                method="GET" if body is None else "POST",
+            ),
+            timeout=15,
+        )
+        return cast(dict[str, Any], json.loads(response.read()))
+
+    try:
+        pack = request("/api/policy-pack")
+        assert pack["state"] == "ACTIVE_DEMO"
+        assert pack["model_calls_for_recurring_audit"] == 0
+        assert pack["approval_scope"] == "SYNTHETIC_DEMO"
+
+        verification = request("/api/verify", body={"case_id": "M10"})
+        assert verification["verification"]["decision"] == "FAIL"
+        assert verification["verification"]["model_calls"] == 0
+        assert verification["verification"]["model_required"] is False
+        assert verification["verification"]["policy_pack_hash"] == pack["pack_hash"]
+        assert model.calls == 0
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_server_rejects_stale_pack_at_startup(tmp_path: Path) -> None:
+    demo_root = tmp_path / "stale-pack-root"
+    shutil.copytree(ROOT / "policy_packs", demo_root / "policy_packs")
+    shutil.copytree(ROOT / "policies", demo_root / "policies")
+    config = demo_root / "policy_packs/supplier-rebate-sla/v1.json"
+    payload = json.loads(config.read_text(encoding="utf-8"))
+    payload["approved_release_hash"] = "0" * 64
+    config.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="release hash does not match"):
+        make_handler(
+            demo_root,
+            model=cast(Any, AbstainingUiModel()),
+            provider="unused",
+            model_id="unused",
+        )
+
+
+def test_health_and_pack_endpoint_fail_closed_if_cached_pack_becomes_invalid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    handler = make_handler(
+        ROOT,
+        model=cast(Any, AbstainingUiModel()),
+        provider="unused",
+        model_id="unused",
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    def reject_pack(_pack: object) -> None:
+        raise ValueError("stale pack")
+
+    monkeypatch.setattr(ui_module, "validate_materialized_policy_pack", reject_pack)
+    try:
+        for path in ("/healthz", "/api/policy-pack"):
+            with pytest.raises(HTTPError) as captured:
+                urlopen(f"http://127.0.0.1:{port}{path}", timeout=10)
+            assert captured.value.code == 503
+            body = json.loads(captured.value.read())
+            assert body == {"error": "Approved Policy Pack is unavailable"}
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def test_audit_endpoint_runs_model_agent_and_returns_review_pack(tmp_path: Path) -> None:
@@ -361,6 +479,7 @@ def test_audit_endpoint_runs_model_agent_and_returns_review_pack(tmp_path: Path)
     (tmp_path / policy_relative).parent.mkdir(parents=True)
     shutil.copy2(ROOT / workbook_relative, tmp_path / workbook_relative)
     shutil.copy2(ROOT / policy_relative, tmp_path / policy_relative)
+    shutil.copytree(ROOT / "policy_packs", tmp_path / "policy_packs")
     handler = make_handler(
         tmp_path,
         model=AbstainingUiModel(),

@@ -15,6 +15,7 @@ RUN python -m pip install --no-cache-dir -r requirements-runtime-lock.txt
 COPY src ./src
 COPY artifacts/submission ./artifacts/submission
 COPY evals/results.json ./evals/results.json
+COPY policy_packs ./policy_packs
 COPY policies ./policies
 COPY workbooks ./workbooks
 RUN python -m pip install --no-cache-dir --no-deps . \

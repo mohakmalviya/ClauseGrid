@@ -11,8 +11,8 @@ from typing import Any, Literal, cast
 
 from pypdf import PdfReader
 
-from .formula import evaluate_cells, normalize_override_value
 from .models import Rule, RuleIR, SourceSpan
+from .policy_oracle import evaluate_rule_ir
 
 RULE_SPECS = (
     (
@@ -453,20 +453,9 @@ def workbook_input_overrides(inputs: dict[str, Any]) -> dict[str, Any]:
 
 
 def evaluate_approved_rules(inputs: dict[str, Any], rules: list[Rule]) -> dict[str, Any]:
-    raw = {
-        cell: normalize_override_value(value)
-        for cell, value in workbook_input_overrides(inputs).items()
-    }
-    lookup_ir = next(item for item in compile_rule_ir(rules) if item.target == "N6")
-    lower_bounds = cast(list[Any], lookup_ir.parameters["lower_bounds"])
-    rates = cast(list[Any], lookup_ir.parameters["rates"])
-    for index, (lower_bound, rate) in enumerate(
-        zip(lower_bounds, rates, strict=True),
-        start=5,
-    ):
-        raw[f"TIERSCHEDULE!A{index}"] = Decimal(str(lower_bound))
-        raw[f"TIERSCHEDULE!B{index}"] = Decimal(str(rate))
-    outputs, _ = evaluate_cells(raw, compile_rule_formulas(rules))
+    """Compute expected outcomes without using the spreadsheet formula evaluator."""
+
+    outputs = evaluate_rule_ir(inputs, compile_rule_ir(rules))
     return {cell: outputs[cell] for cell in CORE_OUTPUTS}
 
 

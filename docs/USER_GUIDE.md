@@ -1,15 +1,50 @@
 # ClauseGrid user guide
 
-ClauseGrid audits ordinary `.xlsx` workbooks against a written PDF policy. A model-directed
-manager chooses what to inspect and which sandbox experiments to run. A separate fresh-context
-falsifier challenges any proposed formula repair. The system never edits the submitted workbook
-during an audit: it produces a reviewable proposal, and only a separate human approval command can
-write a repaired copy.
+ClauseGrid has two separate paths. A known workbook can be verified against an approved Policy Pack
+with deterministic code and zero model calls. An optional model-directed manager and fresh-context
+falsifier investigate unfamiliar policies, workbook templates, or repairs. The model can propose;
+it cannot define approved expected outcomes, activate a policy version, or issue the recurring
+deterministic verdict.
+
+## 0. Verify an approved pack without an API key
+
+The bundled supplier-rebate pack is a synthetic controlled demonstration. Show its exact version,
+review roles, rules, tests, mapping, and hashes:
+
+```powershell
+.\.venv\Scripts\clausegrid.exe pack-status
+```
+
+Verify a clean and defective workbook:
+
+```powershell
+.\.venv\Scripts\clausegrid.exe verify-pack workbooks\reference\supplier_rebate_pristine.xlsx
+.\.venv\Scripts\clausegrid.exe verify-pack workbooks\mutants\M10_supplier_rebate.xlsx
+```
+
+These commands do not read an API credential or construct a model client. Every result reports the
+Policy Pack, Mapping Pack, test-suite, workbook, engine, and evidence hashes plus `model_calls: 0`.
+The original workbook is not changed. Both recorded review roles attest the complete approved
+release hash; changing its rules, cases, mapping, or deterministic implementation makes startup and
+verification fail closed until a newly reviewed hash is recorded.
+
+`PASS` means every approved case matched and the run completed. `FAIL` means at least one executed
+case produced an observed mismatch; the separate `complete` field states whether all remaining
+cases also ran. `INCONCLUSIVE` means no mismatch was observed but one or more cases could not
+execute, so the system claims neither pass nor fail.
+
+When a new edge case appears, first decide whether it is a missing regression under the existing
+meaning, unclear policy meaning, a workbook mapping change, an engine limitation, or bad input data.
+Only a missing regression keeps the policy semantics unchanged. A correction to policy meaning must
+be released as a new version, approved by distinct policy-owner and controls roles, and followed by
+re-auditing every affected historical workbook. The current public Render page is read-only for
+governance because its anonymous identity and ephemeral storage are not production approval.
 
 ## 1. Requirements
 
 - Windows, macOS, or Linux with Python 3.11 or newer.
-- A Qubrid API key for the default model-directed workflow.
+- A Qubrid API key only for the optional model-directed workflow. Approved-pack verification needs
+  no API key.
 - An ordinary `.xlsx` workbook without macros, external links, Power Query, embedded executables,
   or unsupported volatile formulas.
 - A text-readable PDF containing the policy to audit.
@@ -75,8 +110,10 @@ Start the local review server:
   --allow-external-processing
 ```
 
-Open <http://127.0.0.1:8765>. You can select `M10`, or choose **Upload workbook + policy** and select
-both a compatible `.xlsx` workbook and the matching text-readable policy `.pdf`. The custom path is
+Open <http://127.0.0.1:8765>. The first live control runs the active Policy Pack deterministically
+and reports the actual model-call count. The separate AI investigation can select `M10`, or choose
+**Upload workbook + policy** and select both a compatible `.xlsx` workbook and the matching
+text-readable policy `.pdf`. The custom path is
 available only on the loopback/private UI. It rejects unsupported content before any model call,
 shows workbook/policy hashes and the accepted sheet/formula profile, and never substitutes the
 bundled synthetic policy for a user file.

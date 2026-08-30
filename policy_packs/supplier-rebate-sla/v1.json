@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "policy_id": "supplier-rebate-sla",
+  "version": "2026.1",
+  "effective_from": "2026-01-01",
+  "state": "ACTIVE_DEMO",
+  "risk_tier": "HIGH",
+  "source_document": "policies/supplier_rebate_sla_policy.pdf",
+  "source_sha256": "d52ea5da91e3f63a8d0173eb0e23961879cd68161a2032e4d4aac7e5e6113235",
+  "approved_release_hash": "a9c679dc462ec230145bd42c37b780722f2f8c6985147df7bca0c6a141cab6b7",
+  "parent_pack_hash": null,
+  "approval_scope": "SYNTHETIC_DEMO",
+  "approvals": [
+    {
+      "reviewer": "demo-policy-owner",
+      "role": "POLICY_OWNER",
+      "candidate_hash": "a9c679dc462ec230145bd42c37b780722f2f8c6985147df7bca0c6a141cab6b7",
+      "reviewed_case_ids": ["GEN-TIER-250000-AT", "REG-WAIVER-SCOPE"]
+    },
+    {
+      "reviewer": "demo-controls-reviewer",
+      "role": "CONTROLS_REVIEWER",
+      "candidate_hash": "a9c679dc462ec230145bd42c37b780722f2f8c6985147df7bca0c6a141cab6b7",
+      "reviewed_case_ids": ["GEN-CAP-AFTER-PENALTY", "REG-WAIVER-SCOPE"]
+    }
+  ],
+  "regression_cases": [
+    {
+      "case_id": "REG-WAIVER-SCOPE",
+      "category": "waiver_scope_regression",
+      "description": "A critical-incident waiver must not erase an ordinary delivery penalty.",
+      "rule_ids": ["RB-201", "RB-202", "RB-203"],
+      "input_updates": {
+        "on_time_rate": 0.94,
+        "defect_rate": 0.01,
+        "critical_incidents": 1,
+        "critical_waiver": "Y"
+      }
+    }
+  ]
+}

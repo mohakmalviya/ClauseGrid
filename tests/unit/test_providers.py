@@ -151,9 +151,7 @@ def test_deepseek_v4_disables_thinking_for_forced_named_tools(
         assert canonical == "deepseek"
         assert client.request_settings.temperature == 0.0
         assert client.request_settings.parallel_tool_calls is False
-        assert client.request_settings.extra_body == {
-            "thinking": {"type": "disabled"}
-        }
+        assert client.request_settings.extra_body == {"thinking": {"type": "disabled"}}
     finally:
         client.close()
 
@@ -191,9 +189,7 @@ def test_qubrid_deepseek_v4_disables_thinking_for_forced_named_tools(
         assert canonical == "qubrid"
         assert client.request_settings.temperature == 0.0
         assert client.request_settings.parallel_tool_calls is False
-        assert client.request_settings.extra_body == {
-            "thinking": {"type": "disabled"}
-        }
+        assert client.request_settings.extra_body == {"thinking": {"type": "disabled"}}
     finally:
         client.close()
 

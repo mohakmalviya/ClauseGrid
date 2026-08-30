@@ -1,12 +1,47 @@
 # ClauseGrid
 
-ClauseGrid is a model-directed policy-assurance system for operational Excel workbooks. An audit manager discovers an unfamiliar workbook and policy through typed tools, forms and tests repair hypotheses, and sends staged candidates to a fresh-context falsifier. Deterministic services own formula execution, hashes, budgets, copy-on-write patching, and approval. A reviewer is required before any repaired workbook is written.
+ClauseGrid is policy-to-spreadsheet assurance for operational Excel workbooks. Qualified reviewers
+approve cited policy meaning as an immutable Policy Pack; recurring audits then compare known
+workbooks with an independent deterministic rule oracle and require zero model calls. An optional
+model-directed manager/falsifier path remains available for unfamiliar policies, mappings, and
+repair investigation, but a model never owns the approved expected result or recurring verdict.
 
 The flagship defect is deliberately plausible: a critical-incident waiver incorrectly bypasses an ordinary SLA penalty. The workbook opens, the formula is valid, and typical rows look reasonable. Only the policy-derived waiver counterexample exposes it.
 
 ## Intended user and bottleneck
 
 ClauseGrid is for finance, procurement, and supplier-operations reviewers who approve rebate and SLA settlements. Their policy is written in prose while the payable amount is implemented in formulas, so ordinary spreadsheet linting can miss a syntactically valid threshold, exception, lookup, date, or rounding rule that silently overpays or underpays a supplier. ClauseGrid turns that manual policy-to-formula review into a cited, reproducible witness and preserves the final judgment for a qualified reviewer.
+
+## Approved Policy Pack and zero-model replay
+
+The repository contains one complete, deliberately narrow supplier-rebate Policy Pack. Its
+version-controlled release metadata requires separate policy-owner and controls-review roles. Exact
+rules and citations, generated boundary cases, a retained waiver-scope regression, a workbook
+mapping, engine versions, and the exact deterministic implementations are materialized into one
+approved release hash with separate test-suite and mapping hashes. Both demo review records attest
+the same release hash, so changing a rule, test, mapping, generator, or engine invalidates approval.
+
+Expected results are computed by `policy_oracle.py` using direct `Decimal` and date semantics. It
+does not import the spreadsheet formula evaluator. The workbook is executed separately, so a shared
+formula-engine bug cannot make both sides agree. The public pack uses clearly labelled synthetic
+demo approvals; production approval requires authenticated identities and durable storage.
+
+```powershell
+# Neither command reads an API key or calls a model.
+.\.venv\Scripts\clausegrid.exe pack-status
+.\.venv\Scripts\clausegrid.exe verify-pack workbooks\reference\supplier_rebate_pristine.xlsx
+.\.venv\Scripts\clausegrid.exe verify-pack workbooks\mutants\M10_supplier_rebate.xlsx
+```
+
+The first workbook returns `PASS`; M10 returns `FAIL` because the permanent waiver-scope regression
+case catches it. A run with no observed mismatch but incomplete execution returns `INCONCLUSIVE`,
+not a fabricated pass or failure. If a mismatch is observed during an incomplete run, the result is
+`FAIL` with `complete: false`, preserving both facts. A discovered edge case must be classified before it changes anything: an existing
+rule may gain a regression test, unclear meaning requires a new Policy Pack, a moved cell changes
+the Mapping Pack, and engine or source-data problems remain separate. An active version is never
+edited in place. The bundled and public demo is intentionally read-only: it verifies one controlled
+release but does not implement authenticated draft approval, supersession, or historical audit
+lookup. Those require the durable governance service described in the architecture.
 
 ## Competition provenance
 
@@ -54,6 +89,10 @@ verdict, exact formula diff, proposal hash, and raw JSONL trajectory. If and onl
 falsification, enter a local reviewer label to approve the exact proposal and write a copied workbook.
 Provider, model, endpoint, and credential configuration are server-side. The public browser receives
 only a generic managed-runtime label; exact runtime identity remains in controlled audit artifacts.
+
+The page first exposes the active synthetic Policy Pack and a **Run deterministic verification**
+control. That route uses the committed pack and makes zero model calls. The slower AI investigation
+below it is a separate onboarding/diagnostic path and never modifies the active pack.
 
 Real-file mode requires both files. ClauseGrid will not silently compare an uploaded workbook
 against the bundled synthetic supplier policy. The browser also requires confirmation that the data
@@ -112,8 +151,9 @@ The repository includes a non-root Docker image, an environment-only deployment 
 Render Blueprint. Public mode accepts bundled benchmarks plus explicitly consented `.xlsx`/`.pdf`
 pairs, runs one audit at a time in a background job, applies upload and audit request limits, enforces
 the configured HTTPS Host/Origin, and never sends provider identity, credentials, or administrator
-credentials to the browser. Browser approval is disabled; the public site demonstrates investigation
-and falsification, not anonymous write authorization.
+credentials to the browser. It also exposes the committed synthetic Policy Pack and its zero-model
+verification route. Browser policy or repair approval is disabled; the public site demonstrates the
+mechanism rather than treating anonymous clicks as governance.
 
 1. Push the private repository to GitHub and create a Render Blueprint from `render.yaml`.
 2. Enter a fresh Qubrid key as the Blueprint's `CLAUSEGRID_API_KEY` secret.
@@ -157,6 +197,7 @@ This is a focused assurance prototype, not a general Excel replacement. Its main
 
 ```text
 policies/       Synthetic source policy PDF
+policy_packs/   Version-controlled controlled-pack release and regression cases
 workbooks/      Pristine, 12 mutants, 3 controls, and hard workbook
 src/            Formula parser, safe OOXML layer, agents, UI, and CLI
 fixtures/       Frozen build and benchmark manifests
