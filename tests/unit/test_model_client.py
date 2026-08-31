@@ -222,6 +222,37 @@ def test_retries_only_transient_failures_and_honors_retry_after() -> None:
     assert delays == [1.25]
 
 
+def test_retries_provider_grammar_compile_timeout_mislabeled_as_400() -> None:
+    timeout = ProviderFailure(
+        "Invalid request: grammar validation or compilation failed: "
+        "sandbox grammar compile timed out",
+        400,
+    )
+    transport = ScriptedTransport([timeout, response_with_tool_call()])
+    client = ModelClient(
+        config(),
+        transport=transport,
+        retry_policy=RetryPolicy(max_attempts=2, base_delay_seconds=0),
+    )
+
+    turn = client.complete(request())
+
+    assert turn.retry_count == 1
+    assert len(transport.payloads) == 2
+
+
+def test_other_bad_requests_are_not_retried() -> None:
+    failure = ProviderFailure("invalid tool schema", 400)
+    transport = ScriptedTransport([failure, response_with_tool_call()])
+    client = ModelClient(config(), transport=transport)
+
+    with pytest.raises(FatalModelError) as captured:
+        client.complete(request())
+
+    assert captured.value.status_code == 400
+    assert len(transport.payloads) == 1
+
+
 def test_fatal_failure_is_not_retried_and_redacts_credential() -> None:
     secret = "sensitive-nim-key"
     failure = ProviderFailure(f"Authorization: Bearer {secret}; api_key={secret}", 401)

@@ -337,6 +337,7 @@ def test_public_audit_is_same_origin_asynchronous_and_disables_browser_approval(
 def test_ui_copy_separates_agent_run_from_legacy_scorecard() -> None:
     handler_source = inspect.getsource(make_handler)
     assert "run_agentic(" in handler_source
+    assert "manager_experiment_attempt_limit=6" in handler_source
     assert "approve_agentic_proposal(" in handler_source
     assert "run_advanced(" not in handler_source
     assert "Run AI investigation" in HTML

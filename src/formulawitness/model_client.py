@@ -643,6 +643,8 @@ def _status_code(exc: Exception) -> int | None:
 
 def _is_retryable(exc: Exception, status_code: int | None) -> bool:
     if status_code is not None:
+        if status_code == 400 and "sandbox grammar compile timed out" in str(exc).casefold():
+            return True
         return status_code in {408, 429} or status_code >= 500
     if isinstance(exc, (ConnectionError, TimeoutError)):
         return True
