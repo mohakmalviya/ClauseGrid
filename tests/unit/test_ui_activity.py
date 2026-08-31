@@ -1,4 +1,8 @@
 import json
+import shutil
+import subprocess
+
+import pytest
 
 from formulawitness.ui import HTML, _public_activity_event
 
@@ -76,5 +80,54 @@ def test_ui_renders_live_activity_without_exposing_reasoning_or_using_unsafe_htm
     assert "Selecting the next allowed evidence action" in HTML
     assert "splitFormulaSegments" in HTML
     assert "appendReadableNarrative($('diagnosis'),decision.explanation)" in HTML
+    assert "appendFalsifierNarrative($('falsifier'),v,data.experiments||[])" in HTML
+    assert "View complete falsifier explanation" in HTML
     assert "Formula referenced" in HTML
     assert ".innerHTML" not in HTML
+
+
+def _split_formula_segments(value: str) -> list[dict[str, str]]:
+    """Execute the browser's pure formula splitter without requiring a DOM."""
+
+    node_binary = shutil.which("node")
+    if node_binary is None:
+        pytest.skip("Node.js is required to exercise the inline JavaScript formatter")
+
+    start = HTML.index("function splitFormulaSegments(")
+    end = HTML.index("\nfunction ", start + 1)
+    function_source = HTML[start:end]
+    declarations = "\n".join(
+        line
+        for line in HTML[:start].splitlines()
+        if line.startswith("const ") and "FORMULA" in line.upper()
+    )
+    program = "\n".join(
+        (
+            declarations,
+            function_source,
+            f"process.stdout.write(JSON.stringify(splitFormulaSegments({json.dumps(value)})));",
+        )
+    )
+    completed = subprocess.run(
+        [node_binary, "-e", program],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    result = json.loads(completed.stdout)
+    assert isinstance(result, list)
+    return result
+
+
+def test_formula_formatter_extracts_only_the_actual_excel_formula() -> None:
+    formula = '=IF(AND(J6>=1,K6<>"Y"),0,IF(H6<0.95,0.6,1))'
+    explanation = (
+        f"The candidate formula is {formula}. "
+        "Experiment 1 (J6=1, K6=N, H6=0.9) observed T6=EXCLUDED_CRITICAL. "
+        "Experiment 2 (J6=1, K6=Y, H6=0.96) observed P6=1."
+    )
+
+    segments = _split_formula_segments(explanation)
+
+    assert [segment["value"] for segment in segments if segment["type"] == "formula"] == [formula]
+    assert "".join(segment["value"] for segment in segments) == explanation
