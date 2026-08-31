@@ -441,15 +441,9 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .actions #audit { flex: 1; }
 .run-note { min-height: 34px; margin-top: 11px; color: var(--ink-soft); font-size: var(--text-sm); line-height: 1.45; }
 .investigation-controls {
-  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(280px, 340px) minmax(0, 764px);
-  gap: 16px;
-  align-items: start;
-  justify-content: center;
-  padding: 20px var(--workbench-pad);
-  border-top: 1px solid var(--line);
-  background: #f8f6f1;
+  gap: 12px;
+  margin-top: auto;
 }
 .investigation-controls .actions, .investigation-controls .run-status { margin: 0; }
 .verify-result {
@@ -747,7 +741,6 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
   .pack-grid { grid-template-columns: 1fr 1fr; }
   .hash-grid { grid-template-columns: 1fr; }
   .lifecycle { grid-template-columns: 1fr 1fr; }
-  .investigation-controls { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
   .header-pack { min-width: 150px; max-width: 165px; }
@@ -776,7 +769,6 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
   .mode-tab + .mode-tab { border-left: 4px solid transparent; border-top: 1px solid var(--line); }
   .mode-tab.active { border-left-color: var(--action); }
   .input-stage, .run-stage { padding: 21px 17px; }
-  .investigation-controls { padding: 17px; }
   .verify-result { margin: 0 17px 20px; padding: 15px; }
   #results { gap: 10px; margin-top: 24px; }
   .result-sheet, #results > .panel, .results-grid .panel { padding: 20px 17px; }
@@ -951,13 +943,13 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
                 <div class="run-check"><i>2</i><span>Independent falsifier tries to break the proposal</span></div>
                 <div class="run-check"><i>3</i><span>Uncertainty fails closed to human review</span></div>
               </div>
-            </div>
-            <div class="investigation-controls" data-tour="run-ai">
-              <div class="actions"><button id="audit">Run AI investigation</button><button class="secondary" id="reset">Reset</button></div>
-              <div class="run-status">
-                <div class="status-line"><span class="status-dot" id="statusDot"></span><div id="message" role="status" aria-live="polite">M10 demonstrates a subtle waiver scope failure An AI investigation can take several minutes</div></div>
-                <div class="progress-track" role="progressbar" aria-label="AI investigation progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar" id="progressBar"></div></div>
-                <div class="status-meta" id="progressMeta">Ready · waiting for a case</div>
+              <div class="investigation-controls" data-tour="run-ai">
+                <div class="actions"><button id="audit">Run AI investigation</button><button class="secondary" id="reset">Reset</button></div>
+                <div class="run-status">
+                  <div class="status-line"><span class="status-dot" id="statusDot"></span><div id="message" role="status" aria-live="polite">M10 demonstrates a subtle waiver scope failure An AI investigation can take several minutes</div></div>
+                  <div class="progress-track" role="progressbar" aria-label="AI investigation progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar" id="progressBar"></div></div>
+                  <div class="status-meta" id="progressMeta">Ready · waiting for a case</div>
+                </div>
               </div>
             </div>
           </div>

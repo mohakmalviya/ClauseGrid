@@ -404,10 +404,8 @@ def test_agent_result_ui_is_state_aware_centered_and_responsive() -> None:
 
 
 def test_completed_investigation_activity_and_narratives_are_compact() -> None:
-    controls_css = HTML.partition(".investigation-controls {")[2].partition("}")[0]
     activity_css = HTML.partition(".activity-list {")[2].partition("}")[0]
     narrative_css = HTML.partition(".narrative-formula code {")[2].partition("}")[0]
-    assert "align-items: start;" in controls_css
     assert "max-height: min(240px, 40vh);" in activity_css and "overflow-y: auto;" in activity_css
     assert ".activity-done .activity-marker { background: var(--pass-soft);" in HTML
     assert ".outcome-narrative, .verdict-narrative { max-width: 760px; margin-top: 18px; }" in HTML
@@ -531,9 +529,11 @@ def test_workbench_and_support_cards_do_not_reserve_unexplained_space() -> None:
     assert "display: flex;\n  align-items: center;\n  gap: 8px;\n  width: max-content;" in HTML
     assert ".run-stage { display: flex; flex-direction: column; min-height: 0;" in HTML
     assert ".run-stage .primary-run { width: 100%; margin-top: 0; }" in HTML
-    assert 'class="investigation-controls" data-tour="run-ai"' in HTML
-    assert "grid-column: 1 / -1;" in HTML
-    assert "grid-template-columns: minmax(280px, 340px) minmax(0, 764px);" in HTML
+    assert '</div>\n              <div class="investigation-controls" data-tour="run-ai">' in HTML
+    controls_css = HTML.partition(".investigation-controls {")[2].partition("}")[0]
+    assert "margin-top: auto;" in controls_css
+    assert "grid-column:" not in controls_css
+    assert "grid-template-columns:" not in controls_css
     assert ".run-status { min-width: 0; margin-top: 13px;" in HTML
     assert "min-height: 104px" not in HTML
     assert "min-height: 46px" not in HTML
