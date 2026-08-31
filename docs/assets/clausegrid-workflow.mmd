@@ -1,0 +1,51 @@
+%% ClauseGrid workflow chart source
+%% Implementation sources:
+%% - ../../README.md: How ClauseGrid works; Where AI agents are used; Understanding the result; Security and privacy rules
+%% - ../ARCHITECTURE.md: Approved recurring-audit flow; Model-directed system flow; Authority boundary
+%% - ../SUBMISSION_REPORT.md: Model-agent implementation checkpoint
+%% - ../../artifacts/submission/agent-m10/README.md: representative live trajectory and hash-chain evidence
+%% Demo scope: approvals are synthetic; qualified identity and a production version registry are not implemented in the hosted demo.
+flowchart LR
+  subgraph NEW["PATH 1 — New or unfamiliar evidence · AI investigates; people decide"]
+    INPUT["Policy PDF + workbook supplied together<br/>hash-bound · source preserved"] --> GATE["Deterministic safety gate<br/>unsupported features fail closed"]
+    GATE --> MANAGER["Audit Manager AI<br/>cite clauses · map formulas/dependencies<br/>choose sandbox experiments"]
+    MANAGER --> PROPOSAL["Proposal only<br/>minimal REPAIR · NO CHANGE<br/>ABSTAIN · ASK HUMAN"]
+    PROPOSAL --> FALSIFIER["Fresh-context Falsifier AI<br/>new counterexamples<br/>executed evidence required"]
+    FALSIFIER -->|SURVIVED only| REVIEW["Qualified human review*<br/>review evidence + exact proposal hash<br/>approve / reject / ask for evidence"]
+    FALSIFIER -->|BROKEN: revise or abstain| MANAGER
+    FALSIFIER -->|INCONCLUSIVE| STOP["Stop / ask for more evidence"]
+  end
+
+  REVIEW -.->|human-governed pack authoring + review<br/>not implemented in hosted demo| PACK
+
+  subgraph RECURRING["PATH 2 — Approved recurring verification · deterministic replay · zero model calls"]
+    PACK["Versioned Policy Pack<br/>cited Rule IR · examples/tests · mapping<br/>code versions · review record · release hash"]
+    WORKBOOK["Known workbook version<br/>immutable SHA-256"]
+    PACK --> ORACLE["Independent Decimal/date<br/>policy oracle"]
+    WORKBOOK --> EVALUATOR["Isolated spreadsheet<br/>formula evaluator"]
+    ORACLE --> COMPARE["Compare every approved test"]
+    EVALUATOR --> COMPARE
+    COMPARE --> PASS["PASS<br/>all tests ran + matched"]
+    COMPARE --> FAIL["FAIL<br/>executed mismatch proved"]
+    COMPARE --> INCONCLUSIVE["INCONCLUSIVE<br/>some checks could not run"]
+    PASS --> EVIDENCE["Reproducible evidence bundle<br/>citations · test records · rule IDs<br/>workbook/pack/suite/mapping/engine hashes<br/>execution mode · model calls: 0"]
+    FAIL --> EVIDENCE
+    INCONCLUSIVE --> EVIDENCE
+  end
+
+  BOUNDARY["AUTHORITY BOUNDARY<br/>Agents may read, experiment, falsify, and propose.<br/>They cannot approve, apply a workbook patch, activate a Policy Pack,<br/>or redefine approved policy meaning.<br/>After human approval, deterministic code patches only a new copy, scope-checks, and replays."]
+  DEMO["*Demo roles are synthetic; reviewer qualification,<br/>pack publication, and a version registry are not enforced."]
+  BOUNDARY -. constrains .-> MANAGER
+  BOUNDARY -. constrains .-> FALSIFIER
+  DEMO -. qualifies .-> REVIEW
+
+  classDef ai fill:#e8edfd,stroke:#3157e6,color:#101a2b;
+  classDef governed fill:#101c2c,stroke:#101c2c,color:#ffffff;
+  classDef recurring fill:#e4f4ee,stroke:#08765f,color:#101a2b;
+  classDef warn fill:#fff1d5,stroke:#9b6107,color:#101a2b;
+  classDef fail fill:#fbe8e7,stroke:#b73e42,color:#101a2b;
+  class MANAGER,PROPOSAL,FALSIFIER ai;
+  class REVIEW,BOUNDARY governed;
+  class PACK,WORKBOOK,ORACLE,EVALUATOR,COMPARE,PASS,EVIDENCE recurring;
+  class GATE,INCONCLUSIVE,STOP,DEMO warn;
+  class FAIL fail;

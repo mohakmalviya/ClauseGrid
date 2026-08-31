@@ -1,0 +1,82 @@
+%% Conventional ClauseGrid decision flowchart source.
+%% Hosted-demo caveat: reviewer qualification, pack publication, and a durable version registry are not implemented.
+flowchart TD
+  subgraph P1["PATH 1 — Unfamiliar evidence"]
+    INPUT(["Policy PDF + workbook supplied<br/>SHA-256 bound · originals preserved"])
+    SAFE{"Safe and supported?<br/>Workbook profile + readable policy"}
+    CLOSED(["FAIL CLOSED<br/>No file change"])
+    MANAGER["Audit Manager AI<br/>Cite exact clauses · map formulas<br/>Run sandbox experiments"]
+    PROPOSAL{"Supported minimal proposal?"}
+    STOP1(["NO CHANGE / ABSTAIN<br/>or ask a human"])
+    FALSIFIER["Fresh-context Falsifier AI<br/>Run new candidate-sensitive experiments"]
+    VERDICT{"Falsifier verdict?"}
+    STOP2(["INCONCLUSIVE<br/>Stop / seek evidence"])
+    BROKEN["BROKEN<br/>Executed counterexample"]
+    REVIEW["Qualified human review*<br/>Citations · exact diff · falsifier evidence"]
+    APPROVE{"Approve exact proposal hash?"}
+    REJECT(["REJECT<br/>or request evidence"])
+    COPY["Deterministic controller<br/>Recheck hashes · patch new copy<br/>Scope-check · replay"]
+
+    INPUT --> SAFE
+    SAFE -- No --> CLOSED
+    SAFE -- Yes --> MANAGER
+    MANAGER --> PROPOSAL
+    PROPOSAL -- No --> STOP1
+    PROPOSAL -- Yes --> FALSIFIER
+    FALSIFIER --> VERDICT
+    VERDICT -- BROKEN --> BROKEN
+    BROKEN -->|Revise or abstain| MANAGER
+    VERDICT -- INCONCLUSIVE --> STOP2
+    VERDICT -- SURVIVED --> REVIEW
+    REVIEW --> APPROVE
+    APPROVE -- No --> REJECT
+    APPROVE -- Yes --> COPY
+  end
+
+  AUTHOR["Separate human-governed Policy Pack authoring*<br/>Policy owner + controls reviewer approve<br/>rules · tests · mapping · code · release hash"]
+  REVIEW -. "Separate; never automatic" .-> AUTHOR
+
+  subgraph P2["PATH 2 — Approved recurring verification · model calls: 0"]
+    PACK["Versioned Policy Pack<br/>Cited Rule IR · tests · mapping · code<br/>reviews · release hash"]
+    WORKBOOK["Known workbook version<br/>SHA-256 bound · source preserved"]
+    EVALUATORS["Run independently<br/>Spreadsheet evaluator: actual results<br/>Policy oracle: expected Decimal/date results"]
+    MISMATCH{"Any executed mismatch?"}
+    FAIL(["FAIL<br/>Mismatch proved"])
+    COMPLETE{"Did every approved test run?"}
+    PASS(["PASS<br/>All ran + matched"])
+    INC(["INCONCLUSIVE<br/>No mismatch; coverage incomplete"])
+    EVIDENCE["Reproducible evidence bundle<br/>Citations · rule IDs · per-test records<br/>Workbook / pack / suite / mapping / engine / evidence hashes"]
+    REPEAT(["Repeat<br/>Same hashes → same evidence · 0 model calls"])
+
+    AUTHOR --> PACK
+    PACK --> EVALUATORS
+    WORKBOOK --> EVALUATORS
+    EVALUATORS --> MISMATCH
+    MISMATCH -- Yes --> FAIL
+    MISMATCH -- No --> COMPLETE
+    COMPLETE -- Yes --> PASS
+    COMPLETE -- No --> INC
+    FAIL --> EVIDENCE
+    PASS --> EVIDENCE
+    INC --> EVIDENCE
+    EVIDENCE --> REPEAT
+  end
+
+  AUTH["AGENT AUTHORITY BOUNDARY<br/>May read · cite · inspect · sandbox · falsify · propose<br/>Never approve · apply a patch · activate a pack<br/>redefine policy meaning · issue recurring verdicts"]
+  AUTH -. constrains .-> MANAGER
+  AUTH -. constrains .-> FALSIFIER
+
+  DEMO["*Hosted demo uses synthetic roles<br/>Reviewer qualification is not enforced<br/>No authenticated pack publisher or durable version registry"]
+  DEMO -. qualifies .-> REVIEW
+  DEMO -. qualifies .-> AUTHOR
+
+  classDef ai fill:#e8edfd,stroke:#3157e6,color:#101a2b;
+  classDef human fill:#101c2c,stroke:#d9f36a,color:#ffffff;
+  classDef recurring fill:#e4f4ee,stroke:#08765f,color:#101a2b;
+  classDef fail fill:#fbe8e7,stroke:#b73e42,color:#101a2b;
+  classDef warn fill:#fff1d5,stroke:#9b6107,color:#101a2b;
+  class MANAGER,PROPOSAL,FALSIFIER,VERDICT,COPY ai;
+  class REVIEW,APPROVE,AUTH human;
+  class PACK,WORKBOOK,EVALUATORS,MISMATCH,COMPLETE,PASS,EVIDENCE,REPEAT recurring;
+  class CLOSED,BROKEN,REJECT,FAIL fail;
+  class STOP1,STOP2,INC,DEMO warn;

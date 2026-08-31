@@ -1,0 +1,280 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" fill="#101a2b" role="img" aria-labelledby="title desc">
+  <title id="title">ClauseGrid workflow: AI-assisted investigation and deterministic recurring verification</title>
+  <desc id="desc">Two connected paths. For unfamiliar evidence, a safety gate precedes an audit-manager AI, sandbox experiments, a fresh-context falsifier, and a proposed qualified-human review gate. Reviewer qualification, authentication, Policy Pack publishing, and a production version registry are not implemented in the hosted demo; its approval identities are synthetic. The approved recurring path uses an existing versioned Policy Pack. Known workbook versions run through a spreadsheet evaluator and an independent policy oracle to produce deterministic PASS, FAIL, or INCONCLUSIVE evidence with zero model calls. Agents cannot approve, apply workbook patches, activate Policy Packs, or redefine approved policy meaning.</desc>
+
+  <defs>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M 28 0 L 0 0 0 28" fill="none" stroke="#101c2c" stroke-opacity="0.035" stroke-width="1"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#101c2c" flood-opacity="0.09"/>
+    </filter>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1 L11 6 L1 11 Z" fill="#3157e6"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1 L11 6 L1 11 Z" fill="#08765f"/>
+    </marker>
+    <marker id="arrow-signal" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1 L11 6 L1 11 Z" fill="#9cb42a"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1 L11 6 L1 11 Z" fill="#b73e42"/>
+    </marker>
+    <style>
+      text { font-family: "Segoe UI Variable", Aptos, "Segoe UI", sans-serif; }
+      .display { font-family: Georgia, "Times New Roman", serif; }
+      .mono { font-family: Consolas, "Courier New", monospace; }
+      .title { font-size: 46px; font-weight: 700; letter-spacing: -0.7px; }
+      .subtitle { fill: #586273; font-size: 20px; }
+      .eyebrow { font-size: 14px; font-weight: 700; letter-spacing: 1.8px; }
+      .lane-title { font-size: 27px; font-weight: 700; }
+      .lane-note { fill: #586273; font-size: 19px; }
+      .card-title { font-size: 24px; font-weight: 700; }
+      .card-copy { fill: #39465a; font-size: 24px; }
+      .card-copy-light { fill: #dbe3ec; font-size: 24px; }
+      .small { fill: #586273; font-size: 18px; }
+      .small-light { fill: #aebed1; font-size: 16px; }
+      .tiny { fill: #586273; font-size: 16px; }
+      .danger { fill: #b73e42; }
+      .node-number { font-size: 17px; font-weight: 800; text-anchor: middle; }
+      .chip-text { font-size: 15px; font-weight: 800; letter-spacing: 0.5px; text-anchor: middle; }
+      .card { fill: #fffdf8; stroke: #d7d1c5; stroke-width: 1.5; }
+      .ai-card { fill: #f8faff; stroke: #c9d4f5; stroke-width: 1.5; }
+      .recurring-card { fill: #fbfefc; stroke: #b9dacf; stroke-width: 1.5; }
+      .arrow-blue { fill: none; stroke: #3157e6; stroke-width: 3; marker-end: url(#arrow-blue); }
+      .arrow-green { fill: none; stroke: #08765f; stroke-width: 3; marker-end: url(#arrow-green); }
+      .arrow-signal { fill: none; stroke: #9cb42a; stroke-width: 4; marker-end: url(#arrow-signal); }
+    </style>
+  </defs>
+
+  <rect width="1920" height="1080" fill="#f3f0e8"/>
+  <rect width="1920" height="1080" fill="url(#grid)"/>
+
+  <g id="header">
+    <rect x="48" y="35" width="60" height="60" rx="12" fill="#d9f36a" stroke="#101c2c" stroke-width="2"/>
+    <text x="78" y="77" class="display" font-size="30" font-weight="800" text-anchor="middle">C</text>
+    <text x="130" y="63" class="display title">ClauseGrid workflow</text>
+    <text x="132" y="94" class="subtitle">AI investigates unfamiliar evidence. People approve meaning. Deterministic code repeats the control.</text>
+    <rect x="1530" y="45" width="342" height="42" rx="21" fill="#101c2c"/>
+    <text x="1701" y="71" class="eyebrow" fill="#d9f36a" text-anchor="middle">POLICY ASSURANCE · END TO END</text>
+  </g>
+
+  <g id="new-evidence-path">
+    <rect x="40" y="130" width="1840" height="395" rx="20" fill="#fffdf8" stroke="#d7d1c5" stroke-width="1.5" filter="url(#shadow)"/>
+    <rect x="68" y="153" width="202" height="34" rx="17" fill="#e8edfd"/>
+    <text x="169" y="176" class="eyebrow" fill="#2343b9" text-anchor="middle">PATH 1 · AI ASSISTED</text>
+    <text x="290" y="177" class="lane-title">New or unfamiliar evidence</text>
+    <text x="671" y="177" class="lane-note">proposal-only investigation before qualified review</text>
+    <rect x="1651" y="153" width="197" height="34" rx="17" fill="#fff1d5"/>
+    <text x="1750" y="176" class="eyebrow" fill="#9b6107" text-anchor="middle">FAIL CLOSED</text>
+
+    <path class="arrow-blue" d="M360 352 H390"/>
+    <path class="arrow-blue" d="M690 352 H730"/>
+    <path class="arrow-blue" d="M1040 352 H1080"/>
+    <path class="arrow-green" d="M1380 352 H1420"/>
+
+    <g id="inputs-and-safety">
+      <rect x="70" y="212" width="290" height="276" rx="16" class="card"/>
+      <rect x="70" y="212" width="290" height="8" rx="4" fill="#3157e6"/>
+      <circle cx="103" cy="251" r="18" fill="#d9f36a"/>
+      <text x="103" y="257" class="node-number">1</text>
+      <text x="132" y="259" class="card-title">Policy + workbook</text>
+      <text x="94" y="306" class="card-copy">
+        <tspan x="94" dy="0">Policy PDF + workbook</tspan>
+        <tspan x="94" dy="33">supplied + hash-bound.</tspan>
+      </text>
+      <rect x="94" y="365" width="242" height="43" rx="9" fill="#eef1fa"/>
+      <text x="215" y="384" class="eyebrow" fill="#2343b9" text-anchor="middle">SAFETY GATE · FAIL CLOSED</text>
+      <text x="215" y="401" class="tiny" text-anchor="middle">unsafe or unsupported → stop</text>
+      <text x="94" y="443" class="small mono">SHA-256 before + after</text>
+      <text x="94" y="466" class="small">Source preserved.</text>
+    </g>
+
+    <g id="audit-manager">
+      <rect x="390" y="212" width="300" height="276" rx="16" class="ai-card"/>
+      <rect x="390" y="212" width="300" height="8" rx="4" fill="#3157e6"/>
+      <circle cx="423" cy="251" r="18" fill="#d9f36a"/>
+      <text x="423" y="257" class="node-number">2</text>
+      <text x="452" y="259" class="card-title">Audit Manager AI</text>
+      <text x="414" y="304" class="card-copy">
+        <tspan x="414" dy="0">• cite exact clauses</tspan>
+        <tspan x="414" dy="35">• map formulas</tspan>
+        <tspan x="414" dy="35">• choose experiments</tspan>
+        <tspan x="414" dy="35">• stage minimal proposal</tspan>
+      </text>
+      <rect x="414" y="445" width="252" height="25" rx="12" fill="#e8edfd"/>
+      <text x="540" y="462" class="chip-text" fill="#2343b9">READ · TEST · PROPOSE</text>
+    </g>
+
+    <g id="sandbox-proposal">
+      <rect x="730" y="212" width="310" height="276" rx="16" class="ai-card"/>
+      <rect x="730" y="212" width="310" height="8" rx="4" fill="#3157e6"/>
+      <circle cx="763" cy="251" r="18" fill="#d9f36a"/>
+      <text x="763" y="257" class="node-number">3</text>
+      <text x="792" y="250" class="card-title">
+        <tspan x="792" dy="0">Sandbox experiments</tspan>
+        <tspan x="792" dy="25">+ minimal proposal</tspan>
+      </text>
+      <text x="754" y="319" class="card-copy">
+        <tspan x="754" dy="0">Test the candidate</tspan>
+        <tspan x="754" dy="34">with explicit inputs.</tspan>
+        <tspan x="754" dy="34">No network. No edits.</tspan>
+      </text>
+      <rect x="754" y="414" width="92" height="26" rx="13" fill="#e8edfd"/>
+      <text x="800" y="432" class="chip-text" fill="#2343b9">REPAIR</text>
+      <rect x="854" y="414" width="128" height="26" rx="13" fill="#eef0f2"/>
+      <text x="918" y="432" class="chip-text" fill="#586273">NO CHANGE</text>
+      <rect x="754" y="448" width="98" height="26" rx="13" fill="#fff1d5"/>
+      <text x="803" y="466" class="chip-text" fill="#9b6107">ABSTAIN</text>
+      <rect x="860" y="448" width="122" height="26" rx="13" fill="#fff1d5"/>
+      <text x="921" y="466" class="chip-text" fill="#9b6107">ASK HUMAN</text>
+    </g>
+
+    <g id="falsifier">
+      <rect x="1080" y="212" width="300" height="276" rx="16" class="ai-card"/>
+      <rect x="1080" y="212" width="300" height="8" rx="4" fill="#08765f"/>
+      <circle cx="1113" cy="251" r="18" fill="#d9f36a"/>
+      <text x="1113" y="257" class="node-number">4</text>
+      <text x="1142" y="250" class="card-title">
+        <tspan x="1142" dy="0">Fresh-context</tspan>
+        <tspan x="1142" dy="25">Falsifier AI</tspan>
+      </text>
+      <text x="1104" y="319" class="card-copy">
+        <tspan x="1104" dy="0">Fresh conversation.</tspan>
+        <tspan x="1104" dy="34">New counterexamples.</tspan>
+        <tspan x="1104" dy="34">Executed evidence only.</tspan>
+      </text>
+      <rect x="1104" y="405" width="110" height="29" rx="14" fill="#fbe8e7"/>
+      <text x="1159" y="425" class="chip-text" fill="#b73e42">BROKEN</text>
+      <rect x="1222" y="405" width="134" height="29" rx="14" fill="#fff1d5"/>
+      <text x="1289" y="425" class="chip-text" fill="#9b6107">INCONCLUSIVE</text>
+      <rect x="1104" y="444" width="252" height="30" rx="15" fill="#e4f4ee"/>
+      <text x="1230" y="464" class="chip-text" fill="#08765f">SURVIVED → HUMAN REVIEW</text>
+    </g>
+
+    <g id="human-review">
+      <rect x="1420" y="212" width="430" height="276" rx="16" fill="#101c2c" stroke="#101c2c" stroke-width="1.5"/>
+      <rect x="1420" y="212" width="430" height="8" rx="4" fill="#d9f36a"/>
+      <circle cx="1454" cy="251" r="18" fill="#d9f36a"/>
+      <text x="1454" y="257" class="node-number">5</text>
+      <text x="1484" y="259" class="card-title" fill="#ffffff">Qualified human review*</text>
+      <text x="1446" y="302" class="card-copy-light">
+        <tspan x="1446" dy="0">SURVIVED proposals only.</tspan>
+        <tspan x="1446" dy="31">Review citations + exact diff.</tspan>
+        <tspan x="1446" dy="31">Policy roles own meaning.</tspan>
+        <tspan x="1446" dy="31">Reviewer hash-binds proposal.</tspan>
+      </text>
+      <text x="1446" y="421" class="small-light">*Synthetic demo roles; qualification not enforced.</text>
+      <rect x="1446" y="438" width="378" height="32" rx="10" fill="#d9f36a"/>
+      <text x="1635" y="459" font-size="16" font-weight="800" fill="#293408" text-anchor="middle">APPROVE / REJECT / ASK FOR EVIDENCE</text>
+    </g>
+
+    <path d="M1230 488 C1230 516 548 516 548 488" fill="none" stroke="#b73e42" stroke-width="2.5" stroke-dasharray="7 7" marker-end="url(#arrow-red)"/>
+    <rect x="726" y="493" width="352" height="25" rx="12" fill="#fffdf8"/>
+    <text x="902" y="511" class="tiny danger" text-anchor="middle">BROKEN → revise · INCONCLUSIVE → stop</text>
+  </g>
+
+  <g id="approval-bridge">
+    <path class="arrow-signal" d="M1635 488 V548 H250 V640" stroke-dasharray="10 8"/>
+    <rect x="674" y="526" width="756" height="41" rx="20" fill="#d9f36a" stroke="#9cb42a" stroke-width="1"/>
+    <text x="1052" y="544" font-size="18" font-weight="800" fill="#293408" text-anchor="middle">HUMAN-GOVERNED PACK AUTHORING + REVIEW</text>
+    <text x="1052" y="562" font-size="15" font-weight="700" fill="#293408" text-anchor="middle">not implemented in the hosted demo</text>
+  </g>
+
+  <g id="recurring-path">
+    <rect x="40" y="570" width="1840" height="315" rx="20" fill="#fffdf8" stroke="#b9dacf" stroke-width="1.5" filter="url(#shadow)"/>
+    <rect x="470" y="592" width="226" height="34" rx="17" fill="#e4f4ee"/>
+    <text x="583" y="615" class="eyebrow" fill="#08765f" text-anchor="middle">PATH 2 · APPROVED PACK</text>
+    <text x="716" y="616" class="lane-title">Recurring verification</text>
+    <text x="1042" y="616" class="lane-note">same hashes → same evidence</text>
+    <rect x="1651" y="592" width="197" height="34" rx="17" fill="#101c2c"/>
+    <text x="1750" y="615" class="eyebrow" fill="#d9f36a" text-anchor="middle">MODEL CALLS · 0</text>
+
+    <path class="arrow-green" d="M430 748 H470"/>
+    <path class="arrow-green" d="M890 748 H930"/>
+    <path class="arrow-green" d="M1140 748 H1180"/>
+    <path class="arrow-green" d="M1480 748 H1520"/>
+
+    <g id="approved-inputs">
+      <rect x="70" y="640" width="360" height="215" rx="16" class="recurring-card"/>
+      <rect x="70" y="640" width="360" height="8" rx="4" fill="#08765f"/>
+      <text x="94" y="678" class="card-title">Approved inputs</text>
+      <rect x="94" y="697" width="312" height="101" rx="10" fill="#e4f4ee"/>
+      <text x="112" y="721" class="eyebrow" fill="#08765f">VERSIONED POLICY PACK</text>
+      <text x="112" y="746" class="small">cited Rule IR · examples · tests</text>
+      <text x="112" y="770" class="small">mapping · code · reviews</text>
+      <text x="112" y="793" class="small mono">RELEASE HASH</text>
+      <rect x="94" y="807" width="312" height="32" rx="10" fill="#eef1fa"/>
+      <text x="112" y="829" class="small mono">KNOWN .XLSX · SHA-256 BOUND</text>
+    </g>
+
+    <g id="independent-evaluation">
+      <rect x="470" y="640" width="420" height="215" rx="16" class="recurring-card"/>
+      <rect x="470" y="640" width="420" height="8" rx="4" fill="#08765f"/>
+      <text x="494" y="678" class="card-title">Run independently</text>
+      <rect x="494" y="698" width="178" height="120" rx="10" fill="#eef1fa"/>
+      <text x="583" y="725" class="eyebrow" fill="#2343b9" text-anchor="middle">WORKBOOK</text>
+      <text x="583" y="752" class="small" text-anchor="middle">isolated spreadsheet</text>
+      <text x="583" y="775" class="small" text-anchor="middle">formula evaluator</text>
+      <text x="583" y="803" class="tiny mono" text-anchor="middle">actual results</text>
+      <rect x="688" y="698" width="178" height="120" rx="10" fill="#e4f4ee"/>
+      <text x="777" y="725" class="eyebrow" fill="#08765f" text-anchor="middle">POLICY</text>
+      <text x="777" y="752" class="small" text-anchor="middle">independent Decimal/</text>
+      <text x="777" y="775" class="small" text-anchor="middle">date Rule IR oracle</text>
+      <text x="777" y="803" class="tiny mono" text-anchor="middle">expected results</text>
+      <text x="680" y="841" class="tiny" text-anchor="middle">No shared formula code</text>
+    </g>
+
+    <g id="compare">
+      <rect x="930" y="640" width="210" height="215" rx="16" class="recurring-card"/>
+      <rect x="930" y="640" width="210" height="8" rx="4" fill="#08765f"/>
+      <circle cx="1035" cy="713" r="38" fill="#101c2c"/>
+      <text x="1035" y="721" font-size="26" font-weight="800" fill="#d9f36a" text-anchor="middle">= ?</text>
+      <text x="1035" y="774" class="card-title" text-anchor="middle">Compare every</text>
+      <text x="1035" y="800" class="card-title" text-anchor="middle">approved test</text>
+      <text x="1035" y="831" class="tiny" text-anchor="middle">generated + regression</text>
+    </g>
+
+    <g id="verdicts">
+      <rect x="1180" y="640" width="300" height="215" rx="16" class="recurring-card"/>
+      <rect x="1180" y="640" width="300" height="8" rx="4" fill="#08765f"/>
+      <text x="1204" y="678" class="card-title">Deterministic verdict</text>
+      <rect x="1204" y="696" width="252" height="38" rx="10" fill="#e4f4ee"/>
+      <text x="1222" y="721" class="eyebrow" fill="#08765f">PASS</text>
+      <text x="1282" y="721" class="tiny">all tests ran + matched</text>
+      <rect x="1204" y="743" width="252" height="38" rx="10" fill="#fbe8e7"/>
+      <text x="1222" y="768" class="eyebrow" fill="#b73e42">FAIL</text>
+      <text x="1270" y="768" class="tiny">executed mismatch proved</text>
+      <rect x="1204" y="790" width="252" height="47" rx="10" fill="#fff1d5"/>
+      <text x="1222" y="814" class="eyebrow" fill="#9b6107">INCONCLUSIVE</text>
+      <text x="1222" y="831" class="tiny">checks incomplete · no pass/fail claim</text>
+    </g>
+
+    <g id="evidence-bundle">
+      <rect x="1520" y="640" width="330" height="215" rx="16" class="recurring-card"/>
+      <rect x="1520" y="640" width="330" height="8" rx="4" fill="#08765f"/>
+      <text x="1544" y="678" class="card-title">Reproducible evidence</text>
+      <text x="1544" y="710" class="small">
+        <tspan x="1544" dy="0">• citations + rule IDs</tspan>
+        <tspan x="1544" dy="26">• per-test records</tspan>
+        <tspan x="1544" dy="26">• workbook + release hashes</tspan>
+        <tspan x="1544" dy="26">• evidence hash + mode</tspan>
+        <tspan x="1544" dy="26">• source preserved · 0 model calls</tspan>
+      </text>
+    </g>
+  </g>
+
+  <g id="authority-boundary">
+    <rect x="40" y="905" width="1840" height="135" rx="18" fill="#101c2c"/>
+    <rect x="62" y="926" width="226" height="31" rx="15" fill="#d9f36a"/>
+    <text x="175" y="947" class="eyebrow" fill="#293408" text-anchor="middle">AUTHORITY BOUNDARY</text>
+    <text x="320" y="944" font-size="21" font-weight="700" fill="#ffffff">Agents may read, experiment, falsify, and propose.</text>
+    <text x="320" y="980" font-size="20" fill="#dbe3ec">Cannot approve · cannot apply a patch · cannot activate a Policy Pack.</text>
+    <text x="320" y="1011" font-size="20" fill="#dbe3ec">Cannot redefine approved policy meaning.</text>
+    <line x1="1080" y1="922" x2="1080" y2="1022" stroke="#ffffff" stroke-opacity="0.18"/>
+    <text x="1110" y="944" font-size="20" font-weight="700" fill="#d9f36a">AFTER HUMAN APPROVAL ONLY</text>
+    <text x="1110" y="980" font-size="19" fill="#dbe3ec">Controller revalidates hashes and patches only a new copy.</text>
+    <text x="1110" y="1011" font-size="19" fill="#dbe3ec">It scope-checks and replays; the original remains unchanged.</text>
+  </g>
+</svg>

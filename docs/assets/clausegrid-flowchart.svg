@@ -1,0 +1,292 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="2840" viewBox="0 0 1200 2840" fill="#101a2b" role="img" aria-labelledby="flow-title flow-desc">
+  <title id="flow-title">ClauseGrid decision flowchart</title>
+  <desc id="flow-desc">A conventional decision flowchart with two connected paths. Unfamiliar evidence passes through a deterministic safety gate, an Audit Manager AI, sandbox experiments, a fresh-context Falsifier AI, and qualified human review. Broken proposals loop back, inconclusive proposals stop, and only survived proposals can reach review. A separate human-governed authoring step can create an approved versioned Policy Pack, but reviewer qualification, authenticated publication, and a production version registry are not implemented in the hosted demo. Approved recurring verification uses a spreadsheet evaluator and independent policy oracle to return PASS, FAIL, or INCONCLUSIVE with zero model calls. Agents cannot approve, apply patches, activate Policy Packs, redefine policy meaning, or issue recurring verdicts.</desc>
+
+  <defs>
+    <pattern id="flow-grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M28 0H0V28" fill="none" stroke="#101c2c" stroke-opacity="0.035" stroke-width="1"/>
+    </pattern>
+    <marker id="flow-arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L11 6L1 11Z" fill="#3157e6"/>
+    </marker>
+    <marker id="flow-arrow-green" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L11 6L1 11Z" fill="#08765f"/>
+    </marker>
+    <marker id="flow-arrow-red" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L11 6L1 11Z" fill="#b73e42"/>
+    </marker>
+    <marker id="flow-arrow-signal" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L11 6L1 11Z" fill="#9cb42a"/>
+    </marker>
+    <marker id="flow-arrow-warn" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L11 6L1 11Z" fill="#9b6107"/>
+    </marker>
+    <style>
+      text { font-family: "Segoe UI Variable", Aptos, "Segoe UI", sans-serif; }
+      .display { font-family: Georgia, "Times New Roman", serif; }
+      .title { font-size: 46px; font-weight: 700; letter-spacing: -0.5px; }
+      .subtitle { fill: #586273; font-size: 21px; }
+      .lane-label { font-size: 16px; font-weight: 800; letter-spacing: 1.7px; }
+      .lane-title { font-size: 29px; font-weight: 700; }
+      .node-title { font-size: 25px; font-weight: 700; text-anchor: middle; }
+      .node-body { fill: #39465a; font-size: 21px; text-anchor: middle; }
+      .node-body-light { fill: #dbe3ec; font-size: 21px; text-anchor: middle; }
+      .decision { font-size: 24px; font-weight: 700; text-anchor: middle; }
+      .edge-label { font-size: 17px; font-weight: 800; letter-spacing: 0.5px; text-anchor: middle; }
+      .note { fill: #586273; font-size: 18px; text-anchor: middle; }
+      .mono { font-family: Consolas, "Courier New", monospace; }
+      .process-ai { fill: #f8faff; stroke: #3157e6; stroke-width: 2; }
+      .process-recurring { fill: #fbfefc; stroke: #08765f; stroke-width: 2; }
+      .decision-ai { fill: #eef1fa; stroke: #3157e6; stroke-width: 2.5; }
+      .decision-recurring { fill: #e4f4ee; stroke: #08765f; stroke-width: 2.5; }
+      .flow-blue { fill: none; stroke: #3157e6; stroke-width: 3.5; marker-end: url(#flow-arrow-blue); }
+      .flow-green { fill: none; stroke: #08765f; stroke-width: 3.5; marker-end: url(#flow-arrow-green); }
+      .flow-red { fill: none; stroke: #b73e42; stroke-width: 3; stroke-dasharray: 9 8; marker-end: url(#flow-arrow-red); }
+      .flow-signal { fill: none; stroke: #9cb42a; stroke-width: 3.5; stroke-dasharray: 10 8; marker-end: url(#flow-arrow-signal); }
+      .flow-warn { fill: none; stroke: #9b6107; stroke-width: 3; marker-end: url(#flow-arrow-warn); }
+    </style>
+  </defs>
+
+  <rect width="1200" height="2840" fill="#f3f0e8"/>
+  <rect width="1200" height="2840" fill="url(#flow-grid)"/>
+
+  <g id="flow-header">
+    <rect x="45" y="35" width="62" height="62" rx="12" fill="#d9f36a" stroke="#101c2c" stroke-width="2"/>
+    <text x="76" y="78" class="display" font-size="31" font-weight="800" text-anchor="middle">C</text>
+    <text x="130" y="68" class="display title">ClauseGrid decision flowchart</text>
+    <text x="132" y="101" class="subtitle">A true branch-and-gate view of investigation, approval, and zero-model replay.</text>
+  </g>
+
+  <g id="investigation-lane">
+    <rect x="300" y="130" width="870" height="1420" rx="22" fill="#fffdf8" stroke="#d7d1c5" stroke-width="1.5"/>
+    <rect x="325" y="154" width="192" height="34" rx="17" fill="#e8edfd"/>
+    <text x="421" y="177" class="lane-label" fill="#2343b9" text-anchor="middle">PATH 1 · AI ASSISTED</text>
+    <text x="540" y="178" class="lane-title">Unfamiliar evidence</text>
+
+    <path class="flow-blue" d="M730 282V300"/>
+    <path class="flow-blue" d="M730 440V480"/>
+    <path class="flow-blue" d="M730 600V620"/>
+    <path class="flow-blue" d="M730 760V805"/>
+    <path class="flow-blue" d="M730 915V940"/>
+    <path class="flow-green" d="M730 1080V1120"/>
+    <path class="flow-blue" d="M730 1220V1250"/>
+    <path class="flow-blue" d="M730 1390V1430"/>
+
+    <g id="new-evidence">
+      <rect x="480" y="210" width="500" height="72" rx="36" fill="#101c2c"/>
+      <text x="730" y="242" class="node-title" fill="#ffffff">Policy PDF + workbook supplied</text>
+      <text x="730" y="268" class="node-body-light mono">SHA-256 bound · originals preserved</text>
+    </g>
+
+    <g id="safe-supported-decision">
+      <polygon points="730,300 920,370 730,440 540,370" class="decision-ai"/>
+      <text x="730" y="361" class="decision">
+        <tspan x="730" dy="0">Safe and supported?</tspan>
+        <tspan x="730" dy="29" font-size="19" font-weight="400">workbook profile + readable policy</tspan>
+      </text>
+      <path class="flow-red" d="M920 370H970"/>
+      <text x="945" y="353" class="edge-label" fill="#b73e42">NO</text>
+      <text x="756" y="464" class="edge-label" fill="#2343b9">YES</text>
+      <rect x="970" y="326" width="175" height="88" rx="44" fill="#fbe8e7" stroke="#b73e42" stroke-width="2"/>
+      <text x="1058" y="361" class="node-title" fill="#b73e42" font-size="21">FAIL CLOSED</text>
+      <text x="1058" y="390" class="note" font-size="16">no file change</text>
+    </g>
+
+    <g id="audit-manager-node">
+      <rect x="480" y="480" width="500" height="120" rx="15" class="process-ai"/>
+      <text x="730" y="520" class="node-title">Audit Manager AI</text>
+      <text x="730" y="554" class="node-body">Cite exact clauses · map formulas</text>
+      <text x="730" y="581" class="node-body">run sandbox experiments</text>
+    </g>
+
+    <g id="proposal-decision">
+      <polygon points="730,620 920,690 730,760 540,690" class="decision-ai"/>
+      <text x="730" y="681" class="decision">
+        <tspan x="730" dy="0">Supported minimal</tspan>
+        <tspan x="730" dy="29">proposal?</tspan>
+      </text>
+      <path class="flow-red" d="M920 690H960"/>
+      <text x="940" y="673" class="edge-label" fill="#b73e42">NO</text>
+      <text x="756" y="784" class="edge-label" fill="#2343b9">YES</text>
+      <rect x="960" y="635" width="190" height="110" rx="14" fill="#fff1d5" stroke="#9b6107" stroke-width="2"/>
+      <text x="1055" y="670" class="node-title" fill="#9b6107" font-size="20">NO CHANGE</text>
+      <text x="1055" y="699" class="node-body" font-size="18">ABSTAIN or</text>
+      <text x="1055" y="725" class="node-body" font-size="18">ask a human</text>
+    </g>
+
+    <g id="falsifier-node">
+      <rect x="480" y="805" width="500" height="110" rx="15" class="process-ai"/>
+      <text x="730" y="847" class="node-title">Fresh-context Falsifier AI</text>
+      <text x="730" y="881" class="node-body">Run new candidate-sensitive experiments</text>
+    </g>
+
+    <g id="falsifier-decision">
+      <polygon points="730,940 920,1010 730,1080 540,1010" class="decision-ai"/>
+      <text x="730" y="1001" class="decision">
+        <tspan x="730" dy="0">Falsifier</tspan>
+        <tspan x="730" dy="29">verdict?</tspan>
+      </text>
+      <text x="760" y="1105" class="edge-label" fill="#08765f">SURVIVED</text>
+      <path class="flow-red" d="M920 1010H925V970H930"/>
+      <rect x="930" y="933" width="220" height="74" rx="14" fill="#fbe8e7" stroke="#b73e42" stroke-width="2"/>
+      <text x="1040" y="964" class="node-title" fill="#b73e42" font-size="17">BROKEN</text>
+      <text x="1040" y="990" class="node-body" font-size="16">revise or abstain</text>
+      <path class="flow-red" d="M1150 970H1160V540H980"/>
+      <path class="flow-warn" d="M920 1010H925V1055H930"/>
+      <rect x="930" y="1018" width="220" height="74" rx="14" fill="#fff1d5" stroke="#9b6107" stroke-width="2"/>
+      <text x="1040" y="1049" class="node-title" fill="#9b6107" font-size="17">INCONCLUSIVE</text>
+      <text x="1040" y="1075" class="node-body" font-size="16">stop / seek evidence</text>
+    </g>
+
+    <g id="human-review-node">
+      <rect x="480" y="1120" width="500" height="100" rx="15" fill="#101c2c" stroke="#101c2c" stroke-width="2"/>
+      <text x="730" y="1161" class="node-title" fill="#ffffff">Qualified human review*</text>
+      <text x="730" y="1195" class="node-body-light">citations · exact diff · falsifier evidence</text>
+    </g>
+
+    <g id="approval-decision">
+      <polygon points="730,1250 920,1320 730,1390 540,1320" fill="#101c2c" stroke="#d9f36a" stroke-width="3"/>
+      <text x="730" y="1308" class="decision" fill="#ffffff">
+        <tspan x="730" dy="0">Approve exact</tspan>
+        <tspan x="730" dy="29">proposal hash?</tspan>
+      </text>
+      <text x="758" y="1415" class="edge-label" fill="#2343b9">YES</text>
+      <path class="flow-red" d="M920 1320H960"/>
+      <text x="940" y="1303" class="edge-label" fill="#b73e42">NO</text>
+      <rect x="960" y="1270" width="190" height="100" rx="50" fill="#fbe8e7" stroke="#b73e42" stroke-width="2"/>
+      <text x="1055" y="1311" class="node-title" fill="#b73e42" font-size="20">REJECT</text>
+      <text x="1055" y="1341" class="node-body" font-size="17">or request evidence</text>
+    </g>
+
+    <g id="copy-on-write-node">
+      <rect x="480" y="1430" width="500" height="100" rx="15" class="process-ai"/>
+      <text x="730" y="1465" class="node-title">Deterministic controller</text>
+      <text x="730" y="1497" class="node-body" font-size="19">recheck hashes · patch new copy</text>
+      <text x="730" y="1521" class="node-body" font-size="19">scope-check · replay</text>
+    </g>
+  </g>
+
+  <g id="authority-rail">
+    <rect x="30" y="130" width="240" height="1420" rx="20" fill="#101c2c"/>
+    <rect x="52" y="158" width="196" height="34" rx="17" fill="#d9f36a"/>
+    <text x="150" y="181" class="lane-label" fill="#293408" text-anchor="middle">AGENT AUTHORITY</text>
+    <text x="60" y="244" font-size="21" font-weight="800" fill="#d9f36a">MAY</text>
+    <text x="60" y="283" font-size="21" fill="#ffffff">read and cite</text>
+    <text x="60" y="318" font-size="21" fill="#ffffff">inspect formulas</text>
+    <text x="60" y="353" font-size="21" fill="#ffffff">run sandbox tests</text>
+    <text x="60" y="388" font-size="21" fill="#ffffff">falsify</text>
+    <text x="60" y="423" font-size="21" fill="#ffffff">propose</text>
+    <line x1="60" y1="470" x2="240" y2="470" stroke="#d9f36a" stroke-width="3"/>
+    <text x="60" y="520" font-size="21" font-weight="800" fill="#d9f36a">NEVER</text>
+    <text x="60" y="559" font-size="21" fill="#ffffff">approve</text>
+    <text x="60" y="594" font-size="21" fill="#ffffff">apply a patch</text>
+    <text x="60" y="629" font-size="21" fill="#ffffff">activate a pack</text>
+    <text x="60" y="664" font-size="21" fill="#ffffff">redefine policy</text>
+    <text x="60" y="699" font-size="21" fill="#ffffff">issue recurring</text>
+    <text x="60" y="734" font-size="21" fill="#ffffff">verdicts</text>
+    <rect x="52" y="1275" width="196" height="235" rx="14" fill="#192a40"/>
+    <text x="150" y="1315" font-size="18" font-weight="800" fill="#d9f36a" text-anchor="middle">AFTER HUMAN</text>
+    <text x="150" y="1342" font-size="18" font-weight="800" fill="#d9f36a" text-anchor="middle">APPROVAL ONLY</text>
+    <text x="150" y="1384" font-size="18" fill="#dbe3ec" text-anchor="middle">deterministic code</text>
+    <text x="150" y="1414" font-size="18" fill="#dbe3ec" text-anchor="middle">may patch a new</text>
+    <text x="150" y="1444" font-size="18" fill="#dbe3ec" text-anchor="middle">copy; the original</text>
+    <text x="150" y="1474" font-size="18" fill="#dbe3ec" text-anchor="middle">stays unchanged</text>
+  </g>
+
+  <g id="governance-handoff">
+    <path class="flow-signal" d="M480 1170H330V1670H400"/>
+    <rect x="310" y="1565" width="410" height="36" rx="18" fill="#d9f36a"/>
+    <text x="515" y="1589" class="edge-label" fill="#293408">SEPARATE · NEVER AUTOMATIC</text>
+    <rect x="400" y="1605" width="660" height="170" rx="18" fill="#fffdf8" stroke="#9cb42a" stroke-width="2.5"/>
+    <text x="730" y="1645" class="node-title">Human-governed Policy Pack authoring*</text>
+    <text x="730" y="1681" class="node-body">Policy owner + controls reviewer approve</text>
+    <text x="730" y="1710" class="node-body">rules · tests · mapping · code · release hash</text>
+    <text x="730" y="1738" class="note" font-size="16">*Hosted demo: synthetic roles; reviewer qualification is not enforced.</text>
+    <text x="730" y="1762" class="note" font-size="16">No pack publisher or version registry.</text>
+  </g>
+
+  <g id="recurring-lane">
+    <rect x="30" y="1825" width="1140" height="965" rx="22" fill="#fffdf8" stroke="#b9dacf" stroke-width="1.5"/>
+    <rect x="55" y="1849" width="235" height="34" rx="17" fill="#e4f4ee"/>
+    <text x="173" y="1872" class="lane-label" fill="#08765f" text-anchor="middle">PATH 2 · APPROVED PACK</text>
+    <text x="315" y="1873" class="lane-title">Recurring verification</text>
+    <rect x="925" y="1849" width="215" height="34" rx="17" fill="#101c2c"/>
+    <text x="1033" y="1872" class="lane-label" fill="#d9f36a" text-anchor="middle">MODEL CALLS · 0</text>
+
+    <path class="flow-green" d="M730 1775V1905H340"/>
+    <path class="flow-green" d="M340 2025V2050H600V2080"/>
+    <path class="flow-green" d="M870 2025V2050H600"/>
+    <path class="flow-green" d="M600 2200V2210"/>
+    <path class="flow-green" d="M600 2350V2370"/>
+
+    <g id="pack-input">
+      <rect x="100" y="1905" width="480" height="120" rx="15" class="process-recurring"/>
+      <text x="340" y="1944" class="node-title">Versioned Policy Pack</text>
+      <text x="340" y="1978" class="node-body">cited Rule IR · tests · mapping · code</text>
+      <text x="340" y="2006" class="node-body mono">reviews · release hash</text>
+    </g>
+
+    <g id="known-workbook-input">
+      <rect x="650" y="1905" width="440" height="120" rx="15" class="process-recurring"/>
+      <text x="870" y="1944" class="node-title">Known workbook version</text>
+      <text x="870" y="1979" class="node-body mono">SHA-256 bound</text>
+      <text x="870" y="2007" class="node-body">source preserved</text>
+    </g>
+
+    <g id="independent-evaluators">
+      <rect x="300" y="2080" width="600" height="120" rx="15" class="process-recurring"/>
+      <line x1="600" y1="2095" x2="600" y2="2185" stroke="#b9dacf" stroke-width="2"/>
+      <text x="450" y="2122" class="node-title" font-size="22">Spreadsheet evaluator</text>
+      <text x="450" y="2160" class="node-body">actual results</text>
+      <text x="750" y="2122" class="node-title" font-size="22">Policy oracle</text>
+      <text x="750" y="2160" class="node-body">independent Decimal/date results</text>
+    </g>
+
+    <g id="mismatch-decision">
+      <polygon points="600,2210 780,2280 600,2350 420,2280" class="decision-recurring"/>
+      <text x="600" y="2271" class="decision">
+        <tspan x="600" dy="0">Any executed</tspan>
+        <tspan x="600" dy="29">mismatch?</tspan>
+      </text>
+      <path class="flow-green" d="M780 2280H850"/>
+      <text x="815" y="2263" class="edge-label" fill="#b73e42">YES</text>
+      <text x="627" y="2368" class="edge-label" fill="#08765f">NO</text>
+      <rect x="850" y="2240" width="250" height="80" rx="40" fill="#fbe8e7" stroke="#b73e42" stroke-width="2.5"/>
+      <text x="975" y="2273" class="node-title" fill="#b73e42">FAIL</text>
+      <text x="975" y="2300" class="note" font-size="17">mismatch proved</text>
+    </g>
+
+    <g id="completion-decision">
+      <polygon points="600,2370 780,2440 600,2510 420,2440" class="decision-recurring"/>
+      <text x="600" y="2431" class="decision">
+        <tspan x="600" dy="0">Did every approved</tspan>
+        <tspan x="600" dy="29">test run?</tspan>
+      </text>
+      <path class="flow-green" d="M780 2440H850"/>
+      <path class="flow-green" d="M420 2440H350"/>
+      <text x="815" y="2423" class="edge-label" fill="#08765f">YES</text>
+      <text x="385" y="2423" class="edge-label" fill="#9b6107">NO</text>
+      <rect x="850" y="2400" width="250" height="80" rx="40" fill="#e4f4ee" stroke="#08765f" stroke-width="2.5"/>
+      <text x="975" y="2433" class="node-title" fill="#08765f">PASS</text>
+      <text x="975" y="2460" class="note" font-size="17">all ran + matched</text>
+      <rect x="100" y="2392" width="250" height="96" rx="48" fill="#fff1d5" stroke="#9b6107" stroke-width="2.5"/>
+      <text x="225" y="2425" class="node-title" fill="#9b6107" font-size="21">INCONCLUSIVE</text>
+      <text x="225" y="2454" class="note" font-size="16">no mismatch;</text>
+      <text x="225" y="2477" class="note" font-size="16">coverage incomplete</text>
+    </g>
+
+    <path class="flow-green" d="M975 2320V2535H780V2560"/>
+    <path class="flow-green" d="M975 2480V2535H780"/>
+    <path class="flow-green" d="M225 2488V2535H420V2560"/>
+
+    <g id="evidence-output">
+      <rect x="300" y="2560" width="600" height="130" rx="15" class="process-recurring"/>
+      <text x="600" y="2599" class="node-title">Reproducible evidence bundle</text>
+      <text x="600" y="2634" class="node-body">citations · rule IDs · per-test records</text>
+      <text x="600" y="2662" class="node-body">workbook / pack / suite / mapping / engine / evidence hashes</text>
+    </g>
+    <path class="flow-green" d="M600 2690V2720"/>
+    <rect x="300" y="2720" width="600" height="58" rx="29" fill="#101c2c"/>
+    <text x="600" y="2757" font-size="18" font-weight="800" fill="#d9f36a" text-anchor="middle">REPEAT · SAME HASHES → SAME EVIDENCE · MODEL CALLS 0</text>
+  </g>
+</svg>

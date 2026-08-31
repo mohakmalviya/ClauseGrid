@@ -29,6 +29,15 @@ ClauseGrid is designed around the workflow below. This repository includes one p
 synthetic example. The public demo can replay that approved pack, but it does not provide an
 authenticated system for creating approvals or publishing replacement versions.
 
+![ClauseGrid workflow: AI-assisted investigation and deterministic recurring verification](docs/assets/clausegrid-workflow.svg)
+
+[Edit the Mermaid workflow source](docs/assets/clausegrid-workflow.mmd).
+
+Implementation basis: [workflow and result contract](#how-clausegrid-works),
+[architecture and authority boundary](docs/ARCHITECTURE.md),
+[submission checkpoint](docs/SUBMISSION_REPORT.md#model-agent-implementation-checkpoint), and
+[representative M10 agent evidence](artifacts/submission/agent-m10/README.md).
+
 1. **Read the policy.** ClauseGrid keeps the exact policy clauses and page references that matter.
 2. **Describe expected behaviour.** Thresholds, exceptions, dates, caps, and rounding are turned
    into clear examples and executable rules.
@@ -41,6 +50,15 @@ authenticated system for creating approvals or publishing replacement versions.
 6. **Keep new edge cases.** A production version registry should turn a new mistake into a
    regression test or a reviewed replacement Policy Pack. The public demo explains this process but
    does not save these changes.
+
+### Decision flowchart
+
+The flowchart below makes the stop conditions, falsifier loop, human approval gate, and recurring
+`PASS` / `FAIL` / `INCONCLUSIVE` branches explicit.
+
+![ClauseGrid decision flowchart with approval gates and deterministic verdict branches](docs/assets/clausegrid-flowchart.svg)
+
+[Edit the Mermaid flowchart source](docs/assets/clausegrid-flowchart.mmd).
 
 ### What is a Policy Pack?
 
@@ -323,7 +341,7 @@ pytest
 clausegrid eval
 ```
 
-The current release passed 307 automated tests. Its frozen deterministic benchmark detects all 12
+The current release passed 311 automated tests. Its frozen deterministic benchmark detects all 12
 single-formula mutants, preserves all three clean controls, and detects the hard multi-error case.
 
 ## Benchmark results
