@@ -409,7 +409,7 @@ def test_completed_investigation_activity_and_narratives_are_compact() -> None:
     narrative_css = HTML.partition(".narrative-formula code {")[2].partition("}")[0]
     assert "max-height: min(240px, 40vh);" in activity_css and "overflow-y: auto;" in activity_css
     assert ".activity-done .activity-marker { background: var(--pass-soft);" in HTML
-    assert ".outcome-narrative { max-width: 760px; margin-top: 18px; }" in HTML
+    assert ".outcome-narrative { margin-top: 18px; }" in HTML
     assert ".verdict-narrative { margin-top: 18px; }" in HTML
     assert ".outcome-panel .patch > .patch-rationale { grid-column: 1 / -1;" in HTML
     assert "white-space: pre-wrap;" in narrative_css

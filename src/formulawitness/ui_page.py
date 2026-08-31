@@ -563,7 +563,7 @@ code { font-family: Consolas, monospace; font-size: var(--text-xs); word-break: 
 .outcome-head h2 { max-width: 760px; margin: 5px 0 0; font-family: Georgia, serif; font-size: clamp(24px, 2.4vw, 34px); letter-spacing: -.35px; line-height: 1.15; }
 .outcome-label, .narrative-label { color: var(--ink-soft); font-size: var(--text-xs); font-weight: 850; letter-spacing: .11em; text-transform: uppercase; }
 .outcome-body { max-width: 760px; margin: 18px 0 0; color: var(--ink-soft); font-size: var(--text-lead); line-height: 1.65; }
-.outcome-narrative { max-width: 760px; margin-top: 18px; }
+.outcome-narrative { margin-top: 18px; }
 .verdict-narrative { margin-top: 18px; }
 .narrative-lead { margin: 10px 0 0; color: var(--ink); font-size: var(--text-lead); line-height: 1.65; }
 .narrative-copy { margin: 10px 0 0; color: var(--ink-soft); font-size: var(--text-body); line-height: 1.65; }
