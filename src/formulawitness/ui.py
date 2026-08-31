@@ -739,7 +739,7 @@ def make_handler(
                     falsifier_max_context_chars=24_000,
                     manager_experiment_after_turns=10,
                     falsifier_experiment_after_turns=1,
-                    manager_experiment_attempt_limit=6,
+                    manager_experiment_attempt_limit=4,
                     falsifier_experiment_attempt_limit=6,
                     progress_callback=publish_progress,
                 )

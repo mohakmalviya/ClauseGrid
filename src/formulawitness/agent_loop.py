@@ -117,6 +117,7 @@ class ToolCallingAgent:
         self._candidate_attempted = False
         self._stage_failures_since_experiment = 0
         self._exception_scope_mode = False
+        self._experiment_dependency_recovery_root: str | None = None
         self.messages: list[ChatMessage] = [
             SystemMessage(content=system_prompt),
             UserMessage(content=goal),
@@ -307,6 +308,7 @@ class ToolCallingAgent:
                         self._register_observation(cache_key, call, envelope)
                         if call.name in {"policy_manifest", "workbook_manifest"}:
                             self._completed_one_shot_tools.add(call.name)
+                self._update_experiment_dependency_recovery(call, envelope)
                 self.trajectory.record_agent_event(
                     self.actor,
                     "TOOL_RESULT",
@@ -539,9 +541,14 @@ class ToolCallingAgent:
         experiment_mode: bool = False,
     ) -> tuple[ToolSpec, ...]:
         if experiment_mode:
-            tools = tuple(tool for tool in self.registry.specs if tool.name == "run_experiment")
+            tool_name = (
+                "inspect_dependencies"
+                if self._experiment_dependency_recovery_root
+                else "run_experiment"
+            )
+            tools = tuple(tool for tool in self.registry.specs if tool.name == tool_name)
             if len(tools) != 1:
-                raise RuntimeError("Agent experiment phase has no unique run_experiment tool")
+                raise RuntimeError(f"Agent experiment phase has no unique {tool_name} tool")
             return tools
         candidate_phase_names = self._candidate_phase_tool_names()
         if not final_turn and candidate_phase_names is not None:
@@ -603,6 +610,39 @@ class ToolCallingAgent:
         if limit is None:
             limit = 8 if self.actor == "audit-manager" else 4
         return self._tool_attempt_counts.get("run_experiment", 0) >= limit
+
+    def _update_experiment_dependency_recovery(
+        self,
+        call: ToolCall,
+        envelope: ToolEnvelope,
+    ) -> None:
+        if call.name == "run_experiment":
+            self._experiment_dependency_recovery_root = None
+            if envelope.ok or self._experiment_attempt_limit_reached():
+                return
+            prefix = "Value override cannot replace formula cell "
+            suffix = "; use formula_overrides"
+            error = envelope.error or ""
+            if prefix not in error or suffix not in error:
+                return
+            cell = error.split(prefix, 1)[1].split(suffix, 1)[0].strip()
+            sheet = call.arguments.get("sheet")
+            if not cell or ("!" not in cell and not isinstance(sheet, str)):
+                return
+            self._experiment_dependency_recovery_root = (
+                cell if "!" in cell else f"{sheet}!{cell}"
+            )
+        elif call.name == "inspect_dependencies" and envelope.ok:
+            roots = call.arguments.get("roots")
+            target = self._experiment_dependency_recovery_root
+            if (
+                target
+                and isinstance(roots, (list, tuple))
+                and len(roots) == 1
+                and isinstance(roots[0], str)
+                and roots[0].casefold() == target.casefold()
+            ):
+                self._experiment_dependency_recovery_root = None
 
     def _unavailable_progress_tools(self) -> set[str]:
         """Hide manager actions whose mechanical preconditions do not yet exist."""
@@ -700,7 +740,15 @@ class ToolCallingAgent:
                 "fail-closed terminal outcome rather than attempting more investigation."
             )
         elif experiment_mode:
-            if self._exception_scope_mode:
+            if self._experiment_dependency_recovery_root:
+                root = self._experiment_dependency_recovery_root
+                content = (
+                    f"The last sandbox request tried to use formula cell {root} as an input "
+                    f"value. Call inspect_dependencies for exactly {root} now. On the next "
+                    "turn, use upstream non-formula input cells for the experiment; never put "
+                    "a formula cell in value overrides."
+                )
+            elif self._exception_scope_mode:
                 content = (
                     "Registered policy evidence contains a waiver, exception, or unless-clause "
                     "that no executed experiment has tested. Run one cross-product sandbox "
@@ -981,11 +1029,14 @@ class ToolCallingAgent:
         return remaining <= self.terminal_tool_call_reserve + 2
 
     def _experiment_required(self, snapshot: AgentBudgetSnapshot) -> bool:
+        if self._experiment_attempt_limit_reached():
+            self._exception_scope_mode = False
+            return False
         self._exception_scope_mode = self._exception_scope_experiment_required(snapshot)
         if self._exception_scope_mode:
             return True
         threshold = self.require_experiment_after_turns
-        if threshold is None or self._experiment_attempt_limit_reached():
+        if threshold is None:
             return False
         state = getattr(self.registry, "state", None)
         if state is None:

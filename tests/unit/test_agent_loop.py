@@ -541,6 +541,100 @@ def test_controller_requires_experiment_after_bounded_discovery_turns(tmp_path: 
     assert "Run one discriminating sandbox experiment now" in notice
 
 
+def test_formula_cell_value_rejection_forces_dependency_recovery(tmp_path: Path) -> None:
+    terminal = {"done": False}
+
+    class RecoveryRegistry(ExperimentProgressRegistry):
+        def __init__(self) -> None:
+            super().__init__(terminal)
+            self.specs = (
+                _spec("inspect"),
+                _spec("inspect_dependencies"),
+                _spec("run_experiment"),
+                _spec("request_human"),
+            )
+            self.experiment_attempts = 0
+
+        def execute(self, call: ToolCall) -> ToolEnvelope:
+            if call.name == "run_experiment":
+                self.experiment_attempts += 1
+                if self.experiment_attempts == 1:
+                    return ToolEnvelope(
+                        ok=False,
+                        tool=call.name,
+                        error=(
+                            "Value override cannot replace formula cell L6; "
+                            "use formula_overrides"
+                        ),
+                        error_type="ExecutionFailed",
+                    )
+            return super().execute(call)
+
+    class RecoveryModel:
+        def __init__(self) -> None:
+            self.requests: list[ModelRequest] = []
+
+        def complete(self, request: ModelRequest) -> ModelTurn:
+            self.requests.append(request)
+            actions = (
+                ("inspect", {}),
+                ("inspect", {}),
+                (
+                    "run_experiment",
+                    {"sheet": "RebateCalc", "overrides": {"L6": 1}},
+                ),
+                ("inspect_dependencies", {"roots": ["RebateCalc!L6"]}),
+                (
+                    "run_experiment",
+                    {"sheet": "RebateCalc", "overrides": {"J6": 1}},
+                ),
+                ("request_human", {}),
+            )
+            name, arguments = actions[len(self.requests) - 1]
+            return ModelTurn(
+                model="dependency-recovery-test",
+                tool_calls=(
+                    ToolCall(
+                        call_id=f"recovery-{len(self.requests)}",
+                        name=name,
+                        arguments=arguments,
+                    ),
+                ),
+                finish_reason="tool_calls",
+                usage=ModelUsage(input_tokens=10, output_tokens=5, total_tokens=15),
+                elapsed_ms=1,
+            )
+
+    registry = RecoveryRegistry()
+    model = RecoveryModel()
+    loop = ToolCallingAgent(
+        actor="audit-manager",
+        model=model,
+        registry=cast(AgentToolRegistry, registry),
+        budget=AgentBudgetLedger(
+            AgentRuntimeLimits(6, 0, 6, 6, 2_000, 2_000, 2, 1, 30.0)
+        ),
+        trajectory=Trajectory(tmp_path / "trajectory.jsonl", "dependency-recovery"),
+        system_prompt="Recover safely from a formula-cell value override.",
+        goal="Inspect dependencies before retrying with actual input cells.",
+        prompt_version="dependency-recovery-v1",
+        is_terminal=lambda: terminal["done"],
+        terminal_tool_names=("request_human",),
+        require_experiment_after_turns=2,
+        experiment_attempt_limit=3,
+    )
+
+    loop.run()
+
+    assert [tool.name for tool in model.requests[3].tools] == ["inspect_dependencies"]
+    assert model.requests[3].tool_choice == NamedToolChoice(name="inspect_dependencies")
+    assert "RebateCalc!L6" in cast(str, model.requests[3].messages[-1].content)
+    assert [tool.name for tool in model.requests[4].tools] == ["run_experiment"]
+    assert model.requests[4].tool_choice == NamedToolChoice(name="run_experiment")
+    assert registry.experiment_attempts == 2
+    assert terminal["done"] is True
+
+
 def test_evidence_closes_broad_discovery_with_eighteen_manager_turns_reserved(
     tmp_path: Path,
 ) -> None:
@@ -1180,12 +1274,18 @@ def test_policy_exception_forces_cross_product_experiment_before_preservation(
         is_terminal=lambda: terminal["done"],
         terminal_tool_names=("request_human",),
         require_experiment_after_turns=1,
+        experiment_attempt_limit=4,
     )
     loop._tool_attempt_counts["run_experiment"] = 3
 
     assert loop._experiment_required(budget.snapshot())
     notice = loop._budget_notice(turns_remaining=7, experiment_mode=True)
     assert "cross-product" in cast(str, notice[0].content)
+
+    loop._tool_attempt_counts["run_experiment"] = 4
+    assert not loop._experiment_required(budget.snapshot())
+    assert not loop._exception_scope_mode
+    loop._tool_attempt_counts["run_experiment"] = 3
 
     registry.state.experiments["without-waiver"] = ExperimentEvidence(
         experiment_id="without-waiver",
