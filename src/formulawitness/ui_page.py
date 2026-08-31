@@ -436,7 +436,7 @@ button:hover:not(:disabled) { background: var(--action-dark); transform: transla
 button.secondary { border: 1px solid var(--line); background: #ece8df; color: var(--ink); }
 button.secondary:hover:not(:disabled) { background: #e3ded3; }
 button:disabled { cursor: not-allowed; opacity: .48; }
-.run-stage .primary-run { width: 100%; margin-top: 0; }
+#recurringPane .input-stage .primary-run { width: 100%; margin-top: 24px; }
 .actions { display: flex; gap: 9px; margin-top: 15px; }
 .actions #audit { flex: 1; }
 .run-note { min-height: 34px; margin-top: 11px; color: var(--ink-soft); font-size: var(--text-sm); line-height: 1.45; }
@@ -895,6 +895,8 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
               <label for="verifyCase">Controlled workbook version</label>
               <select id="verifyCase"></select>
               <p class="field-note">Choose M10 for the flagship demo. It contains a subtle waiver scope error that one approved regression check catches.</p>
+              <button class="primary-run" id="verifyPack">Run approved checks</button>
+              <div class="run-note" id="verifyMessage" role="status" aria-live="polite">Ready to replay the approved suite.</div>
             </div>
             <div class="run-stage" data-tour="run">
               <span class="stage-label">Deterministic verification</span>
@@ -905,8 +907,6 @@ td { padding: 12px 9px; border-bottom: 1px solid #e9e5dc; vertical-align: top; }
                 <div class="run-check"><i>✓</i><span>Never sends the workbook to a model</span></div>
                 <div class="run-check"><i>✓</i><span>Never edits the source workbook</span></div>
               </div>
-              <button class="primary-run" id="verifyPack">Run approved checks</button>
-              <div class="run-note" id="verifyMessage" role="status" aria-live="polite">Ready to replay the approved suite.</div>
             </div>
           </div>
           <div class="verify-result" id="verificationResult" data-tour="result" role="region" aria-label="Deterministic verification evidence" tabindex="-1">

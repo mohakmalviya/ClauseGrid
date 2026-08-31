@@ -528,7 +528,8 @@ def test_workbench_and_support_cards_do_not_reserve_unexplained_space() -> None:
     assert "min-height: 700px" not in HTML
     assert "display: flex;\n  align-items: center;\n  gap: 8px;\n  width: max-content;" in HTML
     assert ".run-stage { display: flex; flex-direction: column; min-height: 0;" in HTML
-    assert ".run-stage .primary-run { width: 100%; margin-top: 0; }" in HTML
+    assert "#recurringPane .input-stage .primary-run { width: 100%; margin-top: 24px; }" in HTML
+    assert HTML.index('id="verifyPack"') < HTML.index('<div class="run-stage" data-tour="run">')
     assert '</div>\n              <div class="investigation-controls" data-tour="run-ai">' in HTML
     controls_css = HTML.partition(".investigation-controls {")[2].partition("}")[0]
     assert "margin-top: auto;" in controls_css
